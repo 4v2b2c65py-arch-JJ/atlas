@@ -80,6 +80,12 @@ def _loop() -> None:
                 reply.put(_auto_login(ctx, *payload))
             elif kind == "forms":
                 reply.put(_extract_forms(ctx, *payload))
+            elif kind == "cookie":
+                name, value, domain = payload
+                ctx.add_cookies([{
+                    "name": name, "value": value,
+                    "domain": domain, "path": "/"}])
+                reply.put({"set": name, "domain": domain})
         except Exception as e:
             reply.put({"error": str(e)})
 
@@ -152,6 +158,12 @@ def render(url: str, wait_ms: int = 4000) -> dict:
     """Load a page in the guest session; return title, text excerpt,
     links, media URLs, and a screenshot."""
     return _submit("render", (url, wait_ms), timeout=120)
+
+
+def set_cookie(name: str, value: str, domain: str) -> dict:
+    """Set a cookie in the persistent guest context — used to pass
+    passkey/session identity into the bot's browser path."""
+    return _submit("cookie", (name, value, domain), timeout=30)
 
 
 USER_SEL = ("input[type=email],input[name*=user i],input[name*=mail i],"

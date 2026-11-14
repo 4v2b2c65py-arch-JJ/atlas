@@ -158,3 +158,191 @@ def list_all(site: str | None = None) -> dict:
     if site:
         return {"passkeys": data.get(site, [])}
     return {"passkeys": data}
+
+
+# ---- vid passkey analysis: audio transcription + keyphrase category --
+
+FFMPEG = None
+
+
+def _ffmpeg() -> str | None:
+    global FFMPEG
+    if FFMPEG is None:
+        try:
+            import imageio_ffmpeg
+            FFMPEG = imageio_ffmpeg.get_ffmpeg_exe()
+        except Exception:
+            FFMPEG = ""
+    return FFMPEG or None
+
+
+def _content_length(url: str) -> int:
+    try:
+        req = urllib.request.Request(url, method="HEAD", headers={
+            "User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=10) as r:
+            return int(r.headers.get("Content-Length") or 0)
+    except Exception:
+        return 0
+
+
+def identity_hash(url: str, kind: str = "") -> str:
+    """Stable content identity for cache matching: canonical url +
+    kind + size fingerprint."""
+    import hashlib
+    canon = url.split("?")[0].rstrip("/")
+    raw = f"{canon}|{kind}|{_content_length(url)}"
+    return hashlib.sha256(raw.encode()).hexdigest()[:16]
+
+
+def transcribe(url: str, seconds: int = 45) -> str | None:
+    """Extract audio via ffmpeg -> SpeechRecognition (Google Web
+    Speech). Returns transcript text or None."""
+    ff = _ffmpeg()
+    if not ff:
+        return None
+    import subprocess
+    import tempfile
+    import speech_recognition as sr
+    with tempfile.NamedTemporaryFile(suffix=".wav",
+                                     delete=False) as t:
+        wav = t.name
+    try:
+        subprocess.run(
+            [ff, "-y", "-t", str(seconds), "-i", url, "-vn",
+             "-ar", "16000", "-ac", "1", wav],
+            capture_output=True, timeout=seconds + 60)
+        if not Path(wav).stat().st_size:
+            return None
+        rec = sr.Recognizer()
+        with sr.AudioFile(wav) as src:
+            audio = rec.record(src)
+        try:
+            return rec.recognize_google(audio)
+        except sr.UnknownValueError:
+            return ""      # audio present, no speech detected
+        except sr.RequestError:
+            try:
+                return rec.recognize_sphinx(audio)
+            except Exception:
+                return ""
+    except Exception:
+        return None
+    finally:
+        try:
+            Path(wav).unlink()
+        except Exception:
+            pass
+
+
+def keyphrase_score(text: str, phrase: str) -> int:
+    """WordPress-style keyphrase scoring: occurrences, density,
+    and whether the phrase leads the transcript."""
+    if not text or not phrase:
+        return 0
+    t, p = text.lower(), phrase.lower().strip()
+    if not p:
+        return 0
+    words = t.split()
+    hits = t.count(p)
+    score = min(60, hits * 25)
+    if words and p in words[0]:
+        score += 20
+    density = hits / max(1, len(words))
+    score += min(20, int(density * 400))
+    return min(100, score)
+
+
+def _category(score: int, has_phrase: bool, has_audio: bool) -> str:
+    if not has_audio:
+        return "no-audio"
+    if not has_phrase:
+        return "ambient"
+    if score >= 50:
+        return "keyphrase-match"
+    if score >= 20:
+        return "keyphrase-partial"
+    return "keyphrase-miss"
+
+
+def analyze(url: str, keyphrase: str | None = None,
+            seconds: int = 45) -> dict:
+    """Transcribe a vid passkey's audio, score against keyphrase,
+    stamp identity hash + category, persist. Works on any direct
+    media URL — passkey or not."""
+    rec = {"url": url, "kind": _kind(url), "via": "",
+           "site": _site(url), "ts": time.time(), "verified": True}
+    ident = identity_hash(url, rec["kind"])
+    out = {"identity": ident, "kind": rec["kind"], "url": url}
+    if rec["kind"] != "vid":
+        out.update({"category": "img", "transcript": None,
+                    "keyphrase_score": 0})
+        return out
+    text = transcribe(url, seconds=seconds)
+    score = keyphrase_score(text or "", keyphrase or "")
+    cat = _category(score, bool(keyphrase), text is not None)
+    out.update({"category": cat, "transcript": (text or "")[:500],
+                "keyphrase_score": score})
+    # merge into store under the site so recall() sees it
+    data = _load()
+    site = rec["site"]
+    existing = next((r for r in data.get(site, [])
+                     if r.get("url") == url), None)
+    if existing:
+        existing.update({"identity": ident, "category": cat,
+                         "transcript": out["transcript"],
+                         "keyphrase_score": score})
+    else:
+        rec.update({"identity": ident, "category": cat,
+                    "transcript": out["transcript"],
+                    "keyphrase_score": score})
+        data.setdefault(site, []).insert(0, rec)
+        data[site] = data[site][:20]
+    _save()
+    _store[site] = data.get(site, [])
+    return out
+
+
+def find_by_hash(ident: str) -> dict | None:
+    """Cache identity match — find a stored passkey by content hash."""
+    for site, recs in _load().items():
+        for rec in recs:
+            if rec.get("identity") == ident:
+                return {"site": site, **rec}
+    return None
+
+
+def bind(site_or_url: str) -> dict:
+    """Pass passkey identity to the bot path as a cookie in the
+    persistent browser context: atlas_pk=<json identity payload>."""
+    import urllib.parse as up
+    data = _load()
+    raw = site_or_url if "://" in site_or_url \
+        else "https://" + site_or_url
+    site = _site(raw)
+    recs = data.get(site) or []
+    if not recs:
+        for s, rs in data.items():
+            if site in s or s in site:
+                site, recs = s, rs
+                break
+    if not recs:
+        return {"error": "no passkeys for site", "site": site}
+    # prefer analysed vid passkeys, then any vid, then img
+    rec = next((r for r in recs if r.get("kind") == "vid"
+                and r.get("identity")), None) \
+        or next((r for r in recs if r.get("kind") == "vid"), None) \
+        or recs[0]
+    payload = {"i": rec.get("identity") or identity_hash(
+                   rec["url"], rec.get("kind", "")),
+               "k": rec.get("kind", ""),
+               "c": rec.get("category", ""),
+               "s": rec.get("keyphrase_score", 0),
+               "u": rec["url"]}
+    value = up.quote(json.dumps(payload, separators=(",", ":")))
+    import browser
+    res = browser.set_cookie("atlas_pk", value,
+                             "." + site.split(":")[0])
+    return {"bound": site, "cookie": "atlas_pk",
+            "identity": payload["i"], "category": payload["c"],
+            "browser": res}

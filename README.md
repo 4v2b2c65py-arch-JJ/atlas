@@ -119,7 +119,7 @@ Optional: `ollama pull llama3.2` enables LLM query expansion/classification.
 | `/api/browser?url=` | GET | headless-Chromium guest-session render (title/text/links/media) |
 | `/api/browser` | POST | `{action: render\|auto\|guest_login\|auto_login\|forms\|sessions\|status\|close, ...}` — `auto` = LLM-planned browse, `guest_login`/`auto_login` = bot-driven form login with model field-mapping, sessions persisted to `data/browser_memory.json` |
 | `/api/passkeys?site=` | GET | recall a stored img/vid passkey for a walled host |
-| `/api/passkeys` | GET/POST | list all passkeys / `{action: harvest\|register\|list, url, ...}` — harvest renders a page, probes media candidates until one verifies, stores under `data/passkeys.json` |
+| `/api/passkeys` | GET/POST | list all passkeys / `{action: harvest\|register\|list\|analyze\|bind\|hash, url, site, keyphrase, ...}` — harvest renders a page, probes media candidates until one verifies, stores under `data/passkeys.json`; `analyze` transcribes vid audio (ffmpeg→STT), WordPress-style keyphrase-scores it, stamps an identity hash + category (`keyphrase-match`/`partial`/`miss`/`ambient`/`no-audio`/`img`); `bind` passes the identity to the bot path as an `atlas_pk` cookie in the persistent browser session |
 | `/api/ingest` | POST | `{uri/magnet/m3u8/mpd/url, title, tags}` |
 | `/api/discover` | POST | `{topic, n}` LLM query expansion → candidates |
 | `/api/auth/signup\|login\|logout` | POST | API key lifecycle |

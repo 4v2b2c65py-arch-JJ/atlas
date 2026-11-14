@@ -94,6 +94,12 @@ def bot_loop(name: str = "atlas-bot", interval: int = 45,
                         "action": "guest_login", "url": gl.get("url"),
                         "username": gl.get("username"),
                         "password": gl.get("password")})
+                    # passkey identity rides into the session as a cookie
+                    host = urllib.parse.urlsplit(
+                        gl.get("url") or "").netloc
+                    if host:
+                        _post("/api/passkeys", {
+                            "action": "bind", "site": host})
             feed = _get("/api/feed") or []
             videos = [v for v in feed
                       if v.get("src") not in seen] or feed

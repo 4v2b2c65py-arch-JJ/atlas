@@ -1520,12 +1520,37 @@ class Handler(BaseHTTPRequestHandler):
             elif u.path == "/api/passkeys":
                 action = body.get("action", "harvest")
                 url = body.get("url", "")
+                site = body.get("site", "")
                 if action == "register":
                     self._send(200, passkeys.register(
                         url, body.get("via", ""), body.get("kind")))
                 elif action == "list":
-                    self._send(200, passkeys.list_all(
-                        body.get("site") or None))
+                    self._send(200, passkeys.list_all(site or None))
+                elif action == "analyze":
+                    # transcribe vid passkey audio, score keyphrase,
+                    # stamp identity hash + wp-style category
+                    target = url or site
+                    if not target:
+                        self._send(400, {"error":
+                                         "url or site required"})
+                        return
+                    if site and not url:
+                        pk = passkeys.recall(site, "vid") or \
+                            passkeys.recall(site)
+                        if not pk:
+                            self._send(404, {"error":
+                                             "no passkey for site"})
+                            return
+                        target = pk
+                    self._send(200, passkeys.analyze(
+                        target, body.get("keyphrase"),
+                        int(body.get("seconds", 45))))
+                elif action == "bind":
+                    # pass passkey identity to bot path via cookie
+                    self._send(200, passkeys.bind(url or site))
+                elif action == "hash":
+                    self._send(200, {"identity": passkeys.identity_hash(
+                        url, body.get("kind", ""))})
                 else:
                     if not url:
                         self._send(400, {"error": "url required"})
