@@ -139,6 +139,7 @@ import passkeys  # noqa: E402
 import flowviz  # noqa: E402
 import twitch  # noqa: E402
 import sites  # noqa: E402
+import economy  # noqa: E402
 import catalogue  # noqa: E402
 import vision  # noqa: E402
 
@@ -1206,6 +1207,10 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/api/sites":
                 self._send(200, sites.list_sites())
                 return
+            if path == "/api/earn":
+                node = qs.get("node", [""])[0] or None
+                self._send(200, economy.status(node))
+                return
             if path == "/api/twitch":
                 self._send(200, twitch.status())
                 return
@@ -1287,6 +1292,11 @@ class Handler(BaseHTTPRequestHandler):
                 self.send_header("ETag", etag)
                 self.send_header("Cache-Control", "private, max-age=3600")
                 self.end_headers()
+                # economy: each stream hit is an impression earning
+                try:
+                    economy.record_play(rel)
+                except Exception:
+                    pass
                 self.wfile.write(data)
                 return
             if path.startswith("/web/") or path.startswith("/static/"):
@@ -1636,6 +1646,28 @@ class Handler(BaseHTTPRequestHandler):
                     self._send(200, tunnel.start())
                 else:
                     self._send(200, tunnel.status())
+            elif u.path == "/api/earn":
+                action = body.get("action", "status")
+                node = body.get("node", "") or None
+                if action == "revenue":
+                    # real revenue in: donation/sponsor/premium
+                    self._send(200, economy.revenue(
+                        float(body.get("amount", 0)),
+                        body.get("kind", "donation"), node,
+                        body.get("ref", ""),
+                        body.get("currency", "USD")))
+                elif action == "payout":
+                    self._send(200, economy.payout(
+                        node or "atlas",
+                        float(body.get("amount", 0)),
+                        body.get("method", "btc"),
+                        body.get("address", "")))
+                elif action == "settle":
+                    self._send(200, economy.settle(
+                        int(body.get("id", 0)), node or "atlas",
+                        body.get("tx", "")))
+                else:
+                    self._send(200, economy.status(node))
             elif u.path == "/api/browser":
                 action = body.get("action", "render")
                 if action == "status":

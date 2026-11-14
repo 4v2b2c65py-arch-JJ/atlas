@@ -148,6 +148,12 @@ def main() -> None:
     tl.add_argument("since", nargs="?"); tl.add_argument("until", nargs="?")
     tl.add_argument("--kind", default="")
     rp = sub.add_parser("replay"); rp.add_argument("at", type=float)
+    ea = sub.add_parser("earn")
+    ea.add_argument("action",
+                    choices=["status", "revenue", "payout", "settle"])
+    ea.add_argument("a1", nargs="?"); ea.add_argument("a2", nargs="?")
+    ea.add_argument("a3", nargs="?"); ea.add_argument("a4", nargs="?")
+
     au = sub.add_parser("auth")
     au.add_argument("action", choices=["signup", "login", "status"])
     au.add_argument("user", nargs="?"); au.add_argument("password", nargs="?")
@@ -352,6 +358,27 @@ def main() -> None:
                 kind=ns.kind or None))
     elif ns.cmd == "replay":
         out(get("/api/replay", at=ns.at))
+    elif ns.cmd == "earn":
+        a = ns.action
+        if a == "status":
+            out(get("/api/earn", node=ns.a1))
+        elif a == "revenue":
+            out(post("/api/earn", {"action": "revenue",
+                                   "amount": float(ns.a1 or 0),
+                                   "kind": ns.a2 or "donation",
+                                   "node": ns.a3 or "",
+                                   "ref": ns.a4 or ""}))
+        elif a == "payout":
+            out(post("/api/earn", {"action": "payout",
+                                   "amount": float(ns.a1 or 0),
+                                   "method": ns.a2 or "btc",
+                                   "address": ns.a3 or "",
+                                   "node": ns.a4 or ""}))
+        else:
+            out(post("/api/earn", {"action": "settle",
+                                   "id": int(ns.a1 or 0),
+                                   "node": ns.a2 or "",
+                                   "tx": ns.a3 or ""}))
     elif ns.cmd == "auth":
         if ns.action == "status":
             out(get("/api/auth/status"))
