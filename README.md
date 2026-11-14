@@ -82,8 +82,15 @@ Optional: `ollama pull llama3.2` enables LLM query expansion/classification.
   CNAME, and ingress, stores the connector token in
   `data/cloudflare.json`, and runs `cloudflared tunnel run --token`.
   The URL is fed to `social.set_public_base` automatically.
-- **Bot session** — `bot.py` autonomous node: comments on outlets and
-  telepathic self/peer DMs over the comms link (toggle in identity.json).
+- **Headless browser** — `browser.py` (Playwright Chromium, persistent
+  `data/browser_profile` guest session): renders JS/Cloudflare-gated
+  pages urllib can't reach, drives form logins (`guest_login`), and
+  runs LLM-planned browsing (`auto`). All jobs serialize on one
+  browser thread for thread-safety under the HTTP server.
+- **Bot session** — `bot.py` autonomous node: comments on outlets,
+  telepathic self/peer DMs over the comms link, and periodic
+  `guest_logins` from `identity.json → bot.guest_logins`
+  `[{name,url,username,password}]` (toggle in identity.json).
 - **LLM discovery** — `POST /api/discover {"topic": "..."}` expands a topic
   into diverse queries and merges web candidates.
 - **MCP server** — `atlas` stdio tools: probe, storage, resonance render,
@@ -109,6 +116,8 @@ Optional: `ollama pull llama3.2` enables LLM query expansion/classification.
 | `/api/social/post` | POST | `{platform, src|path, caption?}` publish a stored outlet |
 | `/api/tunnel` | GET/POST | tunnel status / `{action: configure\|named\|start\|stop\|restart\|discover}` |
 | `/api/auto` | GET | AUTO-01 spec state — `add 1` counter ticking every 30s, SSE `auto` events |
+| `/api/browser?url=` | GET | headless-Chromium guest-session render (title/text/links/media) |
+| `/api/browser` | POST | `{action: render\|auto\|guest_login\|status\|close, ...}` — `auto` = LLM-planned browse, `guest_login` = bot-driven form login |
 | `/api/ingest` | POST | `{uri/magnet/m3u8/mpd/url, title, tags}` |
 | `/api/discover` | POST | `{topic, n}` LLM query expansion → candidates |
 | `/api/auth/signup\|login\|logout` | POST | API key lifecycle |

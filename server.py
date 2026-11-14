@@ -78,6 +78,7 @@ import manga  # noqa: E402
 import aniwatch  # noqa: E402
 import social  # noqa: E402
 import tunnel  # noqa: E402
+import browser  # noqa: E402
 import catalogue  # noqa: E402
 import vision  # noqa: E402
 
@@ -1042,6 +1043,17 @@ class Handler(BaseHTTPRequestHandler):
                 self._send(200, {"spec": "AUTO-01", "rule": "add 1",
                                  **state})
                 return
+            if path == "/api/browser":
+                url = qs.get("url", [""])[0]
+                if not url:
+                    self._send(200, browser.status())
+                    return
+                r = browser.render(url, wait_ms=int(
+                    qs.get("wait", ["4000"])[0] or 4000))
+                if qs.get("shot", ["0"])[0] != "1":
+                    r.pop("screenshot", None)
+                self._send(200, r)
+                return
             if path == "/api/wishlist":
                 # unresolved community descriptors — peers poll this and
                 # resolve what they can (torrent client, local rips)
@@ -1428,6 +1440,42 @@ class Handler(BaseHTTPRequestHandler):
                     self._send(200, tunnel.start())
                 else:
                     self._send(200, tunnel.status())
+            elif u.path == "/api/browser":
+                action = body.get("action", "render")
+                if action == "status":
+                    self._send(200, browser.status())
+                elif action == "close":
+                    browser.close()
+                    self._send(200, {"closed": True})
+                elif action == "auto":
+                    task = body.get("task", "")
+                    if not task:
+                        self._send(400, {"error": "task required"})
+                        return
+                    prof = identity.load_profile()
+                    model = llm.pick_model(prof) or "llama3.2"
+                    fn = lambda p: llm._chat(model, p)  # noqa: E731
+                    r = browser.model_automate(task, fn)
+                    self._send(200, r)
+                elif action == "guest_login":
+                    url = body.get("url", "")
+                    user = body.get("username", "")
+                    pw_ = body.get("password", "")
+                    if not (url and user):
+                        self._send(400, {"error":
+                                         "url+username required"})
+                        return
+                    self._send(200, browser.guest_login(url, user, pw_))
+                else:
+                    url = body.get("url", "")
+                    if not url:
+                        self._send(400, {"error": "url required"})
+                        return
+                    r = browser.render(url, wait_ms=int(
+                        body.get("wait_ms", 4000)))
+                    if not body.get("shot"):
+                        r.pop("screenshot", None)
+                    self._send(200, r)
             elif u.path == "/api/discover":
                 # LLM expands a topic into diverse queries, ytsearch each,
                 # merge candidates — grows reach without dead-ending
@@ -1504,7 +1552,8 @@ def main():
                 target=bot.bot_loop,
                 args=(bot_cfg.get("name", "atlas-bot"),
                       int(bot_cfg.get("interval_s", 45)),
-                      bool(bot_cfg.get("self_chat", True))),
+                      bool(bot_cfg.get("self_chat", True)),
+                      bot_cfg.get("guest_logins")),
                 daemon=True).start()
             print(f"Bot        -> {bot_cfg.get('name','atlas-bot')} "
                   f"every {bot_cfg.get('interval_s',45)}s")

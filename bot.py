@@ -78,11 +78,22 @@ def _llm_comment(title: str, categories: list) -> str:
 
 
 def bot_loop(name: str = "atlas-bot", interval: int = 45,
-             self_chat: bool = True):
-    """Main loop: comment on outlets, send telepathic self/peer DMs."""
+             self_chat: bool = True, guest_logins: list | None = None):
+    """Main loop: comment on outlets, send telepathic self/peer DMs,
+    and drive guest logins through the headless browser session."""
     seen = set()
+    cycle = 0
+    guest_logins = guest_logins or []
     while True:
+        cycle += 1
         try:
+            # guest sessions: retry each configured login every ~10 cycles
+            if guest_logins and cycle % 10 == 1:
+                for gl in guest_logins:
+                    _post("/api/browser", {
+                        "action": "guest_login", "url": gl.get("url"),
+                        "username": gl.get("username"),
+                        "password": gl.get("password")})
             feed = _get("/api/feed") or []
             videos = [v for v in feed
                       if v.get("src") not in seen] or feed
