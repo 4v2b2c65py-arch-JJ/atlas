@@ -600,6 +600,41 @@ def stream_tuner():
             pass
 
 
+def community_sync():
+    """Gossip loop: pull peer wishlists + resolved maps so community
+    descriptors (magnet/peer/hls) get resolved across the mesh.
+    Any hub with a resolver publishes via POST /api/resolve; everyone
+    else adopts the fetchable URL into catalogue.d + peer pool."""
+    while True:
+        time.sleep(120)
+        for base in peer_hubs():
+            try:
+                req = urllib.request.Request(
+                    base.rstrip("/") + "/api/resolved",
+                    headers={"User-Agent": "ATLAS-peer/1.0"})
+                with urllib.request.urlopen(req, timeout=10) as r:
+                    remote = json.loads(r.read()).get("resolved", {})
+                local = load_json(DATA / "resolved.json", {})
+                changed = False
+                for k, rec in remote.items():
+                    if k not in local and str(rec.get("url", "")).startswith("http"):
+                        local[k] = rec
+                        ingest.ingest({"title": rec.get("title", k),
+                                       "url": rec["url"],
+                                       "tags": rec.get("tags", []),
+                                       "source": "community",
+                                       "node": rec.get("resolved_by", base)})
+                        register_peer_url(rec["url"], rec.get("title", k),
+                                          rec.get("tags", []),
+                                          "community-resolved")
+                        changed = True
+                if changed:
+                    save_json(DATA / "resolved.json", local)
+                    broadcast("peers", {"resolved_count": len(local)})
+            except Exception:
+                pass
+
+
 def node_status() -> dict:
     import shutil
     profile = identity.load_profile()
@@ -623,6 +658,11 @@ def node_status() -> dict:
             "videos_indexed": len(video_files()),
             "peer_urls": len(peer_pool()),
             "ingested_outlets": len(ingest.extra_catalogue()),
+            "community": {
+                "wishlist": sum(1 for e in ingest.extra_catalogue()
+                                if not e.get("fetchable")),
+                "resolved": len(load_json(DATA / "resolved.json", {})),
+            },
             "api_keys": api_keys.status()["users"],
             "tuner": {**_tuner_state,
                       "enabled": bool(identity.load_profile()
@@ -844,6 +884,18 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/api/auth/status":
                 self._send(200, api_keys.status())
                 return
+            if path == "/api/wishlist":
+                # unresolved community descriptors — peers poll this and
+                # resolve what they can (torrent client, local rips)
+                want = [e for e in ingest.extra_catalogue()
+                        if not e.get("fetchable")]
+                self._send(200, {"wishlist": want})
+                return
+            if path == "/api/resolved":
+                # what this hub has resolved for others
+                done = load_json(DATA / "resolved.json", {})
+                self._send(200, {"resolved": done})
+                return
             if path == "/api/catalogue":
                 extra = ingest.extra_catalogue()
                 by_type = {}
@@ -1063,6 +1115,31 @@ class Handler(BaseHTTPRequestHandler):
                         if isinstance(e, dict)]})
                 else:
                     self._send(200, ingest.ingest(body))
+            elif u.path == "/api/resolve":
+                # a peer publishes a resolution for a community descriptor
+                # (magnet/peer/hls) -> fetchable URL joins the shared pool
+                url = (body.get("url") or "").strip()
+                if not url.startswith("http"):
+                    self._send(400, {"error": "http url required"})
+                    return
+                key = (body.get("key") or body.get("magnet")
+                       or body.get("title") or url)[:200]
+                rec = {"key": key, "url": url,
+                       "title": body.get("title") or key,
+                       "tags": body.get("tags", []),
+                       "resolved_by": body.get("node") or self._sid,
+                       "ts": time.time()}
+                with _lock:
+                    res = load_json(DATA / "resolved.json", {})
+                    res[key] = rec
+                    save_json(DATA / "resolved.json", res)
+                ingest.ingest({"title": rec["title"], "url": url,
+                               "tags": rec["tags"], "source": "community",
+                               "node": rec["resolved_by"]})
+                register_peer_url(url, rec["title"], rec["tags"],
+                                  "community-resolved")
+                broadcast("peers", {"resolved": rec})
+                self._send(200, {"resolved": rec})
             elif u.path == "/api/discover":
                 # LLM expands a topic into diverse queries, ytsearch each,
                 # merge candidates — grows reach without dead-ending
@@ -1104,6 +1181,7 @@ def main():
           f"radio={beacon_info['wifi'].get('radio')} "
           f"freq={beacon_info['wifi'].get('frequency_mhz')}MHz")
     threading.Thread(target=stream_tuner, daemon=True).start()
+    threading.Thread(target=community_sync, daemon=True).start()
     srv.serve_forever()
 
 

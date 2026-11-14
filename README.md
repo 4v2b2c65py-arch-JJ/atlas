@@ -47,6 +47,10 @@ Optional: `ollama pull llama3.2` enables LLM query expansion/classification.
   `api.auth_required` enforcement via `X-ATLAS-Key`.
 - **Stream ingest** — `POST /api/ingest` accepts `url`, `uri`, `magnet:`,
   `.m3u8`, `.mpd`, peer URIs; auto-classified into `catalogue.d/<type>/`.
+- **Community resolution** — magnets/peer links go on `/api/wishlist`;
+  any hub with a resolver publishes the fetchable URL via
+  `POST /api/resolve`, and `community_sync` gossips resolutions across
+  the mesh every 2 min into `catalogue.d/` + the peer pool.
 - **LLM discovery** — `POST /api/discover {"topic": "..."}` expands a topic
   into diverse queries and merges web candidates.
 - **MCP server** — `atlas` stdio tools: probe, storage, resonance render,
@@ -65,6 +69,9 @@ Optional: `ollama pull llama3.2` enables LLM query expansion/classification.
 | `/api/auth/signup\|login\|logout` | POST | API key lifecycle |
 | `/api/auth/status` | GET | key/user inventory |
 | `/api/catalogue` | GET | builtin + ingested outlets by type |
+| `/api/wishlist` | GET | unresolved community descriptors (magnet/peer/hls) |
+| `/api/resolved` | GET | community resolutions published by peers |
+| `/api/resolve` | POST | `{key/magnet, url}` publish a resolution → shared pool |
 | `/api/uptime` | POST | `{urls[]}` reachability probe |
 | `/api/peers` | GET/POST | peer URL pool / hub registry |
 | `/api/events` | GET | SSE: engage, comms, fetched, peers |
