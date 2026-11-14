@@ -1,0 +1,1111 @@
+"""ATLAS stream hub — local web server for the video outlet feed.
+
+Real-time: SSE event stream, session cookies, HTTP-cacheable streams.
+Peers: discovered outlet URLs are exchanged and merged into a shared pool.
+Search: LLM-expanded queries -> local match -> uptime-checked candidates
+-> auto-fetch through the same store pipeline.
+
+Endpoints:
+  GET  /                     -> web/index.html (Vue app)
+  GET  /api/events           -> SSE stream (engage/comms/fetched/node)
+  GET  /api/feed?q=&cat=     -> video outlet cards (store-sorted)
+  GET  /api/search?q=&fetch= -> smart search + catalogue/peer auto-fetch
+  GET  /api/uptime           -> POST {urls:[...]} probe candidate URLs
+  GET/POST /api/peers        -> peer registry + discovered URL pool
+  GET  /api/stream?path=     -> video file bytes (ETag cached)
+  GET  /api/node             -> receiver/processor status
+  GET  /api/ip               -> caller IP + server LAN IPs
+  GET/POST /api/engage       -> likes/comments/reposts (shared state)
+  GET/POST /api/comms        -> direct messages between nodes
+"""
+
+import concurrent.futures
+import json
+import mimetypes
+import queue
+import socket
+import sys
+import threading
+import time
+import urllib.parse
+import urllib.request
+import uuid
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
+
+ROOT = Path(__file__).parent
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+WEB = ROOT / "web"
+DATA = ROOT / "data"
+STORE = ROOT / "videos" / "store"
+DATA.mkdir(exist_ok=True)
+
+_FETCH_LOCK = threading.Lock()
+
+
+def _serialized(fn):
+    """Serialize fetch+store so tuner/search/peer fetches can't race
+    on the same inbox files."""
+    import functools
+
+    @functools.wraps(fn)
+    def w(*a, **k):
+        with _FETCH_LOCK:
+            return fn(*a, **k)
+    return w
+
+ENGAGE_PATH = DATA / "engagement.json"
+COMMS_PATH = DATA / "comms.json"
+FEED_CACHE = DATA / "feed_cache.json"
+PEERS_PATH = DATA / "peer_urls.json"
+_lock = threading.Lock()
+_started = time.time()
+_clients: dict[str, float] = {}
+_requests = 0
+_subs: list[queue.Queue] = []
+_uptime_cache: dict[str, tuple[float, dict]] = {}
+UPTIME_TTL = 120
+
+import api_keys  # noqa: E402
+import beacon  # noqa: E402
+import identity  # noqa: E402
+import ingest  # noqa: E402
+import llm  # noqa: E402
+import catalogue  # noqa: E402
+import vision  # noqa: E402
+
+
+# ---------- small utils ----------
+
+def load_json(path: Path, default):
+    try:
+        return json.loads(path.read_text())
+    except Exception:
+        return default
+
+
+def save_json(path: Path, obj):
+    path.write_text(json.dumps(obj, indent=1))
+
+
+def lan_ips() -> list[str]:
+    ips = {"127.0.0.1"}
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ips.add(s.getsockname()[0])
+        s.close()
+    except Exception:
+        pass
+    return sorted(ips)
+
+
+def broadcast(kind: str, data):
+    msg = f"event: {kind}\ndata: {json.dumps(data)}\n\n"
+    for q in list(_subs):
+        try:
+            q.put_nowait(msg)
+        except queue.Full:
+            pass
+
+
+# ---------- media index ----------
+
+def video_files() -> list[Path]:
+    files = []
+    if STORE.exists():
+        for p in STORE.rglob("*"):
+            if p.suffix.lower() in (".mp4", ".webm", ".mov", ".mkv"):
+                files.append(p)
+    return files
+
+
+def probe_cached(path: Path) -> dict:
+    cache = load_json(FEED_CACHE, {})
+    key = str(path)
+    st = path.stat()
+    if key in cache and cache[key].get("mtime") == st.st_mtime \
+            and cache[key].get("size") == st.st_size \
+            and "tags" in cache[key]:
+        return cache[key]
+    import cv2
+    cap = cv2.VideoCapture(str(path))
+    meta = {
+        "width": int(cap.get(cv2.CAP_PROP_FRAME_WIDTH)),
+        "height": int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT)),
+        "fps": round(cap.get(cv2.CAP_PROP_FPS), 2),
+        "frames": int(cap.get(cv2.CAP_PROP_FRAME_COUNT)),
+    }
+    cap.release()
+    meta["duration"] = round(meta["frames"] / meta["fps"], 2) if meta["fps"] else 0
+    meta["category"] = path.parent.name if path.parent != STORE else "misc"
+    meta["name"] = path.stem
+    meta["tags"] = sorted(set(
+        meta["name"].replace("_", " ").replace("-", " ").lower().split()
+    ) | {meta["category"]})
+    meta["size"] = st.st_size
+    meta["mtime"] = st.st_mtime
+    cache[key] = meta
+    save_json(FEED_CACHE, cache)
+    return meta
+
+
+def feed(q: str = "", cat: str = "", keywords: list | None = None) -> list[dict]:
+    items = []
+    terms = [t.lower() for t in (keywords or [q])] if (keywords or q) else []
+    for p in video_files():
+        try:
+            meta = probe_cached(p)
+        except Exception:
+            continue
+        meta["src"] = str(p.relative_to(ROOT))
+        if cat and cat != "all" and meta["category"] != cat:
+            continue
+        if terms:
+            hay = " ".join([meta["name"], meta["category"],
+                            " ".join(meta["tags"])]).lower()
+            hits = 0
+            for t in terms:
+                toks = [w for w in t.split() if len(w) > 2]
+                if t in hay or sum(1 for w in toks if w in hay) >= max(1, (len(toks) + 1) // 2):
+                    hits += 1
+            if hits == 0:
+                continue
+            meta["_score"] = hits
+        items.append(meta)
+    items.sort(key=lambda m: (-m.get("_score", 0), -m["mtime"]))
+    for m in items:
+        m.pop("_score", None)
+    return items
+
+
+# ---------- candidates: catalogue + peer pool ----------
+
+def peer_pool() -> list[dict]:
+    """URLs discovered by peers/self, as pseudo-catalogue entries."""
+    pool = load_json(PEERS_PATH, {})
+    out = []
+    for url, meta in pool.items():
+        slug = url.split("/")[-1].rsplit(".", 1)[0].replace("_", " ").replace("-", " ")
+        out.append({
+            "title": meta.get("title") or slug,
+            "url": url,
+            "tags": meta.get("tags", []) + slug.lower().split(),
+            "size_mb": meta.get("size_mb", 10),
+            "peer": meta.get("source", "peer"),
+        })
+    return out
+
+
+def all_candidates(keywords: list[str]) -> list[dict]:
+    """Catalogue entries + peer pool, tag-scored against query keywords."""
+    cands = [{**e, "origin": "catalogue"} for e in catalogue.CATALOGUE]
+    cands += [{**e, "origin": "ingested"} for e in ingest.extra_catalogue()]
+    cands += [{**e, "origin": "peer"} for e in peer_pool()]
+    kws = [k.lower() for k in keywords]
+    for c in cands:
+        hay = " ".join([c["title"], " ".join(c["tags"])]).lower()
+        c["_score"] = sum(
+            1 for k in kws
+            if k in hay or any(w in hay for w in k.split() if len(w) > 2)
+        )
+    return sorted(cands, key=lambda c: -c["_score"])
+
+
+def check_uptimes(urls: list[str]) -> dict:
+    """Concurrent HEAD probes with TTL cache."""
+    now = time.time()
+    todo = [u for u in urls if u not in _uptime_cache
+            or now - _uptime_cache[u][0] > UPTIME_TTL]
+
+    UA = {"User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X) AtlasHub/1.0"}
+
+    def probe(u):
+        t0 = time.time()
+        try:
+            req = urllib.request.Request(u, method="HEAD", headers=UA)
+            with urllib.request.urlopen(req, timeout=8) as r:
+                return u, {"ok": 200 <= r.status < 400, "status": r.status,
+                           "ms": int((time.time() - t0) * 1000)}
+        except Exception:
+            # HEAD rejected -> ranged GET
+            try:
+                req = urllib.request.Request(
+                    u, headers={**UA, "Range": "bytes=0-0"})
+                with urllib.request.urlopen(req, timeout=8) as r:
+                    return u, {"ok": True, "status": r.status,
+                               "ms": int((time.time() - t0) * 1000)}
+            except Exception as e2:
+                return u, {"ok": False, "error": str(e2)[:120],
+                           "ms": int((time.time() - t0) * 1000)}
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=8) as ex:
+        for u, res in ex.map(probe, todo):
+            _uptime_cache[u] = (now, res)
+    return {u: _uptime_cache.get(u, (0, {}))[1] for u in urls}
+
+
+def register_peer_url(url: str, title: str, tags: list, source: str):
+    with _lock:
+        pool = load_json(PEERS_PATH, {})
+        pool[url] = {"title": title, "tags": tags, "source": source,
+                     "ts": time.time()}
+        # cap pool size, evict oldest
+        if len(pool) > 500:
+            for k in sorted(pool, key=lambda k: pool[k].get("ts", 0))[:len(pool) - 500]:
+                pool.pop(k, None)
+        save_json(PEERS_PATH, pool)
+
+
+def restash_if_poor(stored: dict) -> dict:
+    """Never drop usable content: gate-rejected items get upscaled when
+    resolution is the problem, otherwise re-filed with the score gate
+    bypassed. Only hard failures (probe/dimensions/bytes) stay rejected."""
+    if not stored or "rejected" not in stored.get("categories", []):
+        return stored
+    path = stored.get("stored")
+    if not path or not Path(path).exists():
+        return stored
+    import upscale
+    try:
+        poor = upscale.needs_upscale(path)
+    except Exception:
+        poor = False
+    if poor:
+        up = upscale.upscale_video(path)
+        if up:
+            rest = identity.store_file(str(up), skip_score_gate=True)
+            Path(path).unlink(missing_ok=True)
+            up.unlink(missing_ok=True)
+            return {**rest, "upscaled": True}
+    try:
+        rest = identity.store_file(path, skip_score_gate=True)
+    except Exception:
+        return stored
+    if rest.get("stored") and rest["stored"] != path:
+        Path(path).unlink(missing_ok=True)  # remove the rejected copy
+    return {**rest, "restashed": True}
+
+
+@_serialized
+def fetch_url(entry: dict) -> dict | None:
+    """Download one candidate through curl -> inbox -> identity store."""
+    import subprocess
+    import shutil
+    need = int(entry.get("size_mb", 10) * 1e6 * 1.2)
+    if need > shutil.disk_usage(ROOT).free * 0.5:
+        return {"error": "storage gate", "title": entry["title"]}
+    inbox = ROOT / "videos" / "inbox"
+    inbox.mkdir(parents=True, exist_ok=True)
+    safe = "".join(c if c.isalnum() or c in "-_" else "_"
+                   for c in entry["title"])[:80]
+    dest = inbox / f"{safe}.mp4"
+    r = subprocess.run(
+        ["curl", "-fL", "--retry", "1", "--max-time", "300",
+         "-o", str(dest), entry["url"]],
+        capture_output=True)
+    if r.returncode != 0 or not dest.exists() or dest.stat().st_size < 10000:
+        dest.unlink(missing_ok=True)
+        return {"error": "download failed", "title": entry["title"]}
+    stored = restash_if_poor(identity.store_file(str(dest),
+                                               skip_score_gate=True))
+    dest.unlink(missing_ok=True)  # inbox is transient; store copy is canonical
+    register_peer_url(entry["url"], entry["title"], entry.get("tags", []),
+                      entry.get("origin", "self"))
+    return {"title": entry["title"], "url": entry["url"],
+            "stored": stored.get("stored"),
+            "categories": stored.get("categories"),
+            "size_mb": entry.get("size_mb")}
+
+
+YTDLP = str(ROOT / ".venv" / "bin" / "yt-dlp")
+PEER_HUBS_PATH = DATA / "peer_hubs.json"
+CLIP_SECONDS = 60  # every fetch becomes a stream-length clip
+
+
+def ffmpeg_ok() -> bool:
+    import subprocess
+    try:
+        return subprocess.run(["ffmpeg", "-version"], capture_output=True,
+                              timeout=10).returncode == 0
+    except Exception:
+        return False
+
+
+def ytsearch(query: str, n: int = 5) -> list[dict]:
+    """Real web reach: YouTube search via yt-dlp flat playlist."""
+    import subprocess
+    try:
+        r = subprocess.run(
+            [YTDLP, "--flat-playlist", "--dump-single-json",
+             f"--playlist-end", str(n), f"ytsearch{n}:{query}"],
+            capture_output=True, text=True, timeout=60)
+        if r.returncode != 0:
+            return []
+        data = json.loads(r.stdout)
+        out = []
+        for e in data.get("entries", []):
+            # skip livestreams/upcoming — they can't be clipped offline
+            live = str(e.get("live_status") or "").lower()
+            if e.get("is_live") or live in ("is_live", "is_upcoming"):
+                continue
+            dur = e.get("duration") or 0
+            title = e.get("title", "")
+            url = e.get("webpage_url") or e.get("url") or ""
+            if url and not url.startswith("http"):
+                url = f"https://www.youtube.com/watch?v={url}"
+            out.append({
+                "title": title,
+                "url": url,
+                "duration": dur,
+                "clip_seconds": min(dur, CLIP_SECONDS) if dur else CLIP_SECONDS,
+                "uploader": e.get("uploader") or e.get("channel"),
+                "tags": title.lower().split()[:12],
+                "origin": "web",
+                "size_mb": 8,
+            })
+        return [c for c in out if c["url"]]
+    except Exception:
+        return []
+
+
+@_serialized
+def fetch_youtube(entry: dict) -> dict | None:
+    """Download a web result through yt-dlp -> inbox -> identity store."""
+    import subprocess
+    import shutil
+    # without ffmpeg we can't section-cut; refuse very long sources
+    if not ffmpeg_ok() and entry.get("duration", 0) > 900:
+        return {"error": "source too long (ffmpeg needed for clip cut)",
+                "title": entry["title"]}
+    inbox = ROOT / "videos" / "inbox"
+    inbox.mkdir(parents=True, exist_ok=True)
+    safe = "".join(c if c.isalnum() or c in "-_" else "_"
+                   for c in entry["title"])[:60] or "webclip"
+    dest = inbox / f"{safe}.mp4"
+    has_ff = ffmpeg_ok()
+    # without ffmpeg: single-file progressive format only (no merge/remux)
+    fmt = ("bv*[height<=720]+ba/b[height<=720]/b" if has_ff
+           else "b[height<=720]/b")
+    base = [YTDLP, "--no-playlist", "--socket-timeout", "30"]
+    attempts = []
+    if has_ff:
+        attempts.append(
+            ["-f", "bv*[height<=720][ext=mp4]+ba[ext=m4a]/b[height<=720][ext=mp4]"
+                  "/b[ext=mp4]/b[height<=720]/b",
+             "--merge-output-format", "mp4", "--remux-video", "mp4",
+             "--download-sections",
+             f"*00:00:00-00:{CLIP_SECONDS // 60:02d}:{CLIP_SECONDS % 60:02d}"])
+    else:
+        attempts.append(["-f", "b[height<=720][ext=mp4]/b[ext=mp4]/b"])
+    attempts.append([])  # last resort: yt-dlp default format
+    r = None
+    for extra in attempts:
+        for p in inbox.glob(f"{safe}.*"):
+            p.unlink(missing_ok=True)
+        r = subprocess.run(base + extra +
+                           ["-o", str(dest.with_suffix("")) + ".%(ext)s",
+                            entry["url"]],
+                           capture_output=True, text=True, timeout=600)
+        vids = [p for p in inbox.glob(f"{safe}.*")
+                if p.suffix.lower() in (".mp4", ".mkv", ".webm")
+                and p.stat().st_size > 50000]
+        if vids:
+            break
+    # yt-dlp may append ext; find the produced file
+    produced = list(inbox.glob(f"{safe}.*"))
+    pref = {".mp4": 0, ".mov": 1, ".mkv": 2, ".webm": 3}
+    vids = sorted((p for p in produced
+                   if p.suffix.lower() in pref),
+                  key=lambda p: pref[p.suffix.lower()])
+    video = vids[0] if vids else None
+    if not video or video.stat().st_size < 50000:
+        for p in produced:
+            p.unlink(missing_ok=True)
+        return {"error": "yt-dlp failed", "title": entry["title"],
+                "stderr": (r.stderr or "")[-300:]}
+    if shutil.disk_usage(ROOT).free < video.stat().st_size * 2:
+        video.unlink(missing_ok=True)
+        return {"error": "storage gate", "title": entry["title"]}
+    stored = restash_if_poor(identity.store_file(str(video),
+                                               skip_score_gate=True))
+    for p in produced:
+        if p != video:
+            p.unlink(missing_ok=True)
+    video.unlink(missing_ok=True)  # inbox transient; store is canonical
+    register_peer_url(entry["url"], entry["title"], entry.get("tags", []),
+                      "web")
+    return {"title": entry["title"], "url": entry["url"],
+            "origin": "web", "uploader": entry.get("uploader"),
+            "stored": stored.get("stored"),
+            "categories": stored.get("categories")}
+
+
+def fetch_any_url(url: str, title: str | None = None) -> dict:
+    """Reach ANY outlet: yt-dlp handles 700+ sites + direct files;
+    curl fallback for plain media URLs."""
+    slug = title or url.split("/")[-1].rsplit(".", 1)[0] or "outlet"
+    entry = {"title": slug, "url": url, "tags": slug.lower().split(),
+             "origin": "direct", "size_mb": 50,
+             "uploader": url.split("/")[2] if "://" in url else ""}
+    res = fetch_youtube(entry)
+    if res and "error" not in res:
+        return res
+    res2 = fetch_url(entry)
+    if res2 and "error" not in res2:
+        return res2
+    return res or res2 or {"error": "unreachable", "url": url}
+
+
+def peer_hubs() -> list[str]:
+    hubs = load_json(PEER_HUBS_PATH, [])
+    return [h for h in hubs if isinstance(h, str) and h.startswith("http")]
+
+
+def relay_query(query: str) -> list[dict]:
+    """Transmit the query to peer hubs; merge their outlet results.
+    This is the 'frequency over the network' — peers answer with what
+    they already stock."""
+    import concurrent.futures
+    hubs = peer_hubs()
+    if not hubs:
+        return []
+
+    def ask(base):
+        try:
+            req = urllib.request.Request(
+                base.rstrip("/") + "/api/feed?q=" + urllib.parse.quote(query),
+                headers={"User-Agent": "ATLAS-peer/1.0"})
+            with urllib.request.urlopen(req, timeout=8) as r:
+                return json.loads(r.read())
+        except Exception:
+            return []
+
+    merged = []
+    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as ex:
+        for items in ex.map(ask, hubs):
+            for it in items if isinstance(items, list) else []:
+                it["peer_hub"] = True
+                merged.append(it)
+    return merged
+
+
+def fetch_for_query(query: str, keywords: list[str]) -> dict:
+    """Smart reach: real web search (ytsearch) first, then catalogue+peer
+    candidates with uptime checks. Auto-fetches through the store pipeline."""
+    # --- 1) real network reach: YouTube/web video search ---
+    web = ytsearch(query, 5)
+    existing = {p.stem.lower() for p in video_files()}
+    web = [w for w in web
+           if "".join(c if c.isalnum() or c in "-_" else "_"
+                      for c in w["title"])[:60].lower() not in existing]
+    if not ffmpeg_ok():
+        # no ffmpeg → can't clip long sources; only short ones are fetchable
+        web_fetchable = [w for w in web if w.get("duration", 0) <= 900]
+    else:
+        web_fetchable = web
+    if web_fetchable:
+        pick = llm.match_catalogue(query, {"keywords": keywords},
+                                   web_fetchable) or web_fetchable[0]
+        fetched = fetch_youtube(pick)
+        broadcast("fetched", {"q": query, "fetched": fetched})
+        web_cands = [{"title": w["title"], "uploader": w.get("uploader"),
+                      "duration": w.get("duration"), "url": w["url"],
+                      "origin": "web"} for w in web]
+        if fetched and "error" not in fetched:
+            return {"query": query, "expanded_keywords": keywords,
+                    "fetched": fetched, "origin": "web",
+                    "web_candidates": web_cands}
+        web_note = fetched
+    else:
+        web_cands = []
+        web_note = {"note": "web search empty"}
+
+    # --- 2) catalogue + peer pool fallback: only genuinely relevant hits ---
+    cands = all_candidates(keywords or [query])
+    top = [c for c in cands if c["_score"] > 0][:8]
+    if not top:
+        return {"query": query, "fetched": None, "web": web_note,
+                "web_candidates": web_cands,
+                "note": "no relevant local candidates — web options above"}
+
+    statuses = check_uptimes([c["url"] for c in top])
+    live = [c for c in top if statuses.get(c["url"], {}).get("ok")]
+    for c in top:
+        c["uptime"] = statuses.get(c["url"], {})
+
+    pick = None
+    if live:
+        pick = llm.match_catalogue(query, {"keywords": keywords},
+                                   [{k: v for k, v in c.items() if k != "_score"}
+                                    for c in live])
+        if pick:
+            for c in live:
+                if c["url"] == pick.get("url") or c["title"] == pick.get("title"):
+                    pick = c
+                    break
+    if not pick:
+        pick = live[0] if live else None
+    if not pick:
+        return {"query": query, "fetched": None, "web": web_note,
+                "web_candidates": web_cands,
+                "candidates": [{"title": c["title"], "uptime": c["uptime"]}
+                               for c in top],
+                "note": "all candidates unreachable"}
+
+    fetched = fetch_url(pick)
+    broadcast("fetched", {"q": query, "fetched": fetched})
+    return {"query": query, "expanded_keywords": keywords,
+            "fetched": fetched, "web": web_note,
+            "web_candidates": web_cands,
+            "candidates": [{"title": c["title"], "origin": c["origin"],
+                            "uptime": c["uptime"]} for c in top]}
+
+
+# ---------- node / status ----------
+
+_tuner_state = {"last_query": None, "last_fetch_ts": 0.0, "fetches": 0}
+
+
+def stream_tuner():
+    """Keeps the stream alive: rotates fresh queries on an interval and
+    pulls new media through the same fetch pipeline. Skips when fresh
+    content already landed (manual searches count)."""
+    profile = identity.load_profile()
+    cfg = profile.get("stream_tuner", {})
+    if not cfg.get("enabled"):
+        return
+    interval = int(cfg.get("interval_s", 300))
+    queries = cfg.get("queries") or ["nature", "city", "ocean", "space"]
+    i = 0
+    while True:
+        time.sleep(interval)
+        try:
+            newest = max((p.stat().st_mtime for p in video_files()),
+                         default=0)
+            if time.time() - newest < interval * 0.8:
+                continue
+            q = queries[i % len(queries)]
+            i += 1
+            exp = llm.expand_query(q, profile)
+            kws = exp.get("keywords", [q]) if exp else [q]
+            res = fetch_for_query(q, kws)
+            _tuner_state["last_query"] = q
+            _tuner_state["last_fetch_ts"] = time.time()
+            if res.get("fetched") and "error" not in (res.get("fetched") or {}):
+                _tuner_state["fetches"] += 1
+        except Exception:
+            pass
+
+
+def node_status() -> dict:
+    import shutil
+    profile = identity.load_profile()
+    u = shutil.disk_usage(ROOT)
+    return {
+        "identity": profile["identity"],
+        "receiver": {
+            "bind": "0.0.0.0",
+            "lan_ips": lan_ips(),
+            "uptime_s": round(time.time() - _started, 1),
+            "unique_clients": len(_clients),
+            "requests": _requests,
+            "sse_subscribers": len(_subs),
+        },
+        "processor": {
+            "radio": beacon.wifi_info(),
+            "beacon_port": beacon.BEACON_PORT,
+            "ollama_online": bool(llm.list_models()),
+            "ollama_models": llm.list_models(),
+            "observer_model": profile.get("observer_model"),
+            "videos_indexed": len(video_files()),
+            "peer_urls": len(peer_pool()),
+            "ingested_outlets": len(ingest.extra_catalogue()),
+            "api_keys": api_keys.status()["users"],
+            "tuner": {**_tuner_state,
+                      "enabled": bool(identity.load_profile()
+                                      .get("stream_tuner", {}).get("enabled"))},
+            "storage": {"free_gb": round(u.free / 1e9, 1),
+                        "used_gb": round(u.used / 1e9, 1),
+                        "total_gb": round(u.total / 1e9, 1)},
+        },
+    }
+
+
+def storage_report() -> dict:
+    import shutil
+    u = shutil.disk_usage(ROOT)
+    return {"free_gb": round(u.free / 1e9, 1),
+            "used_gb": round(u.used / 1e9, 1),
+            "total_gb": round(u.total / 1e9, 1)}
+
+
+# ---------- HTTP ----------
+
+class Handler(BaseHTTPRequestHandler):
+    protocol_version = "HTTP/1.1"
+
+    def log_message(self, *a):
+        pass
+
+    # -- session cookies: stable per-browser id for round trips --
+    def _session(self):
+        if hasattr(self, "_sid"):
+            return self._sid, self._new_sid
+        cookie = self.headers.get("Cookie", "")
+        sid = None
+        for part in cookie.split(";"):
+            if part.strip().startswith("atlas_sid="):
+                sid = part.strip().split("=", 1)[1]
+        self._new_sid = not sid
+        self._sid = sid or uuid.uuid4().hex[:16]
+        return self._sid, self._new_sid
+
+    def _cookie_header(self):
+        if getattr(self, "_new_sid", False):
+            return (f"atlas_sid={self._sid}; Path=/; Max-Age=31536000; "
+                    "SameSite=Lax; HttpOnly")
+        return None
+
+    def _send(self, code, body, ctype="application/json", extra=None):
+        if isinstance(body, (dict, list)):
+            body = json.dumps(body).encode()
+        elif isinstance(body, str):
+            body = body.encode()
+        self.send_response(code)
+        self.send_header("Content-Type", ctype)
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Access-Control-Allow-Origin", "*")
+        ck = self._cookie_header()
+        if ck:
+            self.send_header("Set-Cookie", ck)
+        for k, v in (extra or {}).items():
+            self.send_header(k, v)
+        self.end_headers()
+        self.wfile.write(body)
+
+    def _client_ip(self):
+        return self.client_address[0]
+
+    def _json_body(self):
+        n = int(self.headers.get("Content-Length", 0))
+        return json.loads(self.rfile.read(n) or b"{}")
+
+    def _track_key(self):
+        """Record X-ATLAS-Key usage if a bearer key is presented."""
+        if hasattr(self, "_key_meta"):
+            return self._key_meta
+        key = self.headers.get("X-ATLAS-Key", "")
+        self._key_meta = api_keys.check_key(key) if key else None
+        return self._key_meta
+
+    def _auth_required(self) -> bool:
+        try:
+            return bool(identity.load_profile()
+                        .get("api", {}).get("auth_required"))
+        except Exception:
+            return False
+
+    def do_OPTIONS(self):
+        self.send_response(204)
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET,POST,OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type")
+        self.end_headers()
+
+    # -- SSE: real-time round trips --
+    def do_GET_events(self):
+        self._session()
+        self.send_response(200)
+        self.send_header("Content-Type", "text/event-stream")
+        self.send_header("Cache-Control", "no-cache")
+        self.send_header("Connection", "keep-alive")
+        self.send_header("Access-Control-Allow-Origin", "*")
+        ck = self._cookie_header()
+        if ck:
+            self.send_header("Set-Cookie", ck)
+        self.end_headers()
+        q = queue.Queue(maxsize=200)
+        _subs.append(q)
+        try:
+            # hello event so clients know they're live
+            q.put_nowait("event: hello\ndata: {}\n\n")
+            last = time.time()
+            while True:
+                try:
+                    msg = q.get(timeout=15)
+                    self.wfile.write(msg.encode())
+                    self.wfile.flush()
+                except queue.Empty:
+                    if time.time() - last > 15:
+                        self.wfile.write(b": keepalive\n\n")
+                        self.wfile.flush()
+                        last = time.time()
+        except (BrokenPipeError, ConnectionResetError):
+            pass
+        finally:
+            if q in _subs:
+                _subs.remove(q)
+
+    def do_GET(self):
+        global _requests
+        _requests += 1
+        self._session()
+        ip = self._client_ip()
+        _clients[ip] = time.time()
+        u = urllib.parse.urlparse(self.path)
+        qs = urllib.parse.parse_qs(u.query)
+        path = u.path
+        self._track_key()
+
+        try:
+            if path == "/api/events":
+                return self.do_GET_events()
+            if path in ("/", "/index.html"):
+                html = (WEB / "index.html").read_bytes()
+                self.send_response(200)
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.send_header("Content-Length", str(len(html)))
+                self.send_header("Cache-Control", "no-cache")
+                ck = self._cookie_header()
+                if ck:
+                    self.send_header("Set-Cookie", ck)
+                self.end_headers()
+                self.wfile.write(html)
+                return
+            if path == "/api/feed":
+                query = qs.get("q", [""])[0]
+                cat = qs.get("cat", [""])[0]
+                # fast path: literal token match, no LLM wait
+                local = feed(query, cat)
+                if not local and query:
+                    exp = llm.expand_query(query, identity.load_profile())
+                    if exp:
+                        local = feed(query, cat, exp.get("keywords"))
+                self._send(200, local)
+                return
+            if path == "/api/search":
+                query = qs.get("q", [""])[0]
+                want_fetch = qs.get("fetch", ["0"])[0] in ("1", "true")
+                # a raw URL query goes straight to the outlet
+                if query.startswith("http"):
+                    fetched = fetch_any_url(query) if want_fetch else None
+                    self._send(200, {"q": query, "results": [],
+                                     "fetched": fetched})
+                    return
+                keywords = None
+                local = feed(query, "")
+                if not local and query:
+                    exp = llm.expand_query(query, identity.load_profile())
+                    if exp:
+                        keywords = exp.get("keywords", [query])
+                        local = feed(query, "", keywords)
+                # transmit query to peer hubs; merge what they stock
+                peer_items = relay_query(query) if query else []
+                seen = {i["src"] for i in local}
+                local += [i for i in peer_items if i.get("src") not in seen]
+                fetched = fetch_for_query(query, keywords or [query]) \
+                    if (want_fetch and query) else None
+                # transmit the query frequency to peer hubs so they can
+                # fetch/stock on their side too (fire-and-forget)
+                if want_fetch and query:
+                    def _relay_fetch():
+                        for base in peer_hubs():
+                            try:
+                                req = urllib.request.Request(
+                                    base.rstrip("/") + "/api/search?q="
+                                    + urllib.parse.quote(query) + "&fetch=1",
+                                    method="POST", data=b"{}",
+                                    headers={"Content-Type": "application/json",
+                                             "User-Agent": "ATLAS-peer/1.0"})
+                                urllib.request.urlopen(req, timeout=10).read()
+                            except Exception:
+                                pass
+                    threading.Thread(target=_relay_fetch, daemon=True).start()
+                web_cands = (fetched or {}).get("web_candidates") or []
+                disc = [
+                    {"title": c["title"], "origin": c["origin"],
+                     "tags": c["tags"][:5]}
+                    for c in all_candidates(keywords or [query])[:6]
+                ]
+                disc += [{"title": w["title"], "origin": "web",
+                          "url": w["url"], "tags": [w.get("uploader") or "web"][:1]}
+                         for w in web_cands[:6]]
+                self._send(200, {
+                    "q": query, "results": local, "fetched": fetched,
+                    "peer_results": len(peer_items),
+                    "discovery": disc,
+                    "processor": {"ollama_online": bool(llm.list_models()),
+                                  "vision_model": vision.vision_model()},
+                })
+                return
+            if path == "/api/auth/status":
+                self._send(200, api_keys.status())
+                return
+            if path == "/api/catalogue":
+                extra = ingest.extra_catalogue()
+                by_type = {}
+                for e in extra:
+                    by_type.setdefault(e.get("type", "unknown"), []).append(
+                        {"title": e["title"], "uri": e["uri"],
+                         "fetchable": e.get("fetchable", False)})
+                self._send(200, {
+                    "builtin": len(catalogue.CATALOGUE),
+                    "ingested": len(extra), "by_type": by_type,
+                    "entries": extra[:100]})
+                return
+            if path == "/api/peers":
+                self._send(200, {"pool": peer_pool()})
+                return
+            if path == "/api/node":
+                self._send(200, node_status())
+                return
+            if path == "/api/ip":
+                self._send(200, {"your_ip": ip, "sid": self._sid,
+                                 "server_ips": lan_ips()})
+                return
+            if path == "/api/engage":
+                self._send(200, load_json(ENGAGE_PATH, {}))
+                return
+            if path == "/api/comms":
+                node = qs.get("node", [self._sid])[0]
+                msgs = load_json(COMMS_PATH, [])
+                mine = [m for m in msgs if m["to"] in (node, "all", "*")
+                        or m["from"] == node or m.get("sid") == self._sid]
+                self._send(200, mine[-100:])
+                return
+            if path == "/api/stream":
+                rel = qs.get("path", [""])[0]
+                target = (ROOT / rel).resolve()
+                if not str(target).startswith(str(ROOT)) or not target.exists():
+                    self._send(404, {"error": "not found"})
+                    return
+                st = target.stat()
+                etag = f'"{int(st.st_mtime)}-{st.st_size}"'
+                if self.headers.get("If-None-Match") == etag:
+                    self.send_response(304)
+                    self.end_headers()
+                    return
+                ctype = mimetypes.guess_type(str(target))[0] or "video/mp4"
+                data = target.read_bytes()
+                self.send_response(200)
+                self.send_header("Content-Type", ctype)
+                self.send_header("Content-Length", str(len(data)))
+                self.send_header("ETag", etag)
+                self.send_header("Cache-Control", "private, max-age=3600")
+                self.end_headers()
+                self.wfile.write(data)
+                return
+            if path.startswith("/web/") or path.startswith("/static/"):
+                f = WEB / path.lstrip("/").split("/", 1)[-1]
+                if f.exists() and f.is_file():
+                    data = f.read_bytes()
+                    ctype = mimetypes.guess_type(str(f))[0] or "application/octet-stream"
+                    self.send_header("Content-Type", ctype)
+                    self.send_header("Content-Length", str(len(data)))
+                    self.end_headers()
+                    self.wfile.write(data)
+                else:
+                    self._send(404, {"error": "not found"})
+                return
+            self._send(404, {"error": "not found"})
+        except Exception as e:
+            try:
+                self._send(500, {"error": str(e)})
+            except Exception:
+                pass
+
+    def do_POST(self):
+        global _requests
+        _requests += 1
+        self._session()
+        ip = self._client_ip()
+        _clients[ip] = time.time()
+        u = urllib.parse.urlparse(self.path)
+        self._track_key()
+        try:
+            body = self._json_body()
+            if self._auth_required() and u.path not in (
+                    "/api/auth/login", "/api/auth/signup",
+                    "/api/auth/status"):
+                if not self._key_meta():
+                    self._send(401, {"error": "valid X-ATLAS-Key required",
+                                     "hint": "POST /api/auth/signup"})
+                    return
+            if u.path == "/api/engage":
+                with _lock:
+                    eng = load_json(ENGAGE_PATH, {})
+                    vid = eng.setdefault(body.get("video", ""), {
+                        "likes": {}, "reposts": {}, "comments": []})
+                    client = body.get("client") or self._sid
+                    act = body.get("action")
+                    if act == "like":
+                        vid["likes"][client] = time.time()
+                    elif act == "unlike":
+                        vid["likes"].pop(client, None)
+                    elif act == "repost":
+                        vid["reposts"][client] = time.time()
+                    elif act == "comment":
+                        vid["comments"].append({
+                            "client": client, "sid": self._sid,
+                            "text": body.get("text", "")[:500],
+                            "ts": time.time()})
+                    save_json(ENGAGE_PATH, eng)
+                    entry = eng.get(body.get("video", ""), {})
+                    broadcast("engage", {"video": body.get("video", ""),
+                                         "entry": entry})
+                    self._send(200, entry)
+            elif u.path == "/api/comms":
+                with _lock:
+                    msgs = load_json(COMMS_PATH, [])
+                    msg = {
+                        "id": int(time.time() * 1000),
+                        "from": body.get("from") or self._sid,
+                        "to": body.get("to", "all"),
+                        "sid": self._sid,
+                        "text": body.get("text", "")[:1000],
+                        "ts": time.time()}
+                    msgs.append(msg)
+                    save_json(COMMS_PATH, msgs[-2000:])
+                    broadcast("comms", msg)
+                    self._send(200, {"ok": True, "id": msg["id"]})
+            elif u.path == "/api/peers":
+                node = body.get("node", "anon")
+                if body.get("hub", "").startswith("http"):
+                    hubs = peer_hubs()
+                    if body["hub"] not in hubs:
+                        hubs.append(body["hub"])
+                        save_json(PEER_HUBS_PATH, hubs[-20:])
+                    self._send(200, {"ok": True, "hubs": hubs})
+                    return
+                urls = body.get("urls", [])
+                added = []
+                for e in urls[:50]:
+                    u_url = e.get("url") if isinstance(e, dict) else e
+                    if not u_url or not str(u_url).startswith("http"):
+                        continue
+                    register_peer_url(
+                        u_url,
+                        e.get("title", "") if isinstance(e, dict) else "",
+                        e.get("tags", []) if isinstance(e, dict) else [],
+                        f"peer:{node}")
+                    added.append(u_url)
+                broadcast("peers", {"node": node, "added": len(added)})
+                self._send(200, {"ok": True, "added": added})
+            elif u.path == "/api/vision":
+                # reverse-image search: identify -> match -> optional fetch
+                import base64
+                img_b64 = body.get("image", "")
+                img_bytes = base64.b64decode(img_b64) if img_b64 else b""
+                if not img_bytes and body.get("path"):
+                    fp = (ROOT / body["path"]).resolve()
+                    if str(fp).startswith(str(ROOT)) and fp.exists():
+                        img_bytes = fp.read_bytes()
+                if not img_bytes:
+                    self._send(400, {"error": "image required (b64 or path)"})
+                    return
+                items = feed()
+                vs = vision.visual_search(img_bytes, items)
+                # expand identified tags through the local model
+                query = " ".join(vs["tags"][:6]) or "image"
+                keywords = None
+                exp = llm.expand_query(query, identity.load_profile())
+                if exp:
+                    keywords = exp.get("keywords", [query])
+                text_hits = feed("", "", keywords) if keywords else []
+                fetched = None
+                if body.get("fetch") and keywords:
+                    fetched = fetch_for_query(query, keywords)
+                    broadcast("fetched", {"q": query, "fetched": fetched.get("fetched")})
+                self._send(200, {
+                    "vision": vs["vision"],
+                    "tags": vs["tags"],
+                    "visual_matches": vs["matches"],
+                    "text_matches": text_hits[:12],
+                    "expanded": keywords,
+                    "fetched": fetched,
+                    "processor": {"ollama_online": bool(llm.list_models()),
+                                  "vision_model": vision.vision_model()},
+                })
+            elif u.path == "/api/fetch":
+                url = body.get("url", "")
+                if not url.startswith("http"):
+                    self._send(400, {"error": "url required"})
+                    return
+                res = fetch_any_url(url, body.get("title"))
+                broadcast("fetched", {"q": url, "fetched": res})
+                self._send(200, {"fetched": res})
+            elif u.path == "/api/uptime":
+                urls = body.get("urls", [])[:50]
+                self._send(200, {"uptimes": check_uptimes(urls)})
+            elif u.path == "/api/auth/signup":
+                self._send(200, api_keys.signup(body.get("username", ""),
+                                                body.get("password", "")))
+            elif u.path == "/api/auth/login":
+                self._send(200, api_keys.login(body.get("username", ""),
+                                               body.get("password", "")))
+            elif u.path == "/api/auth/logout":
+                self._send(200, api_keys.revoke(body.get("username", ""),
+                                                body.get("password", "")))
+            elif u.path == "/api/ingest":
+                # accept one entry, a list, or a path to a dropped .json
+                if body.get("path"):
+                    fp = (ROOT / body["path"]).resolve()
+                    if not str(fp).startswith(str(ROOT)) or not fp.exists():
+                        self._send(400, {"error": "bad path"})
+                        return
+                    self._send(200, ingest.ingest_file(fp))
+                elif body.get("entries"):
+                    self._send(200, {"results": [
+                        ingest.ingest(e) for e in body["entries"]
+                        if isinstance(e, dict)]})
+                else:
+                    self._send(200, ingest.ingest(body))
+            elif u.path == "/api/discover":
+                # LLM expands a topic into diverse queries, ytsearch each,
+                # merge candidates — grows reach without dead-ending
+                topic = (body.get("topic") or body.get("q") or "").strip()
+                if not topic:
+                    self._send(400, {"error": "topic required"})
+                    return
+                queries = llm.suggest_queries(
+                    topic, n=int(body.get("n", 4)),
+                    profile=identity.load_profile())
+                seen, cands = set(), []
+                for qu in queries:
+                    for c in ytsearch(qu, 4):
+                        if c["url"] not in seen:
+                            seen.add(c["url"])
+                            cands.append({**c, "via": qu})
+                    if len(cands) >= 16:
+                        break
+                self._send(200, {"topic": topic, "queries": queries,
+                                 "candidates": cands[:16]})
+            else:
+                self._send(404, {"error": "not found"})
+        except Exception as e:
+            try:
+                self._send(500, {"error": str(e)})
+            except Exception:
+                pass
+
+
+def main():
+    port = 8917
+    srv = ThreadingHTTPServer(("0.0.0.0", port), Handler)
+    print(f"ATLAS hub -> http://localhost:{port}")
+    print(f"LAN reach  -> http://{lan_ips()[0]}:{port}")
+    beacon_info = beacon.start(
+        identity.load_profile().get("identity", "ATLAS"),
+        on_peer=lambda msg: broadcast("peers", {"hub": msg.get("hub")}))
+    print(f"Beacon     -> udp/{beacon_info['port']} "
+          f"radio={beacon_info['wifi'].get('radio')} "
+          f"freq={beacon_info['wifi'].get('frequency_mhz')}MHz")
+    threading.Thread(target=stream_tuner, daemon=True).start()
+    srv.serve_forever()
+
+
+if __name__ == "__main__":
+    main()

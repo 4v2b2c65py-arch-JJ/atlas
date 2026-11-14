@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ATLAS</title>
+<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+<style>
+  :root { --bg:#000; --card:#16181c; --line:#2f3336; --txt:#e7e9ea; --dim:#71767b; --accent:#1d9bf0; --heart:#f91880; }
+  * { box-sizing:border-box; margin:0; font-family:-apple-system,'Segoe UI',Roboto,sans-serif; }
+  body { background:var(--bg); color:var(--txt); }
+  #app { display:flex; justify-content:center; min-height:100vh; }
+  .col { width:100%; max-width:640px; border-left:1px solid var(--line); border-right:1px solid var(--line); min-height:100vh; }
+  header { position:sticky; top:0; z-index:10; background:rgba(0,0,0,.8); backdrop-filter:blur(12px); border-bottom:1px solid var(--line); padding:14px 16px; display:flex; align-items:center; gap:12px; }
+  header h1 { font-size:20px; font-weight:800; letter-spacing:.5px; }
+  .pill { background:var(--card); border:1px solid var(--line); border-radius:999px; padding:5px 12px; font-size:12px; color:var(--dim); cursor:pointer; }
+  .pill.on { color:var(--txt); border-color:var(--accent); }
+  .search { flex:1; background:var(--card); border:1px solid var(--line); border-radius:999px; padding:7px 14px; color:var(--txt); outline:none; font-size:14px; }
+  .nodebar { display:flex; gap:8px; padding:10px 16px; border-bottom:1px solid var(--line); font-size:12px; color:var(--dim); flex-wrap:wrap; }
+  .nodebar b { color:var(--txt); }
+  .tabs { display:flex; border-bottom:1px solid var(--line); }
+  .tab { flex:1; text-align:center; padding:12px; color:var(--dim); cursor:pointer; font-weight:600; font-size:14px; border-bottom:2px solid transparent; }
+  .tab.on { color:var(--txt); border-color:var(--accent); }
+  .card { border-bottom:1px solid var(--line); padding:14px 16px; }
+  .card-top { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+  .avatar { width:38px; height:38px; border-radius:50%; background:linear-gradient(135deg,#1d9bf0,#7856ff); display:flex; align-items:center; justify-content:center; font-weight:800; font-size:15px; }
+  .who { flex:1; }
+  .who .name { font-weight:700; font-size:14px; }
+  .who .sub { color:var(--dim); font-size:12px; }
+  .badges { display:flex; gap:6px; }
+  .badge { font-size:10px; padding:3px 8px; border-radius:999px; background:#1c2733; color:var(--accent); border:1px solid #24455c; text-transform:uppercase; letter-spacing:.5px; }
+  .badge.quality { background:#2b1c33; color:#c678dd; border-color:#4a2f5c; }
+  video { width:100%; border-radius:14px; background:#000; max-height:70vh; }
+  .actions { display:flex; justify-content:space-between; max-width:320px; margin-top:10px; }
+  .act { background:none; border:none; color:var(--dim); font-size:13px; display:flex; align-items:center; gap:6px; cursor:pointer; padding:6px; }
+  .act:hover { color:var(--txt); }
+  .act.liked { color:var(--heart); }
+  .act.reposted { color:var(--accent); }
+  .comments { margin-top:10px; border-top:1px solid var(--line); padding-top:10px; }
+  .cmt { font-size:13px; padding:6px 0; border-bottom:1px solid #22252a; }
+  .cmt .who2 { color:var(--accent); font-weight:600; margin-right:6px; }
+  .cmt-form { display:flex; gap:8px; margin-top:8px; }
+  .cmt-form input { flex:1; background:var(--card); border:1px solid var(--line); border-radius:999px; padding:8px 14px; color:var(--txt); outline:none; font-size:13px; }
+  .send { background:var(--accent); border:none; color:#fff; border-radius:999px; padding:8px 16px; font-weight:700; cursor:pointer; }
+  .panel { padding:16px; border-bottom:1px solid var(--line); }
+  .panel h3 { font-size:13px; text-transform:uppercase; letter-spacing:1px; color:var(--dim); margin-bottom:10px; }
+  .kv { display:flex; justify-content:space-between; font-size:13px; padding:5px 0; border-bottom:1px solid #1c1e22; }
+  .kv span:last-child { color:var(--dim); }
+  .dot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; }
+  .dot.ok { background:#00ba7c; } .dot.off { background:#f4212e; }
+  .comms { max-height:300px; overflow-y:auto; }
+  .msg { font-size:13px; padding:8px 0; border-bottom:1px solid #1c1e22; }
+  .msg .meta { color:var(--dim); font-size:11px; }
+  .msg .body { margin-top:2px; }
+  .empty { text-align:center; color:var(--dim); padding:60px 20px; font-size:14px; }
+  .side { width:340px; flex-shrink:0; }
+  @media (max-width:980px){ .side{display:none;} }
+  #app { justify-content:center; gap:24px; }
+  ::-webkit-scrollbar{width:8px} ::-webkit-scrollbar-thumb{background:#333;border-radius:4px}
+</style>
+</head>
+<body>
+<div id="app">
+  <div class="col" @dragover.prevent @drop.prevent="onDrop">
+    <header>
+      <h1>ATLAS</h1>
+      <input class="search" v-model="q" @input="debounce" @keyup.enter="runSearch" placeholder="Search outlets… (enter = smart search + fetch)" />
+      <label class="pill" title="spectator: search by image">📷<input type="file" accept="image/*" style="display:none" @change="onImage"></label>
+      <button class="pill" @click="loadFeed">⟳</button>
+      <span v-if="fetching" class="pill">fetching…</span>
+      <span v-if="lastFetch" class="pill on" :title="lastFetch.reason||''">{{ lastFetch.title||lastFetch.note||'fetched' }}</span>
+    </header>
+    <div class="nodebar" v-if="node">
+      <span><span class="dot" :class="node.processor.ollama_models.length?'ok':'off'"></span>processor: {{ node.processor.ollama_models.join(', ')||'offline' }}</span>
+      <span><span class="dot ok"></span>receiver: {{ node.receiver.lan_ips[0] }}:{{ port }}</span>
+      <span>clients: <b>{{ node.receiver.unique_clients }}</b></span>
+      <span><span class="dot" :class="live?'ok':'off'"></span>{{ live?'live':'offline' }}</span>
+      <span>storage: <b>{{ node.processor.storage.free_gb }} GB</b> free</span>
+    </div>
+    <div class="tabs">
+      <div class="tab" :class="{on:tab==='feed'}" @click="tab='feed'">Stream</div>
+      <div class="tab" :class="{on:tab==='comms'}" @click="tab='comms';loadComms()">Comms</div>
+      <div class="tab" :class="{on:tab==='node'}" @click="tab='node';loadNode()">Node</div>
+    </div>
+
+    <!-- STREAM TAB -->
+    <template v-if="tab==='feed'">
+      <div class="panel" v-if="visionResult">
+        <h3>👁 Spectator mode</h3>
+        <div style="font-size:13px;color:var(--dim)">
+          <div v-if="visionResult.vision">{{ visionResult.vision.description }} <span style="color:var(--accent)">({{ visionResult.vision.model }})</span></div>
+          <div>tags: {{ visionResult.tags.join(', ')||'—' }} · vision model: {{ visionResult.processor?.vision_model||'none (hash+color)' }}</div>
+        </div>
+        <div v-if="visionResult.visual_matches.length" style="margin-top:8px">
+          <div class="kv" v-for="m in visionResult.visual_matches" :key="m.src" style="cursor:pointer" @click="playMatch(m)">
+            <span>{{ m.name }} <span class="badge">{{ Math.round(m.similarity*100) }}% match</span></span>
+            <span>d{{ m.distance }}</span>
+          </div>
+        </div>
+        <div class="cmt-form" style="margin-top:8px">
+          <button class="send" @click="visionFetch" :disabled="visionFetching">{{ visionFetching?'identifying…':'🔍 identify + fetch' }}</button>
+          <button class="pill" @click="visionResult=null">clear</button>
+        </div>
+      </div>
+      <div class="panel" v-if="discovery.length && !feed.length">
+        <h3>Discovery — nothing local, try the reach:</h3>
+        <span v-for="d in discovery" :key="d.title" class="pill" style="margin:3px" @click="pickDiscovery(d)">⬇ {{ d.title }}</span>
+      </div>
+      <div class="panel" v-if="cats.length">
+        <h3>Outlets</h3>
+        <span class="pill" :class="{on:cat==='all'}" @click="setCat('all')">all</span>
+        <span v-for="c in cats" :key="c" class="pill" :class="{on:cat===c}" @click="setCat(c)">{{ c }}</span>
+      </div>
+      <div class="empty" v-if="!feed.length && !loading">No outlets match. Drop videos into videos/store/.</div>
+      <div class="card" v-for="v in feed" :key="v.src">
+        <div class="card-top">
+          <div class="avatar">{{ (v.category||'A').slice(0,1).toUpperCase() }}</div>
+          <div class="who">
+            <div class="name">{{ v.name }}</div>
+            <div class="sub">{{ v.category }} · {{ v.width }}×{{ v.height }} · {{ v.duration }}s · {{ fmtSize(v.size) }}</div>
+          </div>
+          <div class="badges">
+            <span class="badge quality">q{{ quality(v) }}</span>
+            <span class="badge">{{ v.category }}</span>
+          </div>
+        </div>
+        <video controls muted loop playsinline preload="metadata" :poster="''" :src="'/api/stream?path='+encodeURIComponent(v.src)"></video>
+        <div class="actions">
+          <button class="act" :class="{liked:eng(v.src)?.likes?.[me]}" @click="engage(v.src,'like')">♡ {{ count(eng(v.src)?.likes) }}</button>
+          <button class="act" @click="toggleComments(v.src)">💬 {{ eng(v.src)?.comments?.length||0 }}</button>
+          <button class="act" :class="{reposted:eng(v.src)?.reposts?.[me]}" @click="engage(v.src,'repost')">⟲ {{ count(eng(v.src)?.reposts) }}</button>
+          <button class="act" @click="copyLink(v)">↗ share</button>
+        </div>
+        <div class="comments" v-if="openComments===v.src">
+          <div class="cmt" v-for="(c,i) in (eng(v.src)?.comments||[])" :key="i">
+            <span class="who2">{{ c.client }}</span>{{ c.text }}
+            <div class="meta" style="color:var(--dim);font-size:11px">{{ ago(c.ts) }}</div>
+          </div>
+          <div class="cmt-form">
+            <input v-model="draft[v.src]" @keyup.enter="comment(v.src)" placeholder="Write a reply…" />
+            <button class="send" @click="comment(v.src)">Post</button>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <!-- COMMS TAB -->
+    <template v-else-if="tab==='comms'">
+      <div class="panel">
+        <h3>Direct comms — node: <b style="color:var(--txt)">{{ me }}</b> <span class="pill" @click="rename">rename</span></h3>
+        <div class="cmt-form">
+          <input v-model="dmTo" placeholder="to (node name or all)" style="max-width:140px" />
+          <input v-model="dmText" @keyup.enter="sendDm" placeholder="Message…" />
+          <button class="send" @click="sendDm">Send</button>
+        </div>
+      </div>
+      <div class="comms" style="padding:0 16px">
+        <div class="msg" v-for="m in comms" :key="m.id">
+          <div class="meta">{{ m.from }} → {{ m.to }} · {{ ago(m.ts) }}</div>
+          <div class="body">{{ m.text }}</div>
+        </div>
+        <div class="empty" v-if="!comms.length">No traffic yet. Say something.</div>
+      </div>
+      <div class="panel">
+        <h3>API access</h3>
+        <div class="cmt-form">
+          <input v-model="apiUser" placeholder="username" style="max-width:120px" />
+          <input v-model="apiPass" type="password" placeholder="password" style="max-width:120px" />
+          <button class="send" @click="apiSignup">sign up</button>
+          <button class="send" @click="apiLogin">log in</button>
+        </div>
+        <div class="cmt-form" style="margin-top:6px">
+          <input v-model="apiKey" placeholder="atlas_… key (auto-sent on requests)" style="flex:1" />
+          <button class="send" @click="saveKey">save</button>
+        </div>
+        <div class="empty" style="text-align:left" v-if="apiStatus.users">{{ apiStatus.users }} user(s) · {{ apiStatus.keys.filter(k=>!k.revoked).length }} live keys</div>
+      </div>
+    </template>
+
+    <!-- NODE TAB -->
+    <template v-else-if="tab==='node'">
+      <div class="panel" v-if="node">
+        <h3>Receiver</h3>
+        <div class="kv"><span>bind</span><span>{{ node.receiver.bind }}:{{ port }}</span></div>
+        <div class="kv"><span>LAN IPs</span><span>{{ node.receiver.lan_ips.join(', ') }}</span></div>
+        <div class="kv"><span>uptime</span><span>{{ fmtDur(node.receiver.uptime_s) }}</span></div>
+        <div class="kv"><span>unique clients</span><span>{{ node.receiver.unique_clients }}</span></div>
+        <div class="kv"><span>requests</span><span>{{ node.receiver.requests }}</span></div>
+      </div>
+      <div class="panel" v-if="node">
+        <h3>Processor</h3>
+        <div class="kv"><span>identity</span><span>{{ node.processor.identity||'—' }} ({{ node.identity_version||'?' }})</span></div>
+        <div class="kv"><span>ollama</span><span>{{ node.processor.ollama_models.join(', ')||'offline' }}</span></div>
+        <div class="kv"><span>observer model</span><span>{{ node.processor.observer_model||'—' }}</span></div>
+        <div class="kv"><span>radio</span><span>{{ node.processor.radio?.radio||'—' }} {{ node.processor.radio?.ssid||'' }} ch{{ node.processor.radio?.channel }} {{ node.processor.radio?.frequency_mhz }}MHz</span></div>
+        <div class="kv"><span>beacon</span><span>udp:{{ node.processor.beacon_port }} · {{ node.processor.peer_urls }} peer urls</span></div>
+        <div class="kv"><span>videos indexed</span><span>{{ node.processor.videos_indexed }}</span></div>
+        <div class="kv"><span>disk</span><span>{{ node.processor.storage.free_gb }} / {{ node.processor.storage.total_gb }} GB free</span></div>
+      </div>
+      <div class="panel" v-if="ip">
+        <h3>This device</h3>
+        <div class="kv"><span>your IP</span><span>{{ ip.your_ip }}</span></div>
+        <div class="kv"><span>as node</span><span>{{ me }}</span></div>
+      </div>
+    </template>
+  </div>
+
+  <!-- SIDE PANEL -->
+  <div class="side" v-if="tab==='feed'">
+    <div class="panel" v-if="node">
+      <h3>About this node</h3>
+      <div class="kv"><span>identity</span><span>ATLAS observer</span></div>
+      <div class="kv"><span>pipeline</span><span>probe → sort → store → stream</span></div>
+      <div class="kv"><span>mcp tools</span><span>8 registered</span></div>
+      <div class="kv"><span>engagement</span><span>shared across LAN</span></div>
+    </div>
+    <div class="panel">
+      <h3>Quick coms</h3>
+      <div class="kv" style="cursor:pointer" @click="tab='comms';loadComms()"><span>open comms</span><span>→</span></div>
+      <div class="kv" style="cursor:pointer" @click="copyLink({src:location.href})"><span>copy hub link</span><span>→</span></div>
+    </div>
+  </div>
+  <div style="position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:50;display:flex;flex-direction:column;gap:8px">
+    <div v-for="(t,i) in toasts" :key="t.ts+i" style="background:var(--card);border:1px solid var(--accent);border-radius:12px;padding:10px 18px;font-size:13px">{{ t.msg }}</div>
+  </div>
+</div>
+
+<script>
+const { createApp, ref, reactive, onMounted } = Vue;
+createApp({
+  setup() {
+    const feed = ref([]), engagement = ref({}), comms = ref([]), node = ref(null), ip = ref(null);
+    const q = ref(''), cat = ref('all'), tab = ref('feed'), loading = ref(false);
+    const fetching = ref(false), lastFetch = ref(null), live = ref(false), toasts = ref([]);
+    const visionResult = ref(null), visionFetching = ref(false), discovery = ref([]), visionImg = ref('');
+    const autoSearched = ref('');
+    const apiUser = ref(''), apiPass = ref(''), apiKey = ref(localStorage.getItem('atlas_key') || ''), apiStatus = ref({users:0,keys:[]});
+    const saveKey = () => { localStorage.setItem('atlas_key', apiKey.value.trim()); toast('key saved'); };
+    const apiSignup = async () => {
+      const r = await api('/api/auth/signup', {method:'POST',headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({username:apiUser.value, password:apiPass.value})});
+      if (r.key) { apiKey.value = r.key; saveKey(); toast('account created — key issued'); }
+      else toast(r.error || 'signup failed');
+      loadApiStatus();
+    };
+    const apiLogin = async () => {
+      const r = await api('/api/auth/login', {method:'POST',headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({username:apiUser.value, password:apiPass.value})});
+      if (r.key) { apiKey.value = r.key; saveKey(); toast('logged in'); }
+      else toast(r.error || 'login failed');
+    };
+    const loadApiStatus = async () => { apiStatus.value = await api('/api/auth/status'); };
+    const openComments = ref(null), draft = reactive({}), dmTo = ref('all'), dmText = ref('');
+    const port = location.port;
+    const me = ref(localStorage.getItem('atlas_node') || ('node-' + Math.random().toString(36).slice(2,7)));
+    localStorage.setItem('atlas_node', me.value);
+    let timer = null;
+
+    // ?api=http://hub:8917 pins this static portal to a remote hub
+    const apiParam = new URLSearchParams(location.search).get('api');
+    if (apiParam) { localStorage.setItem('atlas_api', apiParam); }
+    const API_BASE = localStorage.getItem('atlas_api') || '';
+    const api = (p, opt) => fetch(API_BASE + p, {
+      ...(opt || {}),
+      headers: {'X-ATLAS-Key': localStorage.getItem('atlas_key') || '',
+                ...(opt && opt.headers ? opt.headers : {})}
+    }).then(r => r.json());
+    const FEED_KEY = 'atlas_feed_cache';
+    const loadFeed = async () => {
+      // frontend cache: show stale-while-revalidate instantly
+      try {
+        const c = JSON.parse(localStorage.getItem(FEED_KEY) || 'null');
+        if (c && Date.now() - c.ts < 60000 && !feed.value.length) feed.value = c.items;
+      } catch (e) {}
+      loading.value = true;
+      const params = new URLSearchParams();
+      if (q.value) params.set('q', q.value);
+      if (cat.value !== 'all') params.set('cat', cat.value);
+      const items = await api('/api/feed?' + params);
+      feed.value = items;
+      // empty local match + active query → auto smart-search once
+      if (!items.length && q.value.trim() && !fetching.value &&
+          autoSearched.value !== q.value.trim()) {
+        autoSearched.value = q.value.trim();
+        runSearch();
+      }
+      if (!q.value.trim()) autoSearched.value = '';
+      engagement.value = await api('/api/engage');
+      try { localStorage.setItem(FEED_KEY, JSON.stringify({ts: Date.now(), items})); } catch (e) {}
+      loading.value = false;
+    };
+    const toast = msg => { toasts.value.push({msg, ts: Date.now()}); setTimeout(() => toasts.value.shift(), 6000); };
+    const debounce = () => { clearTimeout(timer); timer = setTimeout(loadFeed, 350); };
+    const runSearch = async () => {
+      if (!q.value.trim()) return loadFeed();
+      fetching.value = true; lastFetch.value = null;
+      try {
+        const r = await api('/api/search?q=' + encodeURIComponent(q.value) + '&fetch=1');
+        feed.value = r.results || [];
+        discovery.value = r.discovery || [];
+        cats.value = [...new Set(feed.value.map(v => v.category))];
+        if (r.fetched && r.fetched.fetched) {
+          lastFetch.value = { title: '⬇ ' + r.fetched.fetched.title,
+                              reason: r.fetched.fetched.reason };
+          toast('fetched: ' + r.fetched.fetched.title);
+          setTimeout(loadFeed, 800);
+        } else if (r.fetched && r.fetched.note) {
+          lastFetch.value = { note: r.fetched.note };
+        } else if (r.fetched && r.fetched.candidates) {
+          lastFetch.value = { note: 'no live candidates' };
+        }
+      } finally { fetching.value = false; }
+    };
+    const setCat = c => { cat.value = c; loadFeed(); };
+    const pickDiscovery = async d => {
+      if (d.url) {
+        fetching.value = true;
+        try {
+          const r = await api('/api/fetch', {method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body: JSON.stringify({url: d.url, title: d.title})});
+          if (r && r.stored) { toast('fetched: ' + d.title); setTimeout(loadFeed, 800); }
+          else toast('fetch failed: ' + d.title);
+        } finally { fetching.value = false; }
+      } else { q.value = d.title; runSearch(); }
+    };
+    const loadNode = async () => { node.value = await api('/api/node'); ip.value = await api('/api/ip'); loadApiStatus(); };
+    const loadComms = async () => { comms.value = await api('/api/comms?node=' + me.value); };
+
+    const eng = src => engagement.value[src];
+    const count = o => o ? Object.keys(o).length : 0;
+    const quality = v => Math.min(99, Math.round((v.width*v.height)/20736 + v.duration*2));
+    const fmtSize = b => b > 1e6 ? (b/1e6).toFixed(1)+' MB' : (b/1e3).toFixed(0)+' KB';
+    const fmtDur = s => s > 3600 ? (s/3600).toFixed(1)+'h' : s > 60 ? (s/60).toFixed(1)+'m' : s.toFixed(0)+'s';
+    const ago = ts => { const d=(Date.now()/1000-ts)|0; return d<60?d+'s':d<3600?(d/60)+'m':(d/3600)+'h'; };
+
+    const engage = async (src, action) => {
+      const r = await api('/api/engage', {method:'POST',headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({video:src, action, client:me.value})});
+      engagement.value[src] = r;
+    };
+    const toggleComments = src => { openComments.value = openComments.value===src?null:src; };
+    const comment = async src => {
+      const text = (draft[src]||'').trim(); if (!text) return;
+      const r = await api('/api/engage', {method:'POST',headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({video:src, action:'comment', client:me.value, text})});
+      engagement.value[src] = r; draft[src] = '';
+    };
+    const sendDm = async () => {
+      const text = dmText.value.trim(); if (!text) return;
+      await api('/api/comms', {method:'POST',headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({from:me.value, to:dmTo.value||'all', text})});
+      dmText.value=''; loadComms();
+    };
+    const copyLink = v => navigator.clipboard?.writeText(location.origin + '/?v=' + encodeURIComponent(v.src));
+    const rename = () => { const n = prompt('node name', me.value); if (n) { me.value = n; localStorage.setItem('atlas_node', n); loadComms(); } };
+
+    const onImage = e => { const f = e.target.files[0]; if (f) visionSearch(f, false); e.target.value=''; };
+    const onDrop = e => {
+      const f = e.dataTransfer.files[0];
+      if (f && f.type.startsWith('image/')) return visionSearch(f, true);
+      const t = e.dataTransfer.getData('text');
+      if (t && t.trim() && t.trim().length < 300) { q.value = t.trim(); runSearch(); }
+    };
+    const postVision = async (b64, autoFetch) => {
+      visionImg.value = b64; visionFetching.value = true;
+      try {
+        visionResult.value = await api('/api/vision', {method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({image: b64, fetch: !!autoFetch})});
+        if (visionResult.value.fetched?.fetched) toast('fetched: ' + visionResult.value.fetched.fetched.title);
+      } finally { visionFetching.value = false; }
+    };
+    const visionSearch = (file, autoFetch) => {
+      const rd = new FileReader();
+      rd.onload = () => postVision(rd.result.split(',')[1], autoFetch);
+      rd.readAsDataURL(file);
+    };
+    const visionFetch = () => { if (visionImg.value) postVision(visionImg.value, true); };
+    const playMatch = m => {
+      const needle = encodeURIComponent(m.src);
+      const tryScroll = () => {
+        const el = document.querySelector(`video[src*="${needle}"]`);
+        if (el) el.scrollIntoView({behavior:'smooth', block:'center'});
+        else toast('identified: ' + m.name + (m.similarity ? ' (' + Math.round(m.similarity*100) + '%)' : ''));
+      };
+      if (!feed.value.some(v => v.src === m.src)) loadFeed().then(tryScroll);
+      else tryScroll();
+    };
+
+    const cats = ref([]);
+    // real-time: SSE round trips for engage/comms/fetched/peers
+    const connectSSE = () => {
+      const es = new EventSource('/api/events');
+      es.onopen = () => { live.value = true; };
+      es.onerror = () => { live.value = false; };
+      es.addEventListener('engage', e => {
+        const d = JSON.parse(e.data);
+        engagement.value[d.video] = d.entry;
+      });
+      es.addEventListener('comms', () => { if (tab.value === 'comms') loadComms(); });
+      es.addEventListener('fetched', e => {
+        const d = JSON.parse(e.data);
+        if (d.fetched && d.fetched.title) { toast('peer fetched: ' + d.fetched.title); loadFeed(); }
+      });
+      es.addEventListener('peers', () => loadFeed());
+    };
+
+    onMounted(async () => {
+      connectSSE();
+      await loadFeed();
+      cats.value = [...new Set(feed.value.map(v => v.category))];
+      node.value = await api('/api/node');
+      ip.value = await api('/api/ip');
+      setInterval(() => { if (tab.value==='comms') loadComms(); }, 5000);
+    });
+    return { feed, engagement, comms, node, ip, q, cat, cats, tab, loading, port,
+             fetching, lastFetch, live, toasts, runSearch,
+             visionResult, visionFetching, discovery, onImage, onDrop,
+             visionFetch, playMatch,
+             openComments, draft, dmTo, dmText, me,
+             apiUser, apiPass, apiKey, apiStatus, saveKey, apiSignup, apiLogin,
+             loadFeed, debounce, setCat, pickDiscovery, loadNode, loadComms, eng, count,
+             quality, fmtSize, fmtDur, ago, engage, toggleComments, comment,
+             sendDm, copyLink, rename };
+  }
+}).mount('#app');
+</script>
+</body>
+</html>

@@ -1,0 +1,52 @@
+{
+  "identity": "ATLAS",
+  "version": "1.0.0",
+  "observer": "local-ai-mcp",
+  "observer_model": "llama3.2:latest",
+  "categories": [
+    "resonance-synthetic",
+    "high-motion",
+    "low-motion",
+    "dark-scene",
+    "bright-scene",
+    "portrait",
+    "landscape",
+    "short-clip",
+    "long-form",
+    "rejected"
+  ],
+  "quality_gate": {
+    "probe_required": true,
+    "min_bytes": 20000,
+    "min_width": 640,
+    "min_height": 360,
+    "min_score": 50,
+    "min_free_ratio": 0.15
+  },
+  "storage": {
+    "root": "videos/store",
+    "auto_store": false
+  },
+  "stream_tuner": {
+    "enabled": true,
+    "interval_s": 300,
+    "queries": [
+      "nature documentary", "city night lights", "deep ocean",
+      "space nebula", "cooking food", "live music", "classic cars",
+      "wildlife animals", "technology", "travel drone"
+    ]
+  },
+  "classifier": {
+    "sample_frames": 24,
+    "motion_high": 6.0,
+    "motion_low": 1.5,
+    "dark_luma": 70,
+    "bright_luma": 170,
+    "short_clip_s": 3.0,
+    "long_form_s": 60.0,
+    "portrait_aspect": 0.9,
+    "synthetic_luma_max": 15,
+    "synthetic_std_max": 8,
+    "synthetic_motion_max": 4
+  }
+}
