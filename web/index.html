@@ -122,9 +122,10 @@
           <div class="badges">
             <span class="badge quality">q{{ quality(v) }}</span>
             <span class="badge">{{ v.category }}</span>
+            <span class="badge" v-if="v.layer && v.layer !== 'local'" :title="v._api">{{ v.layer }}</span>
           </div>
         </div>
-        <video controls muted loop playsinline preload="metadata" :poster="''" :src="'/api/stream?path='+encodeURIComponent(v.src)"></video>
+        <video controls muted loop playsinline preload="metadata" :src="streamUrl(v)"></video>
         <div class="actions">
           <button class="act" :class="{liked:eng(v.src)?.likes?.[me]}" @click="engage(v.src,'like')">♡ {{ count(eng(v.src)?.likes) }}</button>
           <button class="act" @click="toggleComments(v.src)">💬 {{ eng(v.src)?.comments?.length||0 }}</button>
@@ -256,11 +257,16 @@ createApp({
     localStorage.setItem('atlas_node', me.value);
     let timer = null;
 
-    // ?api=http://hub:8917 pins this static portal to a remote hub
+    // ?api=http://hub:8917 pins this static portal to a remote hub.
+    // Comma-separate for overlay layers: ?api=http://hub1:8917,http://hub2:8917
+    // First entry = primary (writes/engagement); all = read overlay.
     const apiParam = new URLSearchParams(location.search).get('api');
     if (apiParam) { localStorage.setItem('atlas_api', apiParam); }
-    const API_BASE = localStorage.getItem('atlas_api') || '';
-    const api = (p, opt) => fetch(API_BASE + p, {
+    const LAYERS = (localStorage.getItem('atlas_api') || '')
+      .split(',').map(s => s.trim()).filter(Boolean);
+    const API0 = LAYERS[0] || '';  // primary hub for writes
+    const layerName = a => { try { return new URL(a).host; } catch(e) { return 'local'; } };
+    const api = (p, opt) => fetch(API0 + p, {
       ...(opt || {}),
       headers: {'X-ATLAS-Key': localStorage.getItem('atlas_key') || '',
                 ...(opt && opt.headers ? opt.headers : {})}
@@ -273,10 +279,24 @@ createApp({
         if (c && Date.now() - c.ts < 60000 && !feed.value.length) feed.value = c.items;
       } catch (e) {}
       loading.value = true;
+      const bases = LAYERS.length ? LAYERS : [''];
       const params = new URLSearchParams();
       if (q.value) params.set('q', q.value);
       if (cat.value !== 'all') params.set('cat', cat.value);
-      const items = await api('/api/feed?' + params);
+      // overlay: pull every layer's feed, merge + dedupe by src
+      const merged = new Map();
+      await Promise.all(bases.map(async b => {
+        try {
+          const items = await (await fetch(b + '/api/feed?' + params)).json();
+          for (const it of (Array.isArray(items) ? items : [])) {
+            if (!merged.has(it.src)) {
+              it._api = b; it.layer = layerName(b);
+              merged.set(it.src, it);
+            }
+          }
+        } catch (e) {}
+      }));
+      const items = [...merged.values()];
       feed.value = items;
       // empty local match + active query → auto smart-search once
       if (!items.length && q.value.trim() && !fetching.value &&
@@ -377,6 +397,7 @@ createApp({
       rd.readAsDataURL(file);
     };
     const visionFetch = () => { if (visionImg.value) postVision(visionImg.value, true); };
+    const streamUrl = v => (v._api || API0) + '/api/stream?path=' + encodeURIComponent(v.src);
     const playMatch = m => {
       const needle = encodeURIComponent(m.src);
       const tryScroll = () => {
@@ -389,21 +410,24 @@ createApp({
     };
 
     const cats = ref([]);
-    // real-time: SSE round trips for engage/comms/fetched/peers
+    // real-time: one SSE connection per layer, events merged
     const connectSSE = () => {
-      const es = new EventSource('/api/events');
-      es.onopen = () => { live.value = true; };
-      es.onerror = () => { live.value = false; };
-      es.addEventListener('engage', e => {
-        const d = JSON.parse(e.data);
-        engagement.value[d.video] = d.entry;
-      });
-      es.addEventListener('comms', () => { if (tab.value === 'comms') loadComms(); });
-      es.addEventListener('fetched', e => {
-        const d = JSON.parse(e.data);
-        if (d.fetched && d.fetched.title) { toast('peer fetched: ' + d.fetched.title); loadFeed(); }
-      });
-      es.addEventListener('peers', () => loadFeed());
+      const bases = LAYERS.length ? LAYERS : [''];
+      for (const b of bases) {
+        const es = new EventSource(b + '/api/events');
+        es.onopen = () => { live.value = true; };
+        es.onerror = () => { live.value = false; };
+        es.addEventListener('engage', e => {
+          const d = JSON.parse(e.data);
+          engagement.value[d.video] = d.entry;
+        });
+        es.addEventListener('comms', () => { if (tab.value === 'comms') loadComms(); });
+        es.addEventListener('fetched', e => {
+          const d = JSON.parse(e.data);
+          if (d.fetched && d.fetched.title) { toast('peer fetched: ' + d.fetched.title); loadFeed(); }
+        });
+        es.addEventListener('peers', () => loadFeed());
+      }
     };
 
     onMounted(async () => {
@@ -417,7 +441,7 @@ createApp({
     return { feed, engagement, comms, node, ip, q, cat, cats, tab, loading, port,
              fetching, lastFetch, live, toasts, runSearch,
              visionResult, visionFetching, discovery, onImage, onDrop,
-             visionFetch, playMatch,
+             visionFetch, playMatch, streamUrl,
              openComments, draft, dmTo, dmText, me,
              apiUser, apiPass, apiKey, apiStatus, saveKey, apiSignup, apiLogin,
              loadFeed, debounce, setCat, pickDiscovery, loadNode, loadComms, eng, count,

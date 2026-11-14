@@ -1,0 +1,15 @@
+{
+ "title": "Big Buck Bunny torrent",
+ "uri": "http://192.168.100.9:8917/api/stream?path=videos/store/landscape/video.mp4",
+ "url": "http://192.168.100.9:8917/api/stream?path=videos/store/landscape/video.mp4",
+ "type": "direct",
+ "fetchable": true,
+ "tags": [
+  "animation",
+  "bunny",
+  "torrent"
+ ],
+ "source": "bittorrent",
+ "node": "self",
+ "ts": 1794672195.0119739
+}
