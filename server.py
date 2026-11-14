@@ -1389,7 +1389,18 @@ class Handler(BaseHTTPRequestHandler):
                 self._send(200, res)
             elif u.path == "/api/tunnel":
                 action = body.get("action", "status")
-                if action == "start":
+                if action == "configure":
+                    self._send(200, tunnel.cf_configure(body))
+                elif action == "named":
+                    # create named tunnel + DNS via Cloudflare API,
+                    # then restart the connector on the stable host
+                    res = tunnel.cf_create()
+                    if res.get("ok") or res.get("tunnel_id"):
+                        tunnel.stop()
+                        self._send(200, {**res, **tunnel.start()})
+                    else:
+                        self._send(200, res)
+                elif action == "start":
                     self._send(200, tunnel.start())
                 elif action == "stop":
                     self._send(200, tunnel.stop())

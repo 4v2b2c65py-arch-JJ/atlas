@@ -73,11 +73,15 @@ Optional: `ollama pull llama3.2` enables LLM query expansion/classification.
   Publishing back out uses Meta Graph API (threads/IG/FB) and TikTok
   Content Posting API — credentials via `POST /api/social/token`
   (stored in `data/social_tokens.json`, never committed).
-- **Public tunnel** — `tunnel.py` runs a Cloudflare quick tunnel
-  (`bin/cloudflared`, auto-downloaded, gitignored) exposing the hub at
-  a `*.trycloudflare.com` URL; `/api/tunnel` manages it and the URL is
-  fed to `social.set_public_base` automatically so Meta/Threads
-  `video_url` values resolve publicly.
+- **Public tunnel** — `tunnel.py` runs a Cloudflare tunnel exposing
+  the hub publicly; `/api/tunnel` manages it. Quick mode
+  (`*.trycloudflare.com`, no account) is the fallback; named mode
+  creates a stable hostname entirely via the Cloudflare API —
+  `POST /api/tunnel {"action":"configure", api_token, account_id,
+  zone_id, hostname}` then `{"action":"named"}` provisions the tunnel,
+  CNAME, and ingress, stores the connector token in
+  `data/cloudflare.json`, and runs `cloudflared tunnel run --token`.
+  The URL is fed to `social.set_public_base` automatically.
 - **Bot session** — `bot.py` autonomous node: comments on outlets and
   telepathic self/peer DMs over the comms link (toggle in identity.json).
 - **LLM discovery** — `POST /api/discover {"topic": "..."}` expands a topic
@@ -103,7 +107,7 @@ Optional: `ollama pull llama3.2` enables LLM query expansion/classification.
 | `/api/social/token` | POST | `{platform, access_token, user_id/ig_user_id/page_id, public_base?}` |
 | `/api/social/fetch` | POST | `{url}` pull a social post into the store |
 | `/api/social/post` | POST | `{platform, src|path, caption?}` publish a stored outlet |
-| `/api/tunnel` | GET/POST | Cloudflare quick-tunnel status / `{action: start\|stop\|restart}` |
+| `/api/tunnel` | GET/POST | tunnel status / `{action: configure\|named\|start\|stop\|restart}` |
 | `/api/ingest` | POST | `{uri/magnet/m3u8/mpd/url, title, tags}` |
 | `/api/discover` | POST | `{topic, n}` LLM query expansion → candidates |
 | `/api/auth/signup\|login\|logout` | POST | API key lifecycle |
