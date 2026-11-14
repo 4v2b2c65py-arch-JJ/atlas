@@ -268,6 +268,13 @@ def start() -> dict:
     if _thread is None or not _thread.is_alive():
         _thread = threading.Thread(target=_watchdog, daemon=True)
         _thread.start()
+    global _cert_thread
+    try:
+        _cert_thread
+    except NameError:
+        _cert_thread = threading.Thread(target=_cert_watcher,
+                                        daemon=True)
+        _cert_thread.start()
     # give it a moment to emit the URL
     for _ in range(40):
         if _url:
@@ -287,3 +294,130 @@ def stop() -> dict:
     _proc, _url = None, None
     _write_state(url=None)
     return status()
+
+
+# ---------- cert-based named tunnel (no API token needed) ----------
+# `cloudflared tunnel login` -> cert.pem in ~/.cloudflared unlocks
+# create/route/token via CLI. The auto watcher pieces it together:
+# cert appears + hostname configured -> provision runs itself.
+
+CERT = Path.home() / ".cloudflared" / "cert.pem"
+CERT_DIR = Path.home() / ".cloudflared"
+LOGIN_RE = re.compile(r"https://\S*dash\.cloudflare\.com\S*")
+_login_url: str | None = None
+_login_proc = None
+
+
+def login() -> dict:
+    """Start `cloudflared tunnel login`; returns the one-click auth
+    URL. When the user completes it, cert.pem lands and the auto
+    watcher provisions the named tunnel by itself."""
+    global _login_url, _login_proc
+    if CERT.exists():
+        return {"cert": True, "note": "already logged in"}
+    if not BIN.exists():
+        return {"error": "cloudflared binary missing"}
+    if _login_proc is not None and _login_proc.poll() is None:
+        return {"auth_url": _login_url, "pending": True}
+    _login_url = None
+    _login_proc = subprocess.Popen(
+        [str(BIN), "tunnel", "login"],
+        stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
+        text=True)
+
+    def _pump():
+        global _login_url
+        try:
+            for line in iter(_login_proc.stderr.readline, ""):
+                m = LOGIN_RE.search(line)
+                if m:
+                    _login_url = m.group(0)
+        except Exception:
+            pass
+    threading.Thread(target=_pump, daemon=True).start()
+    # wait briefly for the URL to surface
+    for _ in range(40):
+        if _login_url:
+            break
+        time.sleep(0.25)
+    return {"auth_url": _login_url, "pending": True,
+            "cert_path": str(CERT)}
+
+
+def cert_status() -> dict:
+    tunnels = []
+    try:
+        r = subprocess.run([str(BIN), "tunnel", "list"],
+                           capture_output=True, text=True, timeout=20)
+        tunnels = [ln.split()[0] for ln in r.stdout.splitlines()
+                   if ln.strip() and not ln.startswith("_")]
+    except Exception:
+        pass
+    return {"cert": CERT.exists(),
+            "login_url": _login_url,
+            "cert_dir": str(CERT_DIR), "tunnels": tunnels}
+
+
+def _cli(*args, timeout: int = 60) -> tuple[int, str]:
+    r = subprocess.run([str(BIN), *args], capture_output=True,
+                       text=True, timeout=timeout)
+    return r.returncode, (r.stdout or "") + (r.stderr or "")
+
+
+def cert_provision(hostname: str) -> dict:
+    """Piece it together with just cert.pem: create named tunnel,
+    route DNS, mint connector token, switch runner to named mode."""
+    if not CERT.exists():
+        return {"error": "no cert.pem — POST /api/tunnel "
+                "{action:'login'} first and complete the browser "
+                "auth once"}
+    hostname = (hostname or "").strip().lower()
+    if not hostname:
+        return {"error": "hostname required (e.g. atlas.example.com)"}
+    cf = _cf_load()
+    # create tunnel if we don't have one yet
+    tid = cf.get("tunnel_id")
+    if not tid:
+        rc, out = _cli("tunnel", "create", "atlas")
+        m = re.search(r"([0-9a-f-]{36})", out)
+        if rc != 0 or not m:
+            return {"error": "tunnel create failed", "detail": out[-400:]}
+        tid = m.group(1)
+        cf["tunnel_id"] = tid
+    # DNS route
+    rc, out = _cli("tunnel", "route", "dns", tid, hostname)
+    dns_ok = rc == 0 or "already" in out.lower()
+    # connector token -> reuse the existing named-runner path
+    rc, out = _cli("tunnel", "token", tid)
+    tok = out.strip().splitlines()[-1].strip() if out.strip() else ""
+    if not tok or len(tok) < 40:
+        return {"error": "token mint failed", "detail": out[-300:]}
+    cf.update({"tunnel_token": tok, "hostname": hostname,
+               "mode": "cert"})
+    _cf_save(cf)
+    _write_state(mode="named", url=f"https://{hostname}")
+    # hot-swap the runner if it's alive in quick mode
+    global _proc
+    if _proc is not None and _proc.poll() is None and _mode != "named":
+        try:
+            _proc.terminate()
+        except Exception:
+            pass
+        _proc = None
+        _spawn()
+    return {"ok": True, "hostname": hostname, "tunnel_id": tid,
+            "dns": "ok" if dns_ok else out[-200:], "mode": "named"}
+
+
+def _cert_watcher() -> None:
+    """Auto-piecing: cert.pem appears + hostname configured ->
+    provision the named tunnel without any further commands."""
+    while True:
+        try:
+            cf = _cf_load()
+            if (CERT.exists() and cf.get("hostname")
+                    and not cf.get("tunnel_token")):
+                cert_provision(cf["hostname"])
+        except Exception:
+            pass
+        time.sleep(30)

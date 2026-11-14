@@ -1173,7 +1173,9 @@ class Handler(BaseHTTPRequestHandler):
                 self._send(200, social.status())
                 return
             if path == "/api/tunnel":
-                self._send(200, tunnel.status())
+                st = tunnel.status()
+                st["cert"] = tunnel.cert_status()
+                self._send(200, st)
                 return
             if path == "/api/auto":
                 state = load_json(AUTO_PATH, {"counter": 0})
@@ -1598,6 +1600,19 @@ class Handler(BaseHTTPRequestHandler):
                     # then restart the connector on the stable host
                     res = tunnel.cf_create()
                     if res.get("ok") or res.get("tunnel_id"):
+                        tunnel.stop()
+                        self._send(200, {**res, **tunnel.start()})
+                    else:
+                        self._send(200, res)
+                elif action == "login":
+                    # one-click browser auth -> cert.pem; the cert
+                    # watcher then auto-provisions the named tunnel
+                    self._send(200, tunnel.login())
+                elif action == "cert":
+                    # provision named tunnel from cert.pem alone —
+                    # no api_token needed
+                    res = tunnel.cert_provision(body.get("hostname", ""))
+                    if res.get("ok"):
                         tunnel.stop()
                         self._send(200, {**res, **tunnel.start()})
                     else:
