@@ -23,11 +23,18 @@ MEDIA_EXT = re.compile(r"\.(mp4|webm|mkv|mov|avi|m4v|ts)(\?|#|$)", re.I)
 IMAGE_EXT = re.compile(r"\.(jpe?g|png|webp|gif|avif)(\?|#|$)", re.I)
 COMIC_EXT = re.compile(r"\.(cbz|cbr|cb7|cbt)(\?|#|$)", re.I)
 
+SOCIAL_HOSTS = ("tiktok.com", "instagram.com", "facebook.com",
+                "fb.watch", "threads.net", "threads.com",
+                "vm.tiktok.com", "vt.tiktok.com", "instagr.am",
+                "m.facebook.com")
+
 
 def classify(uri: str) -> str:
     u = (uri or "").strip().lower()
     if u.startswith("magnet:"):
         return "magnet"
+    if any(h in u for h in SOCIAL_HOSTS):
+        return "social"
     if u.startswith("peer://") or u.startswith("tribler"):
         return "peer"
     if ".m3u8" in u or "m3u8" in u.split("?")[0]:
@@ -62,7 +69,8 @@ def ingest(entry: dict) -> dict:
         "uri": uri,
         "url": uri,  # compatibility with candidate/fetch pipeline
         "type": kind,
-        "fetchable": kind in ("direct", "web", "hls", "dash", "image"),
+        "fetchable": kind in ("direct", "web", "hls", "dash", "image",
+                              "social"),
         "tags": [str(t).lower() for t in entry.get("tags", [])][:12]
                 or title.lower().split()[:8],
         "source": entry.get("source", "ingest"),

@@ -67,6 +67,12 @@ Optional: `ollama pull llama3.2` enables LLM query expansion/classification.
   mp4 outlets through the identity pipeline (tall strip pages are
   sliced into portrait segments). Ingest classifier also recognises
   image/comic formats.
+- **Social connectors** — `social.py` + ingest `social` kind:
+  TikTok/Instagram/Facebook posts fetch through yt-dlp,
+  Threads via og-tag scrape; all land in the store pipeline.
+  Publishing back out uses Meta Graph API (threads/IG/FB) and TikTok
+  Content Posting API — credentials via `POST /api/social/token`
+  (stored in `data/social_tokens.json`, never committed).
 - **Bot session** — `bot.py` autonomous node: comments on outlets and
   telepathic self/peer DMs over the comms link (toggle in identity.json).
 - **LLM discovery** — `POST /api/discover {"topic": "..."}` expands a topic
@@ -88,6 +94,10 @@ Optional: `ollama pull llama3.2` enables LLM query expansion/classification.
 | `/api/aniwatch?q=` | GET | anime catalog search (also merged into `/api/manga`) |
 | `/api/aniwatch/episodes?id=` | GET | episode list for an AniWatch title |
 | `/api/aniwatch/watch` | POST | `{query?|anilist_id, episode?, seconds?}` episode → video outlet |
+| `/api/social` | GET | platform connection status |
+| `/api/social/token` | POST | `{platform, access_token, user_id/ig_user_id/page_id, public_base?}` |
+| `/api/social/fetch` | POST | `{url}` pull a social post into the store |
+| `/api/social/post` | POST | `{platform, src|path, caption?}` publish a stored outlet |
 | `/api/ingest` | POST | `{uri/magnet/m3u8/mpd/url, title, tags}` |
 | `/api/discover` | POST | `{topic, n}` LLM query expansion → candidates |
 | `/api/auth/signup\|login\|logout` | POST | API key lifecycle |

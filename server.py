@@ -76,6 +76,7 @@ import ingest  # noqa: E402
 import llm  # noqa: E402
 import manga  # noqa: E402
 import aniwatch  # noqa: E402
+import social  # noqa: E402
 import catalogue  # noqa: E402
 import vision  # noqa: E402
 
@@ -1018,6 +1019,9 @@ class Handler(BaseHTTPRequestHandler):
                 lim = int(qs.get("limit", ["30"])[0] or 30)
                 self._send(200, {"episodes": aniwatch.episodes(aid, lim)})
                 return
+            if path == "/api/social":
+                self._send(200, social.status())
+                return
             if path == "/api/wishlist":
                 # unresolved community descriptors — peers poll this and
                 # resolve what they can (torrent client, local rips)
@@ -1334,6 +1338,51 @@ class Handler(BaseHTTPRequestHandler):
                 self._send(200, {"anilist_id": aid, "episode": ep,
                                  "provider": stream.get("provider"),
                                  "stored": stored})
+            elif u.path == "/api/social/token":
+                plat = body.get("platform", "")
+                fields = {k: v for k, v in body.items()
+                          if k != "platform"}
+                if body.get("public_base"):
+                    social.set_public_base(body["public_base"])
+                    fields.pop("public_base", None)
+                self._send(200, social.set_token(plat, fields))
+            elif u.path == "/api/social/fetch":
+                # pull a public social post into the store pipeline
+                url = body.get("url", "")
+                plat = social.platform(url)
+                if not plat:
+                    self._send(400, {"error": "not a social URL",
+                                     "url": url})
+                    return
+                target = url
+                if plat == "threads":
+                    direct = social.direct_media(url)
+                    if direct:
+                        target = direct
+                res = fetch_any_url(target, title=body.get("title"))
+                if res and "error" not in res:
+                    res["platform"] = plat
+                    broadcast("fetched", {"q": url, "fetched": res})
+                self._send(200, res or {"error": "unreachable",
+                                        "url": url, "platform": plat})
+            elif u.path == "/api/social/post":
+                plat = body.get("platform", "")
+                # resolve src/path to a store file
+                vid = None
+                cand = body.get("path") or body.get("src") or ""
+                for p in video_files():
+                    if p.stem == cand or str(p) == cand \
+                            or cand in str(p):
+                        vid = p
+                        break
+                if not vid:
+                    self._send(400, {"error": "no matching stored outlet",
+                                     "src": cand})
+                    return
+                res = social.post(plat, vid,
+                                  body.get("caption", ""))
+                broadcast("social", {"platform": plat, "post": res})
+                self._send(200, res)
             elif u.path == "/api/discover":
                 # LLM expands a topic into diverse queries, ytsearch each,
                 # merge candidates — grows reach without dead-ending
