@@ -305,7 +305,7 @@ createApp({
         runSearch();
       }
       if (!q.value.trim()) autoSearched.value = '';
-      engagement.value = await api('/api/engage');
+      loadEngagement();
       try { localStorage.setItem(FEED_KEY, JSON.stringify({ts: Date.now(), items})); } catch (e) {}
       loading.value = false;
     };
@@ -347,6 +347,34 @@ createApp({
     const loadNode = async () => { node.value = await api('/api/node'); ip.value = await api('/api/ip'); loadApiStatus(); };
     const loadComms = async () => { comms.value = await api('/api/comms?node=' + me.value); };
 
+    // federated engagement: merge per-layer state, dedupe by client/text
+    const engRaw = ref({});
+    const rebuildEng = () => {
+      const merged = {};
+      for (const entries of Object.values(engRaw.value)) {
+        for (const [src, e] of Object.entries(entries || {})) {
+          const m = merged[src] || (merged[src] = {likes:{}, reposts:{}, comments:[]});
+          Object.assign(m.likes, e.likes || {});
+          Object.assign(m.reposts, e.reposts || {});
+          const seen = new Set(m.comments.map(c => c.client+'|'+c.text+'|'+Math.round(c.ts||0)));
+          for (const c of (e.comments || [])) {
+            const k = c.client+'|'+c.text+'|'+Math.round(c.ts||0);
+            if (!seen.has(k)) { seen.add(k); m.comments.push(c); }
+          }
+          m.comments.sort((a,b) => (a.ts||0)-(b.ts||0));
+        }
+      }
+      engagement.value = merged;
+    };
+    const loadEngagement = async () => {
+      const bases = LAYERS.length ? LAYERS : [''];
+      const out = {};
+      await Promise.all(bases.map(async b => {
+        try { out[b] = await (await fetch(b + '/api/engage')).json(); }
+        catch (e) { out[b] = {}; }
+      }));
+      engRaw.value = out; rebuildEng();
+    };
     const eng = src => engagement.value[src];
     const count = o => o ? Object.keys(o).length : 0;
     const quality = v => Math.min(99, Math.round((v.width*v.height)/20736 + v.duration*2));
@@ -357,14 +385,16 @@ createApp({
     const engage = async (src, action) => {
       const r = await api('/api/engage', {method:'POST',headers:{'Content-Type':'application/json'},
         body: JSON.stringify({video:src, action, client:me.value})});
-      engagement.value[src] = r;
+      engRaw.value[API0] = {...(engRaw.value[API0] || {}), [src]: r};
+      rebuildEng();
     };
     const toggleComments = src => { openComments.value = openComments.value===src?null:src; };
     const comment = async src => {
       const text = (draft[src]||'').trim(); if (!text) return;
       const r = await api('/api/engage', {method:'POST',headers:{'Content-Type':'application/json'},
         body: JSON.stringify({video:src, action:'comment', client:me.value, text})});
-      engagement.value[src] = r; draft[src] = '';
+      engRaw.value[API0] = {...(engRaw.value[API0] || {}), [src]: r};
+      rebuildEng(); draft[src] = '';
     };
     const sendDm = async () => {
       const text = dmText.value.trim(); if (!text) return;
@@ -419,7 +449,8 @@ createApp({
         es.onerror = () => { live.value = false; };
         es.addEventListener('engage', e => {
           const d = JSON.parse(e.data);
-          engagement.value[d.video] = d.entry;
+          engRaw.value[b] = {...(engRaw.value[b] || {}), [d.video]: d.entry};
+          rebuildEng();
         });
         es.addEventListener('comms', () => { if (tab.value === 'comms') loadComms(); });
         es.addEventListener('fetched', e => {
