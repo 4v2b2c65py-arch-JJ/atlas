@@ -421,3 +421,50 @@ def _cert_watcher() -> None:
         except Exception:
             pass
         time.sleep(30)
+
+
+# ---------- registrar: buy a domain via API, zero manual steps ----
+
+def registrar_search(query: str) -> dict:
+    """Domain availability + pricing via Cloudflare Registrar."""
+    cf = _cf_load()
+    acc = cf.get("account_id")
+    if not acc:
+        return {"error": "no account_id — run discover first"}
+    r = _cf_api("GET", f"/accounts/{acc}/registrar/domain-search"
+                       f"?q={urllib.parse.quote(query)}")
+    return {"results": (r.get("result") or {}).get("domains", []),
+            "error": r.get("error") or (None if r.get("success")
+                                         else r)}
+
+
+def registrar_register(domain: str, auto_route: bool = True
+                       ) -> dict:
+    """Register a domain, then auto-piece zone_id + hostname +
+    named tunnel so https://<domain> comes alive by itself."""
+    cf = _cf_load()
+    acc = cf.get("account_id")
+    if not acc:
+        return {"error": "no account_id — run discover first"}
+    domain = domain.strip().lower()
+    r = _cf_api("POST", f"/accounts/{acc}/registrar/domains",
+                {"domain_name": domain})
+    res = r.get("result") or {}
+    if not r.get("success"):
+        return {"error": "registration failed",
+                "detail": r.get("errors") or r}
+    zone_id = res.get("zone_id") or (res.get("domain") or {}) \
+        .get("zone_id")
+    # registration can take a moment for the zone to appear —
+    # rediscover pulls it in
+    out = {"registered": domain, "zone_id": zone_id}
+    if auto_route:
+        host = f"atlas.{domain}"
+        d = cf_discover()
+        cf2 = _cf_load()
+        cf2["hostname"] = host
+        _cf_save(cf2)
+        out["discover"] = d
+        out["named"] = cf_create()
+        out["tunnel"] = status()
+    return out

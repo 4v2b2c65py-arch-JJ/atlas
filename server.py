@@ -1621,6 +1621,12 @@ class Handler(BaseHTTPRequestHandler):
                         self._send(200, {**res, **tunnel.start()})
                     else:
                         self._send(200, res)
+                elif action == "domainsearch":
+                    self._send(200, tunnel.registrar_search(
+                        body.get("q") or body.get("hostname", "")))
+                elif action == "buy":
+                    self._send(200, tunnel.registrar_register(
+                        body.get("domain") or body.get("hostname", "")))
                 elif action == "start":
                     self._send(200, tunnel.start())
                 elif action == "stop":

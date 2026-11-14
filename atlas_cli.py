@@ -130,6 +130,7 @@ def main() -> None:
     tu.add_argument("action",
                     choices=["status", "login", "named", "cert",
                              "discover", "configure", "domain",
+                             "buy", "domainsearch",
                              "quick", "start", "stop", "restart"])
     tu.add_argument("hostname", nargs="?")
     tu.add_argument("token", nargs="?")
@@ -310,6 +311,14 @@ def main() -> None:
             out(post("/api/tunnel",
                      {"action": "configure",
                       "hostname": ns.hostname}))
+        elif a == "domainsearch":
+            out(post("/api/tunnel",
+                     {"action": "domainsearch", "q": ns.hostname}))
+        elif a == "buy":
+            # register domain + auto route tunnel — REAL PURCHASE,
+            # costs the registrar price shown by domainsearch
+            out(post("/api/tunnel",
+                     {"action": "buy", "domain": ns.hostname}))
         elif a == "domain":
             # one-shot: discover zones -> configure host -> provision
             d = post("/api/tunnel", {"action": "discover"})
