@@ -148,6 +148,11 @@ def main() -> None:
     tl.add_argument("since", nargs="?"); tl.add_argument("until", nargs="?")
     tl.add_argument("--kind", default="")
     rp = sub.add_parser("replay"); rp.add_argument("at", type=float)
+    pr = sub.add_parser("prime")
+    pr.add_argument("action",
+                    choices=["status", "wallets", "generate", "query"])
+    pr.add_argument("a1", nargs="?"); pr.add_argument("a2", nargs="*")
+
     ea = sub.add_parser("earn")
     ea.add_argument("action",
                     choices=["status", "revenue", "payout", "settle"])
@@ -358,6 +363,20 @@ def main() -> None:
                 kind=ns.kind or None))
     elif ns.cmd == "replay":
         out(get("/api/replay", at=ns.at))
+    elif ns.cmd == "prime":
+        a = ns.action
+        if a == "status":
+            out(get("/api/prime"))
+        elif a == "wallets":
+            out(get("/api/prime", action="wallets"))
+        elif a == "generate":
+            out(post("/api/prime", {"action": "generate",
+                                    "prompt": ns.a1 or ""}))
+        else:
+            out(post("/api/prime", {"action": "query",
+                                    "query": " ".join(
+                                        [ns.a1 or ""] +
+                                        list(ns.a2 or []))}))
     elif ns.cmd == "earn":
         a = ns.action
         if a == "status":

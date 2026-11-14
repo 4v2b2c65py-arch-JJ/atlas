@@ -140,6 +140,7 @@ import flowviz  # noqa: E402
 import twitch  # noqa: E402
 import sites  # noqa: E402
 import economy  # noqa: E402
+import prime  # noqa: E402
 import catalogue  # noqa: E402
 import vision  # noqa: E402
 
@@ -1211,6 +1212,13 @@ class Handler(BaseHTTPRequestHandler):
                 node = qs.get("node", [""])[0] or None
                 self._send(200, economy.status(node))
                 return
+            if path == "/api/prime":
+                action = qs.get("action", ["status"])[0]
+                if action == "wallets":
+                    self._send(200, prime.wallets(force=True))
+                else:
+                    self._send(200, prime.status())
+                return
             if path == "/api/twitch":
                 self._send(200, twitch.status())
                 return
@@ -1668,6 +1676,20 @@ class Handler(BaseHTTPRequestHandler):
                         body.get("tx", "")))
                 else:
                     self._send(200, economy.status(node))
+            elif u.path == "/api/prime":
+                action = body.get("action", "status")
+                if action == "generate":
+                    self._send(200, prime.generate(
+                        body.get("prompt", ""), **{
+                            k: v for k, v in body.items()
+                            if k not in ("action", "prompt")}))
+                elif action == "query":
+                    self._send(200, prime.query(
+                        body.get("query") or body.get("text", "")))
+                elif action == "wallets":
+                    self._send(200, prime.wallets(force=True))
+                else:
+                    self._send(200, prime.status())
             elif u.path == "/api/browser":
                 action = body.get("action", "render")
                 if action == "status":

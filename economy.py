@@ -135,12 +135,18 @@ def status(node: str | None = None) -> dict:
                    "pending": sum(1 for p in w["payouts"]
                                   if p["status"] == "pending")}
                for n, w in st["wallets"].items()}
-    return {"wallets": wallets,
-            "total_earned": round(sum(w["earned"]
-                                      for w in st["wallets"]
-                                      .values()), 4),
-            "total_paid": round(sum(w["paid"]
-                                    for w in st["wallets"]
-                                    .values()), 4),
-            "plays": sum(st["impressions"].values()),
-            "events": len(st["events"])}
+    out = {"wallets": wallets,
+           "total_earned": round(sum(w["earned"]
+                                     for w in st["wallets"]
+                                     .values()), 4),
+           "total_paid": round(sum(w["paid"]
+                                   for w in st["wallets"]
+                                   .values()), 4),
+           "plays": sum(st["impressions"].values()),
+           "events": len(st["events"])}
+    try:
+        import prime
+        out["prime_funding_sats"] = prime.funding_sats()
+    except Exception:
+        pass
+    return out
