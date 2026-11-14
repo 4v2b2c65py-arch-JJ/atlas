@@ -168,3 +168,18 @@ catalogue.d/     ingested outlets organised by transport type
 videos/store/    sorted media store + manifest.jsonl
 data/            sessions, engagement, comms, peers, api keys
 ```
+
+## CLI
+
+`./atlas <command>` drives the whole hub — `./atlas --help` lists it:
+feed, search, fetch, ingest, catalogue, discover, manga, anime,
+social, browser, passkeys, twitch, tunnel, comms, engage, timeline,
+replay, auto, node, auth. `--api URL` targets any hub (e.g. the
+tunnel or a peer). Examples:
+
+```sh
+./atlas passkeys viz https://.../clip.mp4 30
+./atlas twitch ensure shroud 5
+./atlas tunnel login          # one-click CF auth -> auto named tunnel
+./atlas replay 1794687555     # session state at any timestamp
+```
