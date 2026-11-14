@@ -503,7 +503,7 @@ def analyze_flow(url: str, keyphrase: str | None = None,
                                               keyphrase or "")}
     # persist flow fields onto the stored record
     data = _load()
-    site = _site(url)
+    site = _site(url) or Path(url).stem  # local files key by stem
     for rec in data.get(site, []):
         if rec.get("url") == url:
             rec.update({"flow_score": flow.get("flow_score"),

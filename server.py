@@ -20,6 +20,7 @@ Endpoints:
 """
 
 import concurrent.futures
+import hashlib
 import json
 import mimetypes
 import queue
@@ -1648,6 +1649,39 @@ def auto_worker(interval: int = 30) -> None:
         time.sleep(interval)
 
 
+PASSKEY_DONE = DATA / "passkey_done.json"
+
+
+def passkey_worker(interval: int = 300) -> None:
+    """Closes the passkey loop on auto: every interval picks the
+    oldest unprocessed vid outlet in the store, runs Q-time flow
+    analysis (transcript/keyphrase/pauses/bindings) and renders a
+    repeat visualiser into the feed. One file per cycle — CPU-friendly."""
+    while True:
+        try:
+            done = set(load_json(PASSKEY_DONE, []))
+            vids = sorted(
+                (ROOT / "videos" / "store").glob("*/*.mp4"),
+                key=lambda p: p.stat().st_mtime)
+            for v in vids:
+                if v.stem.startswith("flowviz"):
+                    continue
+                h = hashlib.sha256(str(v).encode()).hexdigest()[:16]
+                if h in done:
+                    continue
+                flowviz.render(str(v), seconds=20, store=True)
+                passkeys.analyze_flow(str(v), seconds=30)
+                done.add(h)
+                PASSKEY_DONE.write_text(json.dumps(
+                    sorted(done)[-500:]))
+                broadcast("passkey", {"file": v.name,
+                                      "identity": h})
+                break  # one outlet per cycle
+        except Exception:
+            pass
+        time.sleep(interval)
+
+
 def main():
     port = 8917
     srv = ThreadingHTTPServer(("0.0.0.0", port), Handler)
@@ -1667,6 +1701,8 @@ def main():
     threading.Thread(target=tunnel.start, daemon=True).start()
     # AUTO-01 spec automation: 'add 1' rule ticking on interval
     threading.Thread(target=auto_worker, daemon=True).start()
+    # passkey loop: auto flow-analysis + repeat visualiser per outlet
+    threading.Thread(target=passkey_worker, daemon=True).start()
     # bot session: self-commenting node over the comms link
     try:
         bot_cfg = identity.load_profile().get("bot", {})
