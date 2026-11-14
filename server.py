@@ -1391,6 +1391,9 @@ class Handler(BaseHTTPRequestHandler):
                 action = body.get("action", "status")
                 if action == "configure":
                     self._send(200, tunnel.cf_configure(body))
+                elif action == "discover":
+                    self._send(200, tunnel.cf_discover(
+                        body.get("api_token")))
                 elif action == "named":
                     # create named tunnel + DNS via Cloudflare API,
                     # then restart the connector on the stable host

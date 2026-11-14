@@ -73,9 +73,10 @@ def _cf_save(data: dict) -> None:
     CF_PATH.write_text(json.dumps(data, indent=1))
 
 
-def _cf_api(method: str, path: str, payload: dict | None = None) -> dict:
+def _cf_api(method: str, path: str, payload: dict | None = None,
+            token: str | None = None) -> dict:
     cf = _cf_load()
-    token = cf.get("api_token")
+    token = token or cf.get("api_token")
     if not token:
         return {"error": "no cloudflare api_token configured"}
     body = json.dumps(payload).encode() if payload is not None else None
@@ -103,6 +104,56 @@ def cf_configure(fields: dict) -> dict:
                               ("api_token", "account_id", "zone_id",
                                "hostname")),
             "hostname": cf.get("hostname")}
+
+
+def cf_discover(token: str | None = None) -> dict:
+    """Auto-fill account_id/zone_id/hostname from just an api_token.
+    Returns the fields still needed plus what was discovered."""
+    cf = _cf_load()
+    token = token or cf.get("api_token")
+    if not token:
+        return {"error": "api_token required — create one at "
+                "dash.cloudflare.com/profile/api-tokens with "
+                "Account:Cloudflare Tunnel Edit + Zone:DNS Edit"}
+    if token:
+        cf["api_token"] = token
+    out = {"discovered": {}, "missing": []}
+    # accounts
+    if not cf.get("account_id"):
+        r = _cf_api("GET", "/accounts", token=token)
+        accs = r.get("result") or []
+        if accs:
+            cf["account_id"] = accs[0]["id"]
+            out["discovered"]["account_id"] = accs[0]["id"]
+            out["discovered"]["account_name"] = accs[0].get("name")
+        else:
+            out["missing"].append("account_id")
+    # zones
+    if cf.get("account_id") and not cf.get("zone_id"):
+        r = _cf_api("GET", "/zones?per_page=50",
+                    token=token)
+        zones = r.get("result") or []
+        if zones:
+            z = zones[0]
+            cf["zone_id"] = z["id"]
+            out["discovered"]["zone_id"] = z["id"]
+            out["discovered"]["zone_name"] = z.get("name")
+            if not cf.get("hostname"):
+                cf["hostname"] = f"atlas.{z['name']}"
+                out["discovered"]["hostname"] = cf["hostname"]
+        else:
+            out["missing"].append("zone_id")
+    for k in ("hostname",):
+        if not cf.get(k):
+            out["missing"].append(k)
+    _cf_save(cf)
+    out["configured"] = all(cf.get(k) for k in
+                            ("api_token", "account_id", "zone_id",
+                             "hostname"))
+    out["next"] = ("POST /api/tunnel {action:'named'} to provision"
+                   if out["configured"] else
+                   "supply missing fields via action:'configure'")
+    return out
 
 
 def cf_create() -> dict:
