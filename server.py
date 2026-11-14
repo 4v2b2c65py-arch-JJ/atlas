@@ -70,6 +70,7 @@ UPTIME_TTL = 120
 
 import api_keys  # noqa: E402
 import beacon  # noqa: E402
+import bittorrent  # noqa: E402
 import identity  # noqa: E402
 import ingest  # noqa: E402
 import llm  # noqa: E402
@@ -635,6 +636,93 @@ def community_sync():
                 pass
 
 
+TORRENT_JOBS = DATA / "torrent_jobs.json"
+
+
+def torrent_worker():
+    """BitTorrent plugin: resolves wishlist magnets locally via the
+    webtorrent runtime, stores the video, and publishes a LAN stream
+    URL back into resolved.json + the peer pool for the whole mesh."""
+    while True:
+        time.sleep(90)
+        try:
+            if not bittorrent.available():
+                continue
+            wants = [e for e in ingest.extra_catalogue()
+                     if e.get("type") == "magnet" and not e.get("fetchable")]
+            if not wants:
+                continue
+            jobs = load_json(TORRENT_JOBS, {})
+            resolved = load_json(DATA / "resolved.json", {})
+            now = time.time()
+            pending = [w for w in wants
+                       if w["uri"] not in resolved
+                       and jobs.get(w["uri"], {}).get("status") != "done"
+                       and now - jobs.get(w["uri"], {}).get("ts", 0) > 1800]
+            if not pending:
+                continue
+            w = pending[0]
+            uri = w["uri"]
+            jobs[uri] = {"status": "running", "ts": now}
+            save_json(TORRENT_JOBS, jobs)
+            import shutil
+            if shutil.disk_usage(ROOT).free < 2e9:
+                jobs[uri] = {"status": "skipped-storage", "ts": time.time()}
+                save_json(TORRENT_JOBS, jobs)
+                continue
+            slug = "".join(c if c.isalnum() or c in "-_" else "_"
+                           for c in w.get("title", "torrent"))[:50]
+            work = ROOT / "videos" / "inbox" / f"bt_{slug}"
+            video = bittorrent.resolve(uri, work, timeout=600)
+            if not video:
+                jobs[uri] = {"status": "failed", "ts": time.time()}
+                save_json(TORRENT_JOBS, jobs)
+                continue
+            if video.stat().st_size > shutil.disk_usage(ROOT).free * 0.4:
+                video.unlink(missing_ok=True)
+                jobs[uri] = {"status": "skipped-storage", "ts": time.time()}
+                save_json(TORRENT_JOBS, jobs)
+                continue
+            stored = restash_if_poor(identity.store_file(
+                str(video), skip_score_gate=True))
+            stored_path = stored.get("stored")
+            pub_url = None
+            if stored_path:
+                try:
+                    rel = str(Path(stored_path).resolve()
+                              .relative_to(ROOT))
+                    pub_ip = next((i for i in lan_ips()
+                                   if not i.startswith("127.")),
+                                  lan_ips()[0])
+                    pub_url = ("http://" + pub_ip + ":8917/api/stream"
+                               "?path=" + urllib.parse.quote(rel))
+                except Exception:
+                    pass
+            res = load_json(DATA / "resolved.json", {})
+            res[uri] = {"key": uri, "url": pub_url or str(video),
+                        "title": w.get("title", uri),
+                        "tags": w.get("tags", []),
+                        "resolved_by": "bittorrent-plugin",
+                        "ts": time.time()}
+            save_json(DATA / "resolved.json", res)
+            if pub_url:
+                ingest.ingest({"title": w.get("title", uri), "url": pub_url,
+                               "tags": w.get("tags", []),
+                               "source": "bittorrent",
+                               "node": "self"})
+                register_peer_url(pub_url, w.get("title", uri),
+                                  w.get("tags", []), "bittorrent")
+            shutil.rmtree(work, ignore_errors=True)
+            jobs[uri] = {"status": "done", "ts": time.time(),
+                         "stored": stored_path}
+            save_json(TORRENT_JOBS, jobs)
+            broadcast("fetched", {"q": uri, "fetched": {
+                "title": w.get("title"), "url": pub_url,
+                "origin": "bittorrent", "stored": stored_path}})
+        except Exception:
+            pass
+
+
 def node_status() -> dict:
     import shutil
     profile = identity.load_profile()
@@ -1182,6 +1270,7 @@ def main():
           f"freq={beacon_info['wifi'].get('frequency_mhz')}MHz")
     threading.Thread(target=stream_tuner, daemon=True).start()
     threading.Thread(target=community_sync, daemon=True).start()
+    threading.Thread(target=torrent_worker, daemon=True).start()
     srv.serve_forever()
 
 

@@ -1,0 +1,22 @@
+{
+  "name": "bt",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "webtorrent": "^3.0.21"
+  },
+  "allowScripts": {
+    "utp-native@2.5.3": true,
+    "bufferutil@4.2.0": true,
+    "utf-8-validate@6.0.6": true,
+    "node-datachannel@0.32.3": true
+  }
+}

@@ -47,6 +47,10 @@ Optional: `ollama pull llama3.2` enables LLM query expansion/classification.
   `api.auth_required` enforcement via `X-ATLAS-Key`.
 - **Stream ingest** — `POST /api/ingest` accepts `url`, `uri`, `magnet:`,
   `.m3u8`, `.mpd`, peer URIs; auto-classified into `catalogue.d/<type>/`.
+- **BitTorrent plugin** — `bittorrent.py` + `bt/` (webtorrent node
+  runtime): wishlist magnets are resolved locally — largest video file
+  downloaded via DHT+trackers, stored through the identity pipeline,
+  and published back to the mesh as a LAN `/api/stream` URL.
 - **Community resolution** — magnets/peer links go on `/api/wishlist`;
   any hub with a resolver publishes the fetchable URL via
   `POST /api/resolve`, and `community_sync` gossips resolutions across
@@ -102,6 +106,8 @@ catalogue.py     verified builtin outlets
 ingest.py        stream descriptor intake -> catalogue.d/<type>/
 api_keys.py      atlas_ token service (signup/login/track/recover)
 upscale.py       Lanczos upscale for sub-gate media
+bittorrent.py    magnet resolver plugin (webtorrent runtime)
+bt/              node resolver: bt_download.mjs (npm i webtorrent)
 atlas_mcp.py     local MCP tool server
 catalogue.d/     ingested outlets organised by transport type
 videos/store/    sorted media store + manifest.jsonl

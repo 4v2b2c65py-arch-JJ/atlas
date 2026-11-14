@@ -1,17 +1,15 @@
 {
  "title": "Big Buck Bunny 4K remux",
- "uri": "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/720/Big_Buck_Bunny_720_10s_1MB.mp4",
- "url": "https://test-videos.co.uk/vids/bigbuckbunny/mp4/h264/720/Big_Buck_Bunny_720_10s_1MB.mp4",
+ "uri": "http://127.0.0.1:8917/api/stream?path=videos/store/landscape/video.mp4",
+ "url": "http://127.0.0.1:8917/api/stream?path=videos/store/landscape/video.mp4",
  "type": "direct",
  "fetchable": true,
  "tags": [
-  "big",
-  "buck",
+  "animation",
   "bunny",
-  "4k",
-  "remux"
+  "4k"
  ],
- "source": "community",
- "node": "test-peer",
- "ts": 1794629986.490859
+ "source": "bittorrent",
+ "node": "self",
+ "ts": 1794631112.649407
 }

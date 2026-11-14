@@ -1,0 +1,15 @@
+{
+ "title": "Big Buck Bunny torrent",
+ "uri": "magnet:?xt=urn:btih:dd8255ecdc7ca55fb0bbf81323d87062db1f6d1c&dn=bbb-worker-test",
+ "url": "magnet:?xt=urn:btih:dd8255ecdc7ca55fb0bbf81323d87062db1f6d1c&dn=bbb-worker-test",
+ "type": "magnet",
+ "fetchable": false,
+ "tags": [
+  "animation",
+  "bunny",
+  "torrent"
+ ],
+ "source": "ingest",
+ "node": "",
+ "ts": 1794630920.087242
+}

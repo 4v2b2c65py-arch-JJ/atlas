@@ -5,3 +5,5 @@ videos/
 data/
 .DS_Store
 node_modules/
+bt/node_modules/
+bt/package-lock.json
