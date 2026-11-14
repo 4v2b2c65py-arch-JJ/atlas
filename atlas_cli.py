@@ -97,9 +97,10 @@ def main() -> None:
     a.add_argument("a3", nargs="?"); a.add_argument("a4", nargs="?")
 
     so = sub.add_parser("social")
-    so.add_argument("action", choices=["fetch", "post", "status"])
+    so.add_argument("action",
+                    choices=["fetch", "post", "status", "token"])
     so.add_argument("a1", nargs="?"); so.add_argument("a2", nargs="?")
-    so.add_argument("a3", nargs="?")
+    so.add_argument("a3", nargs="?"); so.add_argument("a4", nargs="?")
 
     b = sub.add_parser("browser")
     b.add_argument("action",
@@ -128,8 +129,8 @@ def main() -> None:
     tu = sub.add_parser("tunnel")
     tu.add_argument("action",
                     choices=["status", "login", "named", "cert",
-                             "discover", "configure", "quick",
-                             "start", "stop", "restart"])
+                             "discover", "configure", "domain",
+                             "quick", "start", "stop", "restart"])
     tu.add_argument("hostname", nargs="?")
     tu.add_argument("token", nargs="?")
 
@@ -199,6 +200,11 @@ def main() -> None:
             out(post("/api/social/post",
                      {"platform": ns.a1, "src": ns.a2,
                       "caption": ns.a3 or ""}))
+        elif a == "token":
+            # social token <platform> <access_token> [user_or_page_id]
+            out(post("/api/social/token", {
+                "platform": ns.a1, "access_token": ns.a2,
+                "user_id": ns.a3 or "", "open_id": ns.a4 or ""}))
         else:
             out(get("/api/social"))
     elif ns.cmd == "browser":
@@ -304,6 +310,15 @@ def main() -> None:
             out(post("/api/tunnel",
                      {"action": "configure",
                       "hostname": ns.hostname}))
+        elif a == "domain":
+            # one-shot: discover zones -> configure host -> provision
+            d = post("/api/tunnel", {"action": "discover"})
+            out(d)
+            if ns.hostname:
+                out(post("/api/tunnel",
+                         {"action": "configure",
+                          "hostname": ns.hostname}))
+                out(post("/api/tunnel", {"action": "named"}))
         elif a == "named":
             # hostname arg -> configure it first, then provision
             if ns.hostname:

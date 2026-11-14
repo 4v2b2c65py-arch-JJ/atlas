@@ -81,6 +81,7 @@
       <div class="tab" :class="{on:tab==='feed'}" @click="tab='feed'">Stream</div>
       <div class="tab" :class="{on:tab==='comms'}" @click="tab='comms';loadComms()">Comms</div>
       <div class="tab" :class="{on:tab==='node'}" @click="tab='node';loadNode()">Node</div>
+      <div class="tab" :class="{on:tab==='sys'}" @click="tab='sys';loadSys()">Sys</div>
     </div>
 
     <!-- STREAM TAB -->
@@ -202,6 +203,58 @@
         <h3>This device</h3>
         <div class="kv"><span>your IP</span><span>{{ ip.your_ip }}</span></div>
         <div class="kv"><span>as node</span><span>{{ me }}</span></div>
+      </div>
+    </template>
+
+    <!-- SYSTEMS TAB: credentials, tunnel, automation -->
+    <template v-else-if="tab==='sys'">
+      <div class="panel">
+        <h3>Tunnel</h3>
+        <div class="kv" v-if="sys.tunnel"><span>mode</span><span>{{ sys.tunnel.mode }} · {{ sys.tunnel.url||'—' }}</span></div>
+        <div class="kv" v-if="sys.tunnel"><span>hostname</span><span>{{ sys.tunnel.hostname||'—' }}</span></div>
+        <div class="kv" v-if="sys.tunnel?.cert"><span>cf cert</span><span>{{ sys.tunnel.cert.cert?'present':'absent' }}</span></div>
+        <div class="cmt-form" style="flex-wrap:wrap;gap:6px">
+          <input class="search" style="flex:1;min-width:140px" v-model="cfHost" placeholder="atlas.example.com">
+          <button class="send" @click="tunnelAct('named')">route domain</button>
+          <button class="pill" @click="tunnelAct('discover')">discover</button>
+          <button class="pill" @click="tunnelAct('login')">cf login</button>
+          <button class="pill" @click="tunnelAct('cert')">cert provision</button>
+        </div>
+      </div>
+      <div class="panel">
+        <h3>Social credentials</h3>
+        <div class="kv" v-for="p in ['threads','instagram','facebook','tiktok']" :key="p">
+          <span>{{ p }}</span><span>{{ sys.social?.[p]?.configured?'connected':'—' }}</span>
+        </div>
+        <div class="cmt-form" style="flex-wrap:wrap;gap:6px">
+          <select v-model="socPlat" class="search" style="width:110px">
+            <option>threads</option><option>instagram</option>
+            <option>facebook</option><option>tiktok</option>
+          </select>
+          <input class="search" style="flex:1;min-width:120px" v-model="socToken" placeholder="access token">
+          <input class="search" style="flex:1;min-width:100px" v-model="socExtra" placeholder="user/page id (opt)">
+          <button class="send" @click="saveSocial">save</button>
+        </div>
+        <div class="cmt-form" style="margin-top:6px">
+          <button class="pill" @click="modelApprove">model: complete approval</button>
+          <span v-if="approveMsg" style="font-size:12px;color:var(--dim)">{{ approveMsg }}</span>
+        </div>
+      </div>
+      <div class="panel" v-if="sys.sites">
+        <h3>Sites</h3>
+        <div class="kv" v-for="(s,n) in sys.sites.sites" :key="n">
+          <span>{{ n }} <span class="badge">{{ s.kind||'site' }}</span></span>
+          <span><button class="pill" @click="siteLogin(n)">login</button>
+            <span :style="{color: s.login_ok===false?'#f66':'#6f6'}">{{ s.login_ok===true?'●':s.login_ok===false?'○':'·' }}</span></span>
+        </div>
+      </div>
+      <div class="panel">
+        <h3>Automation</h3>
+        <div class="kv" v-if="sys.auto"><span>AUTO-01</span><span>add 1 → {{ sys.auto.counter }} ({{ sys.auto.bindings?.['auto1.2']||'' }})</span></div>
+        <div class="kv" v-if="sys.passkeys"><span>passkeys</span><span>{{ Object.keys(sys.passkeys.passkeys||{}).length }} sites</span></div>
+        <div class="kv" v-for="(c,n) in (sys.twitchch||{}).channels||{}" :key="n">
+          <span>twitch: {{ n }}</span><span>{{ c.alive }}/{{ c.viewers }} viewers</span>
+        </div>
       </div>
     </template>
   </div>
@@ -347,6 +400,57 @@ createApp({
     const loadNode = async () => { node.value = await api('/api/node'); ip.value = await api('/api/ip'); loadApiStatus(); };
     const loadComms = async () => { comms.value = await api('/api/comms?node=' + me.value); };
 
+    // systems tab: tunnel creds, social tokens, sites, automation
+    const sys = ref({}), cfHost = ref(''), socPlat = ref('threads'),
+          socToken = ref(''), socExtra = ref(''), approveMsg = ref('');
+    const loadSys = async () => {
+      const [t, s, st, a, pk, tw] = await Promise.all([
+        api('/api/tunnel'), api('/api/social'), api('/api/sites'),
+        api('/api/auto'), api('/api/passkeys'), api('/api/twitch')]);
+      sys.value = {tunnel: t, social: s, sites: st, auto: a,
+                   passkeys: pk, twitchch: tw};
+    };
+    const tunnelAct = async act => {
+      const body = {action: act};
+      if (act === 'named' || act === 'cert') body.hostname = cfHost.value;
+      const r = await api('/api/tunnel', {method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(body)});
+      toast(act + ': ' + (r.hostname || r.url || r.error || 'ok'));
+      setTimeout(loadSys, 1500);
+    };
+    const saveSocial = async () => {
+      const fields = {platform: socPlat.value, access_token: socToken.value};
+      if (socExtra.value) {
+        fields[socPlat.value === 'tiktok' ? 'open_id' : 'user_id'] = socExtra.value;
+      }
+      const r = await api('/api/social/token', {method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(fields)});
+      toast('token: ' + (r.ok ? 'saved' : (r.error || 'saved?')));
+      socToken.value = ''; loadSys();
+    };
+    const siteLogin = async n => {
+      toast('login: ' + n + '…');
+      const r = await api('/api/sites', {method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({action:'login', name:n})});
+      toast(n + ': ' + (r.error || 'session attempted'));
+      setTimeout(loadSys, 3000);
+    };
+    const modelApprove = async () => {
+      approveMsg.value = 'model driving approval flow…';
+      const r = await api('/api/browser', {method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({action:'auto',
+          task:'Open the developer/console approval page for the configured '
+             + 'social platform, complete any permission or app-review '
+             + 'steps that can be done without payment, and report what '
+             + 'credentials or approvals remain.'})});
+      approveMsg.value = r.error || r.title || 'done — check comms';
+      setTimeout(loadSys, 4000);
+    };
+
     // federated engagement: merge per-layer state, dedupe by client/text
     const engRaw = ref({});
     const rebuildEng = () => {
@@ -477,7 +581,9 @@ createApp({
              apiUser, apiPass, apiKey, apiStatus, saveKey, apiSignup, apiLogin,
              loadFeed, debounce, setCat, pickDiscovery, loadNode, loadComms, eng, count,
              quality, fmtSize, fmtDur, ago, engage, toggleComments, comment,
-             sendDm, copyLink, rename };
+             sendDm, copyLink, rename,
+             sys, cfHost, socPlat, socToken, socExtra, approveMsg,
+             loadSys, tunnelAct, saveSocial, siteLogin, modelApprove };
   }
 }).mount('#app');
 </script>
