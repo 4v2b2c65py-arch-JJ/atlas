@@ -1674,6 +1674,12 @@ class Handler(BaseHTTPRequestHandler):
                     self._send(200, economy.settle(
                         int(body.get("id", 0)), node or "atlas",
                         body.get("tx", "")))
+                elif action == "refund":
+                    # earnings return: pending payout back to balance
+                    self._send(200, economy.refund(
+                        int(body.get("id", 0)), node or "atlas"))
+                elif action == "reconcile":
+                    self._send(200, economy.reconcile())
                 else:
                     self._send(200, economy.status(node))
             elif u.path == "/api/prime":
@@ -1948,6 +1954,18 @@ def passkey_worker(interval: int = 300) -> None:
         time.sleep(interval)
 
 
+def economy_worker(interval: int = 600) -> None:
+    """Periodic earnings reconciliation — pending payouts vs prime
+    funding, persisted + broadcast so the network never loses track."""
+    while True:
+        try:
+            snap = economy.reconcile()
+            broadcast("economy", snap)
+        except Exception:
+            pass
+        time.sleep(interval)
+
+
 def main():
     port = 8917
     srv = ThreadingHTTPServer(("0.0.0.0", port), Handler)
@@ -1969,6 +1987,8 @@ def main():
     threading.Thread(target=auto_worker, daemon=True).start()
     # passkey loop: auto flow-analysis + repeat visualiser per outlet
     threading.Thread(target=passkey_worker, daemon=True).start()
+    # economy reconcile: earnings vs prime funding, every 10min
+    threading.Thread(target=economy_worker, daemon=True).start()
     # twitch keepalive: viewer bots hold registered live channels
     twitch.autostart()
     # bot session: self-commenting node over the comms link

@@ -11,11 +11,13 @@ default; donations/sponsorships set their own amount.
 """
 
 import json
+import threading
 import time
 from pathlib import Path
 
 ROOT = Path(__file__).parent
 PATH = ROOT / "data" / "economy.json"
+_lock = threading.Lock()
 
 EARN_PER_PLAY = 0.001   # 1 earn per 1000 stream hits
 PAYOUT_MIN = 1.0        # minimum payout request
@@ -30,7 +32,9 @@ def _load() -> dict:
 
 def _save(st: dict) -> None:
     PATH.parent.mkdir(exist_ok=True)
-    PATH.write_text(json.dumps(st, indent=1))
+    tmp = PATH.with_suffix(".tmp")
+    tmp.write_text(json.dumps(st, indent=1))
+    tmp.replace(PATH)  # atomic — no torn writes under threads
 
 
 def _wallet(st: dict, node: str) -> dict:
@@ -124,26 +128,85 @@ def settle(payout_id: int, node: str = "atlas",
     return {"error": "payout not found or already settled"}
 
 
+def refund(payout_id: int, node: str = "atlas") -> dict:
+    """Return a pending payout to the wallet — earnings come back
+    and the ledger stays balanced (no lost track)."""
+    st = _load()
+    w = st["wallets"].get(node or "atlas")
+    if not w:
+        return {"error": "unknown node"}
+    for p in w["payouts"]:
+        if p["id"] == payout_id:
+            if p["status"] != "pending":
+                return {"error": "only pending payouts can be "
+                        "refunded"}
+            p["status"] = "refunded"
+            p["refunded_ts"] = time.time()
+            w["balance"] = round(w["balance"] + p["amount"], 6)
+            w["paid"] = round(w["paid"] - p["amount"], 6)
+            st["events"].append({"ts": time.time(),
+                                 "kind": "refund", "node": node,
+                                 "amount": p["amount"],
+                                 "ref": str(payout_id)})
+            st["events"] = st["events"][-5000:]
+            _save(st)
+            return {"refunded": payout_id,
+                    "balance": w["balance"]}
+    return {"error": "payout not found"}
+
+
+def reconcile() -> dict:
+    """Reconcile pending payouts against prime wallet funding and
+    persist the snapshot — earnings state survives restarts and is
+    auditable at any time (prime-api record style)."""
+    st = _load()
+    pending = []
+    pending_sats_equiv = 0
+    for n, w in st["wallets"].items():
+        for p in w["payouts"]:
+            if p["status"] == "pending":
+                pending.append({"node": n, "id": p["id"],
+                                "amount": p["amount"],
+                                "method": p["method"]})
+                pending_sats_equiv += int(p["amount"] * 1000)
+    funding = 0
+    try:
+        import prime
+        funding = prime.funding_sats()
+    except Exception:
+        pass
+    snap = {"ts": time.time(), "pending": pending,
+            "pending_count": len(pending),
+            "pending_earn": round(sum(p["amount"] for p in pending), 4),
+            "prime_funding_sats": funding,
+            "covered": funding >= pending_sats_equiv}
+    st["last_reconcile"] = snap
+    _save(st)
+    return snap
+
+
 def status(node: str | None = None) -> dict:
     st = _load()
+    out = {"last_reconcile": st.get("last_reconcile")}
     if node:
-        return {"wallet": st["wallets"].get(node),
-                "impressions": len(st["impressions"]),
-                "plays": sum(st["impressions"].values())}
+        out.update({"wallet": st["wallets"].get(node),
+                    "impressions": len(st["impressions"]),
+                    "plays": sum(st["impressions"].values())})
+        return out
     wallets = {n: {"balance": w["balance"], "earned": w["earned"],
                    "paid": w["paid"],
                    "pending": sum(1 for p in w["payouts"]
                                   if p["status"] == "pending")}
                for n, w in st["wallets"].items()}
-    out = {"wallets": wallets,
-           "total_earned": round(sum(w["earned"]
+    out.update({"wallets": wallets,
+                "total_earned": round(sum(w["earned"]
                                      for w in st["wallets"]
                                      .values()), 4),
            "total_paid": round(sum(w["paid"]
                                    for w in st["wallets"]
                                    .values()), 4),
-           "plays": sum(st["impressions"].values()),
-           "events": len(st["events"])}
+                "plays": sum(st["impressions"].values()),
+                "events": len(st["events"])})
     try:
         import prime
         out["prime_funding_sats"] = prime.funding_sats()

@@ -155,7 +155,8 @@ def main() -> None:
 
     ea = sub.add_parser("earn")
     ea.add_argument("action",
-                    choices=["status", "revenue", "payout", "settle"])
+                    choices=["status", "revenue", "payout", "settle",
+                             "refund", "reconcile"])
     ea.add_argument("a1", nargs="?"); ea.add_argument("a2", nargs="?")
     ea.add_argument("a3", nargs="?"); ea.add_argument("a4", nargs="?")
 
@@ -393,6 +394,12 @@ def main() -> None:
                                    "method": ns.a2 or "btc",
                                    "address": ns.a3 or "",
                                    "node": ns.a4 or ""}))
+        elif a == "reconcile":
+            out(post("/api/earn", {"action": "reconcile"}))
+        elif a == "refund":
+            out(post("/api/earn", {"action": "refund",
+                                   "id": int(ns.a1 or 0),
+                                   "node": ns.a2 or ""}))
         else:
             out(post("/api/earn", {"action": "settle",
                                    "id": int(ns.a1 or 0),
