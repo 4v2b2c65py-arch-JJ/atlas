@@ -468,3 +468,21 @@ def registrar_register(domain: str, auto_route: bool = True
         out["named"] = cf_create()
         out["tunnel"] = status()
     return out
+
+
+def zone_add(domain: str) -> dict:
+    """Add an externally-registered domain as a zone on the account
+    (pending NS). Requires token perm zone.create — the current
+    token is tunnel+dns only; upgrade it or use cert.pem login."""
+    cf = _cf_load()
+    acc = cf.get("account_id")
+    if not acc:
+        return {"error": "no account_id"}
+    r = _cf_api("POST", "/zones",
+                {"name": domain.strip().lower(),
+                 "account": {"id": acc}})
+    res = r.get("result") or {}
+    return {"zone_id": res.get("id"), "name": res.get("name"),
+            "name_servers": res.get("name_servers"),
+            "status": res.get("status"),
+            "errors": r.get("errors") or None}
