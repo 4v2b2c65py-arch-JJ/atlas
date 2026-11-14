@@ -59,6 +59,61 @@ def _serialized(fn):
 
 ENGAGE_PATH = DATA / "engagement.json"
 COMMS_PATH = DATA / "comms.json"
+TIMELINE_PATH = DATA / "timeline.jsonl"
+
+
+def log_event(kind: str, data: dict) -> None:
+    """Append one event to the persistent timeline — the backup
+    session log that makes any point in time replayable."""
+    try:
+        with TIMELINE_PATH.open("a") as f:
+            f.write(json.dumps({"ts": time.time(), "kind": kind,
+                                **data}) + "\n")
+    except Exception:
+        pass
+
+
+def timeline_events(since: float = 0.0, until: float = 0.0,
+                    kind: str = "", limit: int = 500) -> list:
+    out = []
+    try:
+        with TIMELINE_PATH.open() as f:
+            for ln in f:
+                try:
+                    e = json.loads(ln)
+                except Exception:
+                    continue
+                if since and e.get("ts", 0) < since:
+                    continue
+                if until and e.get("ts", 0) > until:
+                    continue
+                if kind and e.get("kind") != kind:
+                    continue
+                out.append(e)
+    except FileNotFoundError:
+        pass
+    return out[-limit:]
+
+
+def replay_at(ts: float) -> dict:
+    """Reconstruct engage + comms state as it was at timestamp ts —
+    review/replay the session at any point on the timeline."""
+    eng = load_json(ENGAGE_PATH, {})
+    vids = {}
+    for src, v in eng.items():
+        vids[src] = {
+            "likes": sorted(c for c, t in
+                            (v.get("likes") or {}).items() if t <= ts),
+            "reposts": sorted(c for c, t in
+                              (v.get("reposts") or {}).items()
+                              if t <= ts),
+            "comments": [c for c in (v.get("comments") or [])
+                         if c.get("ts", 0) <= ts][-50:]}
+    msgs = [m for m in load_json(COMMS_PATH, [])
+            if m.get("ts", 0) <= ts][-100:]
+    events = timeline_events(until=ts, limit=200)
+    return {"at": ts, "videos": vids, "comms": msgs,
+            "events": events}
 FEED_CACHE = DATA / "feed_cache.json"
 PEERS_PATH = DATA / "peer_urls.json"
 _lock = threading.Lock()
@@ -82,6 +137,7 @@ import tunnel  # noqa: E402
 import browser  # noqa: E402
 import passkeys  # noqa: E402
 import flowviz  # noqa: E402
+import twitch  # noqa: E402
 import catalogue  # noqa: E402
 import vision  # noqa: E402
 
@@ -463,9 +519,76 @@ def fetch_youtube(entry: dict) -> dict | None:
             "categories": stored.get("categories")}
 
 
+def is_twitch(url: str) -> bool:
+    u = (url or "").lower()
+    return "twitch.tv" in u or "twitch." in u.split("/")[2] \
+        if "://" in u else "twitch.tv" in u
+
+
+def fetch_twitch(url: str, title: str | None = None) -> dict:
+    """Twitch links: clips/VODs go through the yt-dlp clipper;
+    live channels resolve to their HLS edge and we cut a bounded
+    clip with ffmpeg (section-cutting can't work on live)."""
+    u = url.lower()
+    live = ("twitch.tv" in u and "/videos/" not in u
+            and "clips.twitch.tv" not in u and "/clip/" not in u
+            and "/directory/" not in u and "/downloads/" not in u)
+    if not live:
+        return fetch_youtube({
+            "title": title or u.rstrip("/").split("/")[-1][:60]
+                     or "twitch",
+            "url": url, "tags": ["twitch"], "origin": "web",
+            "size_mb": 8})
+    # live: yt-dlp -g resolves the m3u8 edge(s)
+    import subprocess
+    r = subprocess.run([YTDLP, "-g", "--socket-timeout", "20", url],
+                       capture_output=True, text=True, timeout=60)
+    m3u8 = next((ln.strip() for ln in r.stdout.splitlines()
+                 if ".m3u8" in ln and ln.startswith("http")), "")
+    if not m3u8:
+        return {"error": "live stream not resolvable (offline?)",
+                "url": url}
+    ff = None
+    try:
+        import passkeys
+        ff = passkeys._ffmpeg()
+    except Exception:
+        pass
+    ff = ff or "ffmpeg"
+    inbox = ROOT / "videos" / "inbox"
+    inbox.mkdir(parents=True, exist_ok=True)
+    safe = "".join(c if c.isalnum() or c in "-_" else "_"
+                   for c in (title or u.split("/")[-1]))[:60] \
+        or "twitchlive"
+    dest = inbox / f"{safe}.mp4"
+    cr = subprocess.run(
+        [ff, "-y", "-t", str(CLIP_SECONDS), "-i", m3u8,
+         "-c", "copy", "-bsf:a", "aac_adtstoasc", str(dest)],
+        capture_output=True, timeout=CLIP_SECONDS + 120)
+    if cr.returncode != 0 or not dest.exists() \
+            or dest.stat().st_size < 100000:
+        dest.unlink(missing_ok=True)
+        return {"error": "live clip cut failed", "url": url,
+                "stderr": (cr.stderr or b"").decode()[-300:]}
+    stored = restash_if_poor(identity.store_file(
+        str(dest), skip_score_gate=True))
+    dest.unlink(missing_ok=True)
+    register_peer_url(url, title or safe, ["twitch", "live"], "web")
+    # keep the channel warm: viewer bots hold the live edge open
+    chan = u.split("twitch.tv/")[-1].strip("/").split("/")[0]
+    twitch.ensure(chan, title=title or safe)
+    return {"title": title or safe, "url": url, "origin": "twitch",
+            "live": True, "stored": stored.get("stored"),
+            "categories": stored.get("categories")}
+
+
 def fetch_any_url(url: str, title: str | None = None) -> dict:
     """Reach ANY outlet: yt-dlp handles 700+ sites + direct files;
     curl fallback for plain media URLs."""
+    if is_twitch(url):
+        res = fetch_twitch(url, title)
+        if res and "error" not in res:
+            return res
     slug = title or url.split("/")[-1].rsplit(".", 1)[0] or "outlet"
     entry = {"title": slug, "url": url, "tags": slug.lower().split(),
              "origin": "direct", "size_mb": 50,
@@ -1077,6 +1200,9 @@ class Handler(BaseHTTPRequestHandler):
                 else:
                     self._send(200, passkeys.list_all())
                 return
+            if path == "/api/twitch":
+                self._send(200, twitch.status())
+                return
             if path == "/api/wishlist":
                 # unresolved community descriptors — peers poll this and
                 # resolve what they can (torrent client, local rips)
@@ -1120,6 +1246,20 @@ class Handler(BaseHTTPRequestHandler):
                 mine = [m for m in msgs if m["to"] in (node, "all", "*")
                         or m["from"] == node or m.get("sid") == self._sid]
                 self._send(200, mine[-100:])
+                return
+            if path == "/api/timeline":
+                self._send(200, {"events": timeline_events(
+                    since=float(qs.get("since", ["0"])[0] or 0),
+                    until=float(qs.get("until", ["0"])[0] or 0),
+                    kind=qs.get("kind", [""])[0],
+                    limit=int(qs.get("limit", ["500"])[0] or 500))})
+                return
+            if path == "/api/replay":
+                at = float(qs.get("at", ["0"])[0] or 0)
+                if not at:
+                    self._send(400, {"error": "at=<unix ts> required"})
+                    return
+                self._send(200, replay_at(at))
                 return
             if path == "/api/stream":
                 rel = qs.get("path", [""])[0]
@@ -1198,6 +1338,10 @@ class Handler(BaseHTTPRequestHandler):
                             "text": body.get("text", "")[:500],
                             "ts": time.time()})
                     save_json(ENGAGE_PATH, eng)
+                    log_event("engage", {
+                        "video": body.get("video", ""),
+                        "action": act, "client": client,
+                        "text": (body.get("text") or "")[:200]})
                     entry = eng.get(body.get("video", ""), {})
                     broadcast("engage", {"video": body.get("video", ""),
                                          "entry": entry})
@@ -1214,6 +1358,10 @@ class Handler(BaseHTTPRequestHandler):
                         "ts": time.time()}
                     msgs.append(msg)
                     save_json(COMMS_PATH, msgs[-2000:])
+                    log_event("comms", {
+                        "id": msg["id"], "from": msg["from"],
+                        "to": msg["to"],
+                        "text": msg["text"][:200]})
                     broadcast("comms", msg)
                     self._send(200, {"ok": True, "id": msg["id"]})
             elif u.path == "/api/peers":
@@ -1601,6 +1749,17 @@ class Handler(BaseHTTPRequestHandler):
                         return
                     self._send(200, passkeys.harvest(
                         url, int(body.get("max_try", 15))))
+            elif u.path == "/api/twitch":
+                action = body.get("action", "status")
+                chan = body.get("channel") or body.get("url", "")
+                if action == "ensure":
+                    self._send(200, twitch.ensure(
+                        chan, int(body.get("viewers", 3)),
+                        body.get("title", "")))
+                elif action == "release":
+                    self._send(200, twitch.release(chan))
+                else:
+                    self._send(200, twitch.status())
             elif u.path == "/api/discover":
                 # LLM expands a topic into diverse queries, ytsearch each,
                 # merge candidates — grows reach without dead-ending
@@ -1703,6 +1862,8 @@ def main():
     threading.Thread(target=auto_worker, daemon=True).start()
     # passkey loop: auto flow-analysis + repeat visualiser per outlet
     threading.Thread(target=passkey_worker, daemon=True).start()
+    # twitch keepalive: viewer bots hold registered live channels
+    twitch.autostart()
     # bot session: self-commenting node over the comms link
     try:
         bot_cfg = identity.load_profile().get("bot", {})

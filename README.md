@@ -116,6 +116,9 @@ Optional: `ollama pull llama3.2` enables LLM query expansion/classification.
 | `/api/social/post` | POST | `{platform, src|path, caption?}` publish a stored outlet |
 | `/api/tunnel` | GET/POST | tunnel status / `{action: configure\|named\|start\|stop\|restart\|discover}` |
 | `/api/auto` | GET | AUTO-01 spec state — `add 1` counter ticking every 30s, SSE `auto` events |
+| `/api/twitch` | GET/POST | Twitch keepalive — `{action: ensure\|release, channel, viewers}` viewer bots hold live edges open; Twitch clip/VOD/live links fetch via `/api/fetch` |
+| `/api/timeline?since&until&kind&limit` | GET | persistent event log (engage+comms) — backup session in `data/timeline.jsonl` |
+| `/api/replay?at=<unix ts>` | GET | reconstruct likes/comments/comms as they were at any timestamp |
 | `/api/browser?url=` | GET | headless-Chromium guest-session render (title/text/links/media) |
 | `/api/browser` | POST | `{action: render\|auto\|guest_login\|auto_login\|forms\|sessions\|status\|close, ...}` — `auto` = LLM-planned browse, `guest_login`/`auto_login` = bot-driven form login with model field-mapping, sessions persisted to `data/browser_memory.json` |
 | `/api/passkeys?site=` | GET | recall a stored img/vid passkey for a walled host |
