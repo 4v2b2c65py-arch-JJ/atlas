@@ -75,6 +75,7 @@ import identity  # noqa: E402
 import ingest  # noqa: E402
 import llm  # noqa: E402
 import manga  # noqa: E402
+import aniwatch  # noqa: E402
 import catalogue  # noqa: E402
 import vision  # noqa: E402
 
@@ -982,6 +983,8 @@ class Handler(BaseHTTPRequestHandler):
                 if src:
                     if src in manga.MADARA_SITES:
                         fn = lambda q: manga.madara_search(q, src)  # noqa: E731
+                    elif src == "aniwatch":
+                        fn = aniwatch.search
                     else:
                         fn = {"mangadex": manga.search,
                               "asura": manga.asura_search}.get(src)
@@ -999,6 +1002,21 @@ class Handler(BaseHTTPRequestHandler):
                 lim = int(qs.get("limit", ["30"])[0] or 30)
                 self._send(200, {"chapters": manga.chapters_for(
                     src, mid, limit=lim)})
+                return
+            if path == "/api/aniwatch":
+                q = qs.get("q", [""])[0]
+                if not q:
+                    self._send(400, {"error": "q required"})
+                    return
+                self._send(200, {"results": aniwatch.search(q)})
+                return
+            if path == "/api/aniwatch/episodes":
+                aid = qs.get("id", [""])[0]
+                if not aid:
+                    self._send(400, {"error": "id required"})
+                    return
+                lim = int(qs.get("limit", ["30"])[0] or 30)
+                self._send(200, {"episodes": aniwatch.episodes(aid, lim)})
                 return
             if path == "/api/wishlist":
                 # unresolved community descriptors — peers poll this and
@@ -1281,6 +1299,41 @@ class Handler(BaseHTTPRequestHandler):
                 vid.unlink(missing_ok=True)
                 broadcast("fetched", {"q": mid, "fetched": stored})
                 self._send(200, {"manga_id": mid, "stored": stored})
+            elif u.path == "/api/aniwatch/watch":
+                # resolve an anime episode to a clip -> identity store
+                aid = str(body.get("anilist_id") or "")
+                if not aid and body.get("query"):
+                    hits = aniwatch.search(body["query"], limit=1)
+                    aid = hits[0]["id"] if hits else ""
+                ep = int(body.get("episode", 1) or 1)
+                secs = float(body.get("seconds", 60) or 60)
+                if not aid:
+                    self._send(400, {"error": "anilist_id or query required"})
+                    return
+                stream = aniwatch.resolve_stream(aid, ep,
+                                                  body.get("mode", "sub"))
+                if not stream:
+                    self._send(200, {"error": "no playable source",
+                                     "anilist_id": aid, "episode": ep})
+                    return
+                inbox = ROOT / "videos" / "inbox"
+                inbox.mkdir(parents=True, exist_ok=True)
+                out = inbox / f"ani_{aid}_e{ep}.mp4"
+                vid = aniwatch.download_clip(
+                    stream["m3u8"], out, seconds=secs,
+                    referer=stream.get("referer"))
+                if not vid:
+                    self._send(200, {"error": "clip download failed",
+                                     "m3u8": stream["m3u8"]})
+                    return
+                stored = restash_if_poor(identity.store_file(
+                    str(vid), skip_score_gate=True))
+                vid.unlink(missing_ok=True)
+                broadcast("fetched", {"q": f"anime {aid} ep{ep}",
+                                      "fetched": stored})
+                self._send(200, {"anilist_id": aid, "episode": ep,
+                                 "provider": stream.get("provider"),
+                                 "stored": stored})
             elif u.path == "/api/discover":
                 # LLM expands a topic into diverse queries, ytsearch each,
                 # merge candidates — grows reach without dead-ending

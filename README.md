@@ -58,12 +58,15 @@ Optional: `ollama pull llama3.2` enables LLM query expansion/classification.
   any hub with a resolver publishes the fetchable URL via
   `POST /api/resolve`, and `community_sync` gossips resolutions across
   the mesh every 2 min into `catalogue.d/` + the peer pool.
-- **Manga/manwha** — `manga.py` aggregates MangaDex, Asura Scans, and
-  Madara/WordPress scan sites (`MADARA_SITES`, e.g. MangaForFree);
-  `/api/manga/chapters` lists chapters, `/api/manga/watch` replicates a
-  chapter's pages into an mp4 outlet through the identity pipeline
-  (tall strip pages are sliced into portrait segments). Ingest
-  classifier also recognises image/comic formats.
+- **Manga/manwha/anime** — `manga.py` aggregates MangaDex, Asura Scans,
+  Madara/WordPress scan sites (`MADARA_SITES`, e.g. MangaForFree), and
+  AniWatch (`aniwatch.py` — catalog search, episode streams resolved
+  from MegaPlay embeds via AES-CBC `enc` decrypt + disguised-HLS
+  segment download). `/api/manga/chapters` lists chapters,
+  `/api/manga/watch` and `/api/aniwatch/watch` replicate content into
+  mp4 outlets through the identity pipeline (tall strip pages are
+  sliced into portrait segments). Ingest classifier also recognises
+  image/comic formats.
 - **Bot session** — `bot.py` autonomous node: comments on outlets and
   telepathic self/peer DMs over the comms link (toggle in identity.json).
 - **LLM discovery** — `POST /api/discover {"topic": "..."}` expands a topic
@@ -82,6 +85,9 @@ Optional: `ollama pull llama3.2` enables LLM query expansion/classification.
 | `/api/manga?q=&source=` | GET | manga/manwha search — MangaDex + Asura + Madara sites merged |
 | `/api/manga/chapters?id=&source=` | GET | chapter list for a title |
 | `/api/manga/watch` | POST | `{manga_id, source?, pages?, chapter?}` chapter → video outlet |
+| `/api/aniwatch?q=` | GET | anime catalog search (also merged into `/api/manga`) |
+| `/api/aniwatch/episodes?id=` | GET | episode list for an AniWatch title |
+| `/api/aniwatch/watch` | POST | `{query?|anilist_id, episode?, seconds?}` episode → video outlet |
 | `/api/ingest` | POST | `{uri/magnet/m3u8/mpd/url, title, tags}` |
 | `/api/discover` | POST | `{topic, n}` LLM query expansion → candidates |
 | `/api/auth/signup\|login\|logout` | POST | API key lifecycle |

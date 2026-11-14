@@ -255,6 +255,11 @@ def search_all(query: str, limit: int = 6) -> list[dict]:
     providers = [(search, "mangadex"), (asura_search, "asura")]
     providers += [(lambda q, limit=limit, s=s: madara_search(q, s, limit), s)
                   for s in MADARA_SITES]
+    try:
+        import aniwatch
+        providers.append((aniwatch.search, "aniwatch"))
+    except Exception:
+        pass
     out = []
     for fn, src in providers:
         try:
