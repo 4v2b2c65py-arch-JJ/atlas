@@ -80,6 +80,7 @@ import social  # noqa: E402
 import tunnel  # noqa: E402
 import browser  # noqa: E402
 import passkeys  # noqa: E402
+import flowviz  # noqa: E402
 import catalogue  # noqa: E402
 import vision  # noqa: E402
 
@@ -1576,6 +1577,23 @@ class Handler(BaseHTTPRequestHandler):
                         return
                     self._send(200, passkeys.correlate(
                         a, b, int(body.get("seconds", 60))))
+                elif action == "viz":
+                    # repeat visualiser: audio targets vs visual data
+                    target = url or site
+                    if not target:
+                        self._send(400, {"error":
+                                         "url or site required"})
+                        return
+                    if site and not url:
+                        target = passkeys.recall(site, "vid") or \
+                            passkeys.recall(site)
+                        if not target:
+                            self._send(404, {"error":
+                                             "no passkey for site"})
+                            return
+                    self._send(200, flowviz.render(
+                        target, int(body.get("seconds", 30)),
+                        store=bool(body.get("store", True))))
                 else:
                     if not url:
                         self._send(400, {"error": "url required"})
