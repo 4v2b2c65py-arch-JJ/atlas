@@ -128,8 +128,10 @@ def main() -> None:
     tu = sub.add_parser("tunnel")
     tu.add_argument("action",
                     choices=["status", "login", "named", "cert",
-                             "quick", "start", "stop", "restart"])
+                             "discover", "configure", "quick",
+                             "start", "stop", "restart"])
     tu.add_argument("hostname", nargs="?")
+    tu.add_argument("token", nargs="?")
 
     c = sub.add_parser("comms")
     c.add_argument("action", choices=["send", "inbox"])
@@ -293,7 +295,21 @@ def main() -> None:
         elif a == "cert":
             out(post("/api/tunnel",
                      {"action": "cert", "hostname": ns.hostname}))
+        elif a == "discover":
+            # re-pull account/zone/hostname from the stored api_token
+            out(post("/api/tunnel",
+                     {"action": "discover",
+                      "api_token": ns.token}))
+        elif a == "configure":
+            out(post("/api/tunnel",
+                     {"action": "configure",
+                      "hostname": ns.hostname}))
         elif a == "named":
+            # hostname arg -> configure it first, then provision
+            if ns.hostname:
+                out(post("/api/tunnel",
+                         {"action": "configure",
+                          "hostname": ns.hostname}))
             out(post("/api/tunnel", {"action": "named"}))
         elif a == "quick":
             out(post("/api/tunnel", {"action": "restart"}))
