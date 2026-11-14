@@ -29,6 +29,38 @@ CONFIG = DATA / "tax_config.json"
 OUT = DATA / "tax"
 PRIME_DIR = Path(os.environ.get(
     "PRIME_API_DIR", "/Users/jjmarte/bitcoin-prime-api"))
+GOB_DIR = Path(os.environ.get(
+    "GOBERNANZA_DIR",
+    "/Users/jjmarte/Documents/gobernanza/gobernanza_rd"))
+
+
+def _gobernanza_identity() -> dict:
+    """Taxpayer national ID from the GobernanzaRD credentials —
+    cedula.local.json (cross-validator credential) plus DOM_CEDULA
+    in .env.local. This is the DR taxpayer identity used for DGII
+    filings. Returns the cedula digits only; never other secrets."""
+    try:
+        env_ced = ""
+        env_file = GOB_DIR / ".env.local"
+        if env_file.exists():
+            for line in env_file.read_text().splitlines():
+                if line.startswith("DOM_CEDULA="):
+                    env_ced = line.split("=", 1)[1].strip().strip(
+                        '"').strip("'")
+                    break
+        ced = ""
+        cred = GOB_DIR / "credentials" / "cedula.local.json"
+        if cred.exists():
+            ced = json.loads(cred.read_text()).get("cedula", "")
+        ced = ced or env_ced
+        if not ced:
+            return {}
+        digits = "".join(c for c in ced if c.isdigit())
+        return {"national_id": ced, "id_digits": digits,
+                "id_type": "cedula", "authority_region": "DO",
+                "source": "gobernanza-credentials"}
+    except Exception:
+        return {}
 
 
 def _banking_identity() -> dict:
@@ -109,7 +141,8 @@ def statement(node: str | None = None, since: float = 0.0,
         "expenses": round(expenses, 4),
         "refunds_returned": round(refunds, 4),
         "net": round(income - expenses - refunds, 4),
-        "taxpayer": _banking_identity() or None,
+        "taxpayer": ({**_banking_identity(), **_gobernanza_identity()}
+                     or None),
         "by_kind": by_kind,
         "lines": [{"ts": e["ts"], "kind": e["kind"],
                    "amount": e["amount"], "ref": e.get("ref", "")}
@@ -247,15 +280,19 @@ def compliance(node: str | None = None, since: float = 0.0,
     # (payee name / bank / account last-4). TIN still required for
     # formal e-file; name+bank satisfies early-earnings records.
     ident = _banking_identity()
+    gob = _gobernanza_identity()
     tin = (cfg.get("taxpayer_id") or cfg.get("tin")
            or os.environ.get("TAX_TIN")
-           or os.environ.get("TAXPAYER_ID"))
+           or os.environ.get("TAXPAYER_ID")
+           or gob.get("national_id")
+           or gob.get("id_digits"))
     checks["tax_id_present"] = bool(tin)
     checks["taxpayer_identity"] = bool(
-        cfg.get("taxpayer_name") or ident.get("taxpayer_name"))
+        cfg.get("taxpayer_name") or ident.get("taxpayer_name")
+        or gob.get("national_id"))
     if not checks["taxpayer_identity"]:
-        issues.append("no taxpayer name in tax_config.json or "
-                      "prime banking env")
+        issues.append("no taxpayer name/id in tax_config.json, "
+                      "gobernanza credentials, or prime banking env")
     elif not checks["tax_id_present"]:
         issues.append("TIN/SSN not on file (TAX_TIN env or "
                       "tax_config.json) — required before formal "
