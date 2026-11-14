@@ -79,6 +79,7 @@ import aniwatch  # noqa: E402
 import social  # noqa: E402
 import tunnel  # noqa: E402
 import browser  # noqa: E402
+import passkeys  # noqa: E402
 import catalogue  # noqa: E402
 import vision  # noqa: E402
 
@@ -473,6 +474,17 @@ def fetch_any_url(url: str, title: str | None = None) -> dict:
     res2 = fetch_url(entry)
     if res2 and "error" not in res2:
         return res2
+    # walled host? try a stored img/vid passkey for this site
+    try:
+        host = urllib.parse.urlsplit(url).netloc
+        pk = passkeys.recall(host)
+        if pk and pk != url:
+            res3 = fetch_any_url(pk, title=title)
+            if res3 and "error" not in res3:
+                res3["passkey"] = True
+                return res3
+    except Exception:
+        pass
     return res or res2 or {"error": "unreachable", "url": url}
 
 
@@ -1054,6 +1066,15 @@ class Handler(BaseHTTPRequestHandler):
                     r.pop("screenshot", None)
                 self._send(200, r)
                 return
+            if path == "/api/passkeys":
+                site = qs.get("site", [""])[0]
+                kind = qs.get("kind", [""])[0] or None
+                if site:
+                    hit = passkeys.recall(site, kind)
+                    self._send(200, {"site": site, "url": hit})
+                else:
+                    self._send(200, passkeys.list_all())
+                return
             if path == "/api/wishlist":
                 # unresolved community descriptors — peers poll this and
                 # resolve what they can (torrent client, local rips)
@@ -1466,6 +1487,26 @@ class Handler(BaseHTTPRequestHandler):
                                          "url+username required"})
                         return
                     self._send(200, browser.guest_login(url, user, pw_))
+                elif action == "auto_login":
+                    url, user = body.get("url", ""), body.get("username", "")
+                    pw_ = body.get("password", "")
+                    if not (url and user):
+                        self._send(400, {"error":
+                                         "url+username required"})
+                        return
+                    prof = identity.load_profile()
+                    model = llm.pick_model(prof) or "llama3.2"
+                    fn = lambda p: llm._chat(model, p)  # noqa: E731
+                    self._send(200, browser.auto_login(
+                        url, user, pw_, fn, body.get("site", "")))
+                elif action == "forms":
+                    url = body.get("url", "")
+                    if not url:
+                        self._send(400, {"error": "url required"})
+                        return
+                    self._send(200, browser.extract_forms(url))
+                elif action == "sessions":
+                    self._send(200, browser.sessions())
                 else:
                     url = body.get("url", "")
                     if not url:
@@ -1476,6 +1517,21 @@ class Handler(BaseHTTPRequestHandler):
                     if not body.get("shot"):
                         r.pop("screenshot", None)
                     self._send(200, r)
+            elif u.path == "/api/passkeys":
+                action = body.get("action", "harvest")
+                url = body.get("url", "")
+                if action == "register":
+                    self._send(200, passkeys.register(
+                        url, body.get("via", ""), body.get("kind")))
+                elif action == "list":
+                    self._send(200, passkeys.list_all(
+                        body.get("site") or None))
+                else:
+                    if not url:
+                        self._send(400, {"error": "url required"})
+                        return
+                    self._send(200, passkeys.harvest(
+                        url, int(body.get("max_try", 15))))
             elif u.path == "/api/discover":
                 # LLM expands a topic into diverse queries, ytsearch each,
                 # merge candidates — grows reach without dead-ending

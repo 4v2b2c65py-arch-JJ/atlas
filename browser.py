@@ -17,13 +17,16 @@ import queue
 import re
 import threading
 import time
+import urllib.parse
 from pathlib import Path
 
 ROOT = Path(__file__).parent
 PROFILE = ROOT / "data" / "browser_profile"
+SESSIONS_PATH = ROOT / "data" / "guest_sessions.json"
 _jobs: queue.Queue = queue.Queue()
 _ready = threading.Event()
 _state = {"ok": False, "err": None}
+_sessions: dict = {}  # in-memory guest session registry
 
 
 def _loop() -> None:
@@ -73,6 +76,10 @@ def _loop() -> None:
                 return
             elif kind == "login":
                 reply.put(_guest_login(ctx, *payload))
+            elif kind == "auto_login":
+                reply.put(_auto_login(ctx, *payload))
+            elif kind == "forms":
+                reply.put(_extract_forms(ctx, *payload))
         except Exception as e:
             reply.put({"error": str(e)})
 
@@ -93,10 +100,23 @@ def _render(ctx, url: str, wait_ms: int = 4000) -> dict:
                       if page.query_selector("body") else "")[:4000]
         links = page.eval_on_selector_all(
             "a[href]", "els => els.map(e => e.href).slice(0, 80)")
-        media = page.eval_on_selector_all(
-            "img[src],video[src],source[src]",
-            "els => els.map(e => e.src || e.currentSrc).filter(Boolean)"
-            ".slice(0, 60)")
+        media = page.evaluate("""() => {
+          const out = new Set();
+          const add = u => { if (u && /^https?:/.test(u)) out.add(u); };
+          const firstSrcset = s => s && s.split(',')[0].trim().split(/\\s+/)[0];
+          document.querySelectorAll(
+            'img,video,source,picture').forEach(e => {
+            ['src','data-src','data-lazy-src','data-original',
+             'data-srcset','poster'].forEach(a => {
+              const v = e.getAttribute(a);
+              if (a.endsWith('srcset')) add(firstSrcset(v));
+              else add(v);
+            });
+            add(firstSrcset(e.getAttribute('srcset')));
+            add(e.currentSrc);
+          });
+          return [...out].slice(0, 120);
+        }""")
         shot = page.screenshot(type="jpeg", quality=60)
         return {"url": page.url, "title": title, "text": text,
                 "links": links, "media": media,
@@ -184,6 +204,177 @@ def _guest_login(ctx, url: str, username: str,
         page.close()
 
 
+def _extract_forms(ctx, url: str) -> dict:
+    """Render a page and return every form's fields (selector, type,
+    name, placeholder, label) — the model uses this to map creds."""
+    page = ctx.new_page()
+    try:
+        page.goto(url, wait_until="domcontentloaded",
+                  timeout=45000)
+        try:
+            page.wait_for_load_state("networkidle", timeout=8000)
+        except Exception:
+            pass
+        forms = page.eval_on_selector_all(
+            "form", """forms => forms.map(f => ({
+                action: f.action || '',
+                fields: [...f.querySelectorAll(
+                    'input,select,textarea')].map(el => ({
+                    tag: el.tagName.toLowerCase(),
+                    type: el.type || '',
+                    name: el.name || '',
+                    id: el.id || '',
+                    placeholder: el.placeholder || '',
+                    aria: el.getAttribute('aria-label') || '',
+                    autocomplete: el.autocomplete || ''
+                })).filter(x => x.type !== 'hidden')
+            }))""")
+        return {"url": page.url, "title": page.title(),
+                "forms": forms}
+    finally:
+        page.close()
+
+
+def _remember(site: str, info: dict) -> None:
+    """Store a guest session in memory + data/guest_sessions.json."""
+    _sessions[site] = {**info, "ts": time.time()}
+    try:
+        data = {}
+        if SESSIONS_PATH.exists():
+            data = json.loads(SESSIONS_PATH.read_text())
+        data[site] = _sessions[site]
+        SESSIONS_PATH.write_text(json.dumps(data, indent=1))
+    except Exception:
+        pass
+
+
+def sessions() -> dict:
+    """In-memory + persisted guest session registry."""
+    try:
+        if SESSIONS_PATH.exists():
+            for k, v in json.loads(SESSIONS_PATH.read_text()).items():
+                _sessions.setdefault(k, v)
+    except Exception:
+        pass
+    return {"sessions": _sessions}
+
+
+def _auto_login(ctx, url: str, username: str, password: str,
+                llm_fn=None, site: str = "") -> dict:
+    """Model-filled login: extract the form, let the LLM map fields
+    to credentials (or fall back to heuristics), submit, and store
+    the resulting guest session in memory."""
+    page = ctx.new_page()
+    try:
+        page.goto(url, wait_until="domcontentloaded",
+                  timeout=45000)
+        try:
+            page.wait_for_load_state("networkidle", timeout=8000)
+        except Exception:
+            pass
+        info = page.eval_on_selector_all(
+            "form", """forms => forms.map(f => ({
+                action: f.action || '',
+                fields: [...f.querySelectorAll(
+                    'input,select,textarea')].map((el,i) => ({
+                    i, tag: el.tagName.toLowerCase(),
+                    type: el.type || '', name: el.name || '',
+                    id: el.id || '',
+                    placeholder: el.placeholder || '',
+                    aria: el.getAttribute('aria-label') || ''
+                })).filter(x => x.type !== 'hidden')
+            }))""")
+        forms = info or []
+        if not forms or not forms[0].get("fields"):
+            return {"error": "no login form found", "url": page.url}
+        fields = forms[0]["fields"]
+        # model maps fields -> which gets username/password/submit
+        mapping = None
+        if llm_fn:
+            try:
+                raw = llm_fn(
+                    "Map login form fields to credentials. Fields: "
+                    + json.dumps(fields) +
+                    f"\nCredentials: username={username!r} "
+                    f"password={password!r}\n"
+                    'Reply ONLY JSON: {"user": <field index>, '
+                    '"pass": <field index>, "submit": <field index or -1>}')
+                m = re.search(r"\{.*\}", raw, re.S)
+                mapping = json.loads(m.group(0)) if m else None
+            except Exception:
+                mapping = None
+        # heuristic fallback: type/name/placeholder matching
+        def kind(f):
+            s = " ".join(str(f.get(k, "")) for k in
+                         ("type", "name", "id", "placeholder", "aria")
+                         ).lower()
+            if f.get("type") == "password":
+                return "pass"
+            if any(w in s for w in ("user", "mail", "login", "name",
+                                    "phone", "account")):
+                return "user"
+            if f.get("type") in ("submit", "button") or any(
+                    w in s for w in ("submit", "log in", "sign in",
+                                     "continue", "login")):
+                return "submit"
+            return "other"
+        by_kind = {}
+        for f in fields:
+            by_kind.setdefault(kind(f), f)
+        u = (mapping or {}).get("user")
+        p = (mapping or {}).get("pass")
+        s_idx = (mapping or {}).get("submit", -1)
+        uf = fields[u] if isinstance(u, int) and u < len(fields) \
+            else by_kind.get("user")
+        pf = fields[p] if isinstance(p, int) and p < len(fields) \
+            else by_kind.get("pass")
+        if not uf or not pf:
+            return {"error": "could not map user/pass fields",
+                    "fields": fields}
+        sel = lambda f: (f"form >> nth=0 >> "
+                         f"{f['tag']}[name='{f.get('name','')}' i]") \
+            if f.get("name") else None
+        try:
+            page.locator(sel(uf) or "form >> nth=0 >> input").first\
+                .fill(username)
+            page.locator(sel(pf) or "form >> nth=0 >> input[type=password]")\
+                .first.fill(password)
+        except Exception:
+            # positional fallback: fill by index among text inputs
+            inputs = page.query_selector_all(
+                "form input:not([type=hidden])")
+            try:
+                inputs[fields.index(uf)].fill(username)
+                inputs[fields.index(pf)].fill(password)
+            except Exception as e:
+                return {"error": f"fill failed: {e}"}
+        if isinstance(s_idx, int) and 0 <= s_idx < len(fields):
+            sf = fields[s_idx]
+            try:
+                page.locator(
+                    f"form >> nth=0 >> {sf['tag']}").nth(s_idx).click()
+            except Exception:
+                page.keyboard.press("Enter")
+        else:
+            page.keyboard.press("Enter")
+        try:
+            page.wait_for_load_state("networkidle", timeout=10000)
+        except Exception:
+            pass
+        time.sleep(2)
+        key = site or urllib.parse.urlsplit(page.url).netloc
+        sess = {"ok": True, "site": key, "url": page.url,
+                "title": page.title(),
+                "cookies": len(ctx.cookies()),
+                "mapped_by": "llm" if mapping else "heuristic"}
+        _remember(key, sess)
+        return sess
+    except Exception as e:
+        return {"error": str(e)}
+    finally:
+        page.close()
+
+
 def model_automate(task: str, llm_fn=None) -> dict:
     """Model-driven browsing: ask the LLM for a target URL + extraction
     hint, render it, return structured results. llm_fn(prompt)->str is
@@ -223,3 +414,16 @@ def close() -> None:
 def guest_login(url: str, username: str, password: str) -> dict:
     """Bot/guest route: attempt form login in the persistent session."""
     return _submit("login", (url, username, password), timeout=120)
+
+
+def auto_login(url: str, username: str, password: str,
+               llm_fn=None, site: str = "") -> dict:
+    """Model-filled login: LLM maps form fields to credentials,
+    session stored in memory + data/guest_sessions.json."""
+    return _submit("auto_login",
+                   (url, username, password, llm_fn, site),
+                   timeout=150)
+
+
+def extract_forms(url: str) -> dict:
+    return _submit("forms", (url,), timeout=90)

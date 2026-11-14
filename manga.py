@@ -230,9 +230,34 @@ def madara_chapters(site: str, slug: str, limit: int = 5) -> list[dict]:
 
 
 def madara_pages(site: str, chapter_url: str) -> list[str]:
-    """Page image URLs from a Madara chapter page (document order)."""
+    """Page image URLs from a Madara chapter page (document order).
+    Falls back to the headless browser when the host walls plain HTTP
+    (Cloudflare/JS gates)."""
     import re
-    html = _madara_get(chapter_url)
+    try:
+        html = _madara_get(chapter_url)
+    except Exception:
+        html = ""
+    if not html:
+        try:
+            import browser
+            r = browser.render(chapter_url, wait_ms=6000)
+            imgs = [u for u in (r.get("media") or [])
+                    if re.search(r"\.(jpe?g|png|webp|gif)(\?|$)", u, re.I)
+                    and re.search(r"/uploads/|/WP-manga/|/chapter", u, re.I)
+                    and not re.search(r"logo|icon|avatar|gravatar|"
+                                      r"site-icon|banner", u, re.I)]
+            imgs = list(dict.fromkeys(imgs))
+            # verified page images become img passkeys for this host
+            try:
+                import passkeys
+                for u in imgs[:5]:
+                    passkeys.register(u, via=chapter_url, kind="img")
+            except Exception:
+                pass
+            return imgs
+        except Exception:
+            return []
     imgs = re.findall(r'<img[^>]+src=["\']([^"\']+)["\']', html)
     seen, out = set(), []
     for s in imgs:

@@ -117,7 +117,9 @@ Optional: `ollama pull llama3.2` enables LLM query expansion/classification.
 | `/api/tunnel` | GET/POST | tunnel status / `{action: configure\|named\|start\|stop\|restart\|discover}` |
 | `/api/auto` | GET | AUTO-01 spec state — `add 1` counter ticking every 30s, SSE `auto` events |
 | `/api/browser?url=` | GET | headless-Chromium guest-session render (title/text/links/media) |
-| `/api/browser` | POST | `{action: render\|auto\|guest_login\|status\|close, ...}` — `auto` = LLM-planned browse, `guest_login` = bot-driven form login |
+| `/api/browser` | POST | `{action: render\|auto\|guest_login\|auto_login\|forms\|sessions\|status\|close, ...}` — `auto` = LLM-planned browse, `guest_login`/`auto_login` = bot-driven form login with model field-mapping, sessions persisted to `data/browser_memory.json` |
+| `/api/passkeys?site=` | GET | recall a stored img/vid passkey for a walled host |
+| `/api/passkeys` | GET/POST | list all passkeys / `{action: harvest\|register\|list, url, ...}` — harvest renders a page, probes media candidates until one verifies, stores under `data/passkeys.json` |
 | `/api/ingest` | POST | `{uri/magnet/m3u8/mpd/url, title, tags}` |
 | `/api/discover` | POST | `{topic, n}` LLM query expansion → candidates |
 | `/api/auth/signup\|login\|logout` | POST | API key lifecycle |
