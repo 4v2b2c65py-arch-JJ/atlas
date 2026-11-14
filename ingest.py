@@ -20,6 +20,8 @@ ROOT = Path(__file__).parent
 CATALOGUE_D = ROOT / "catalogue.d"
 
 MEDIA_EXT = re.compile(r"\.(mp4|webm|mkv|mov|avi|m4v|ts)(\?|#|$)", re.I)
+IMAGE_EXT = re.compile(r"\.(jpe?g|png|webp|gif|avif)(\?|#|$)", re.I)
+COMIC_EXT = re.compile(r"\.(cbz|cbr|cb7|cbt)(\?|#|$)", re.I)
 
 
 def classify(uri: str) -> str:
@@ -32,6 +34,10 @@ def classify(uri: str) -> str:
         return "hls"
     if ".mpd" in u or "dash" in u.split("?")[0]:
         return "dash"
+    if IMAGE_EXT.search(u):
+        return "image"
+    if COMIC_EXT.search(u):
+        return "comic"
     if u.startswith("http"):
         return "direct" if MEDIA_EXT.search(u) else "web"
     return "unknown"
@@ -56,7 +62,7 @@ def ingest(entry: dict) -> dict:
         "uri": uri,
         "url": uri,  # compatibility with candidate/fetch pipeline
         "type": kind,
-        "fetchable": kind in ("direct", "web", "hls", "dash"),
+        "fetchable": kind in ("direct", "web", "hls", "dash", "image"),
         "tags": [str(t).lower() for t in entry.get("tags", [])][:12]
                 or title.lower().split()[:8],
         "source": entry.get("source", "ingest"),

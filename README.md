@@ -58,6 +58,12 @@ Optional: `ollama pull llama3.2` enables LLM query expansion/classification.
   any hub with a resolver publishes the fetchable URL via
   `POST /api/resolve`, and `community_sync` gossips resolutions across
   the mesh every 2 min into `catalogue.d/` + the peer pool.
+- **Manga/manwha** — `manga.py` aggregates MangaDex + Asura Scans;
+  `/api/manga/watch` replicates a chapter's pages into an mp4 outlet
+  through the identity pipeline. Ingest classifier also recognises
+  image/comic formats.
+- **Bot session** — `bot.py` autonomous node: comments on outlets and
+  telepathic self/peer DMs over the comms link (toggle in identity.json).
 - **LLM discovery** — `POST /api/discover {"topic": "..."}` expands a topic
   into diverse queries and merges web candidates.
 - **MCP server** — `atlas` stdio tools: probe, storage, resonance render,
@@ -71,6 +77,8 @@ Optional: `ollama pull llama3.2` enables LLM query expansion/classification.
 | `/api/search?q=&fetch=` | GET | smart search + auto-fetch; raw URL fetches |
 | `/api/vision` | POST | `{image: b64}` reverse-image search |
 | `/api/fetch` | POST | `{url, title?}` fetch any outlet |
+| `/api/manga?q=&source=` | GET | manga/manwha search — MangaDex + Asura Scans merged |
+| `/api/manga/watch` | POST | `{manga_id, source?, pages?, chapter?}` chapter → video outlet |
 | `/api/ingest` | POST | `{uri/magnet/m3u8/mpd/url, title, tags}` |
 | `/api/discover` | POST | `{topic, n}` LLM query expansion → candidates |
 | `/api/auth/signup\|login\|logout` | POST | API key lifecycle |

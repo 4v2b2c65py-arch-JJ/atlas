@@ -74,6 +74,7 @@ import bittorrent  # noqa: E402
 import identity  # noqa: E402
 import ingest  # noqa: E402
 import llm  # noqa: E402
+import manga  # noqa: E402
 import catalogue  # noqa: E402
 import vision  # noqa: E402
 
@@ -972,6 +973,20 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/api/auth/status":
                 self._send(200, api_keys.status())
                 return
+            if path == "/api/manga":
+                q = qs.get("q", [""])[0]
+                if not q:
+                    self._send(400, {"error": "q required"})
+                    return
+                src = qs.get("source", [""])[0]
+                if src:
+                    fn = {"mangadex": manga.search,
+                          "asura": manga.asura_search}.get(src)
+                    self._send(200, {"results": fn(q) if fn else [],
+                                     "source": src})
+                else:
+                    self._send(200, {"results": manga.search_all(q)})
+                return
             if path == "/api/wishlist":
                 # unresolved community descriptors — peers poll this and
                 # resolve what they can (torrent client, local rips)
@@ -1228,6 +1243,31 @@ class Handler(BaseHTTPRequestHandler):
                                   "community-resolved")
                 broadcast("peers", {"resolved": rec})
                 self._send(200, {"resolved": rec})
+            elif u.path == "/api/manga/watch":
+                # replicate a manga/manwha chapter into a video outlet
+                mid = body.get("manga_id")
+                if not mid and body.get("query"):
+                    hits = manga.search_all(body["query"], limit=1)
+                    mid = hits[0]["id"] if hits else None
+                    if hits:
+                        body.setdefault("source", hits[0].get("source"))
+                if not mid:
+                    self._send(400, {"error": "manga_id or query required"})
+                    return
+                inbox = ROOT / "videos" / "inbox"
+                vid = manga.assemble_video(
+                    mid, inbox, max_pages=int(body.get("pages", 40)),
+                    source=body.get("source", "mangadex"),
+                    chapter_index=int(body.get("chapter", -1)))
+                if not vid:
+                    self._send(200, {"error": "no pages assembled",
+                                     "manga_id": mid})
+                    return
+                stored = restash_if_poor(identity.store_file(
+                    str(vid), skip_score_gate=True))
+                vid.unlink(missing_ok=True)
+                broadcast("fetched", {"q": mid, "fetched": stored})
+                self._send(200, {"manga_id": mid, "stored": stored})
             elif u.path == "/api/discover":
                 # LLM expands a topic into diverse queries, ytsearch each,
                 # merge candidates — grows reach without dead-ending
@@ -1271,6 +1311,21 @@ def main():
     threading.Thread(target=stream_tuner, daemon=True).start()
     threading.Thread(target=community_sync, daemon=True).start()
     threading.Thread(target=torrent_worker, daemon=True).start()
+    # bot session: self-commenting node over the comms link
+    try:
+        bot_cfg = identity.load_profile().get("bot", {})
+        if bot_cfg.get("enabled"):
+            import bot
+            threading.Thread(
+                target=bot.bot_loop,
+                args=(bot_cfg.get("name", "atlas-bot"),
+                      int(bot_cfg.get("interval_s", 45)),
+                      bool(bot_cfg.get("self_chat", True))),
+                daemon=True).start()
+            print(f"Bot        -> {bot_cfg.get('name','atlas-bot')} "
+                  f"every {bot_cfg.get('interval_s',45)}s")
+    except Exception as e:
+        print(f"Bot        -> disabled ({e})")
     srv.serve_forever()
 
 
