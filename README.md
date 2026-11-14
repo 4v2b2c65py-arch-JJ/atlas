@@ -8,10 +8,12 @@ working likes, comments, DMs, and receiver/processor status panels.
 
 ## Portal
 
-Static frontend deploys to Vercel — point it at your hub with `?api=`:
+**Live:** https://web-five-blond-98.vercel.app
+
+Point it at your hub with `?api=`:
 
 ```
-https://<your-app>.vercel.app/?api=http://<hub-ip>:8917
+https://web-five-blond-98.vercel.app/?api=http://<hub-ip>:8917
 ```
 
 The key is persisted in the browser; all API calls then round-trip to

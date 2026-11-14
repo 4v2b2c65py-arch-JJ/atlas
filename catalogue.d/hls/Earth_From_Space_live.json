@@ -1,0 +1,15 @@
+{
+ "title": "Earth From Space live",
+ "uri": "https://example.com/space/stream.m3u8",
+ "url": "https://example.com/space/stream.m3u8",
+ "type": "hls",
+ "fetchable": true,
+ "tags": [
+  "space",
+  "earth",
+  "live"
+ ],
+ "source": "ingest",
+ "node": "",
+ "ts": 1794629775.043843
+}
