@@ -346,3 +346,201 @@ def bind(site_or_url: str) -> dict:
     return {"bound": site, "cookie": "atlas_pk",
             "identity": payload["i"], "category": payload["c"],
             "browser": res}
+
+
+# ---- Q-time audio flow: quantized energy, pauses, continuity,
+# ---- audio correlation binding, alphabetical-comparative scoring ----
+
+import numpy as np
+
+_SR = 16000
+
+
+def _decode_mono(url: str, seconds: int) -> "np.ndarray | None":
+    """ffmpeg -> 16kHz mono float array, capped at `seconds`."""
+    ff = _ffmpeg()
+    if not ff:
+        return None
+    import subprocess
+    import tempfile
+    import wave
+    with tempfile.NamedTemporaryFile(suffix=".wav",
+                                     delete=False) as t:
+        wav = t.name
+    try:
+        subprocess.run(
+            [ff, "-y", "-t", str(seconds), "-i", url, "-vn",
+             "-ar", str(_SR), "-ac", "1", wav],
+            capture_output=True, timeout=seconds + 90)
+        with wave.open(wav, "rb") as w:
+            raw = w.readframes(w.getnframes())
+        if not raw:
+            return None
+        return np.frombuffer(raw, dtype=np.int16).astype(np.float32) \
+            / 32768.0
+    except Exception:
+        return None
+    finally:
+        try:
+            Path(wav).unlink()
+        except Exception:
+            pass
+
+
+def audio_flow(url: str, seconds: int = 60,
+               quantum: float = 0.5) -> dict:
+    """Q-time flow analysis: energy quantized into `quantum`-second
+    windows -> voiced/unvoiced -> speech segments, pauses, and a
+    continuity score."""
+    x = _decode_mono(url, seconds)
+    if x is None or len(x) < _SR // 2:
+        return {"error": "no decodable audio"}
+    hop = int(_SR * quantum)
+    n = len(x) // hop
+    if n < 4:
+        return {"error": "audio too short"}
+    frames = x[:n * hop].reshape(n, hop)
+    rms = np.sqrt((frames ** 2).mean(axis=1) + 1e-9)
+    # adaptive threshold: median + 0.5*MAD-ish spread
+    med = float(np.median(rms))
+    thr = max(med * 2.5, float(np.percentile(rms, 60)) * 1.15, 1e-4)
+    voiced = rms > thr
+    # contiguous voiced runs -> segments; gaps -> pauses
+    segs, pauses = [], []
+    i = 0
+    while i < n:
+        if voiced[i]:
+            j = i
+            while j < n and voiced[j]:
+                j += 1
+            if (j - i) * quantum >= 0.3:
+                segs.append({"start": round(i * quantum, 2),
+                             "end": round(j * quantum, 2)})
+            i = j
+        else:
+            j = i
+            while j < n and not voiced[j]:
+                j += 1
+            if (j - i) * quantum >= 0.4:
+                pauses.append(round((j - i) * quantum, 2))
+            i = j
+    total = n * quantum
+    voiced_t = sum(s["end"] - s["start"] for s in segs)
+    pause_t = sum(pauses)
+    continuity = round(voiced_t / max(total, 0.01), 3)
+    pause_ratio = round(pause_t / max(total, 0.01), 3)
+    # flow score rewards continuous speech, penalizes choppy pauses
+    flow_score = round(max(0.0, continuity * (1.0 - 0.6 * pause_ratio)
+                           - 0.1 * len(pauses) / max(len(segs), 1)), 3)
+    return {"quantum": quantum, "windows": n, "threshold": round(thr, 5),
+            "segments": segs, "pauses": pauses,
+            "voiced_ratio": continuity, "pause_ratio": pause_ratio,
+            "flow_score": flow_score,
+            "envelope": [round(float(v), 4) for v in
+                         (rms / (rms.max() + 1e-9))[:240]]}
+
+
+def _envelope(url: str, seconds: int = 60) -> "np.ndarray | None":
+    """1 value/sec normalized RMS envelope for correlation."""
+    x = _decode_mono(url, seconds)
+    if x is None:
+        return None
+    hop = _SR
+    n = len(x) // hop
+    if n < 4:
+        return None
+    frames = x[:n * hop].reshape(n, hop)
+    env = np.sqrt((frames ** 2).mean(axis=1) + 1e-9)
+    return env / (env.max() + 1e-9)
+
+
+def correlate(url_a: str, url_b: str, seconds: int = 60) -> dict:
+    """Audio binding: Pearson correlation of the two energy
+    envelopes — how strongly two passkeys' audio flows match."""
+    a, b = _envelope(url_a, seconds), _envelope(url_b, seconds)
+    if a is None or b is None:
+        return {"error": "unusable audio"}
+    n = min(len(a), len(b))
+    if n < 4:
+        return {"error": "too short"}
+    a, b = a[:n] - a[:n].mean(), b[:n] - b[:n].mean()
+    denom = float(np.sqrt((a ** 2).sum() * (b ** 2).sum()))
+    score = float((a * b).sum() / denom) if denom else 0.0
+    return {"binding": round(score, 4), "windows": n,
+            "match": "strong" if score > 0.6 else
+                     "partial" if score > 0.3 else "weak"}
+
+
+def flow_signature(text: str) -> str:
+    """Alphabetical-comparative signature: word-initial sequence —
+    two flows compare by how their initials align."""
+    words = re.findall(r"[a-z]+", (text or "").lower())
+    return "".join(w[0] for w in words[:400])
+
+
+def signature_score(sig_a: str, sig_b: str) -> float:
+    """Comparative score between two alpha signatures via
+    SequenceMatcher on the initial-letter streams."""
+    import difflib
+    if not sig_a or not sig_b:
+        return 0.0
+    return round(difflib.SequenceMatcher(None, sig_a, sig_b).ratio(), 4)
+
+
+def analyze_flow(url: str, keyphrase: str | None = None,
+                 seconds: int = 60) -> dict:
+    """Full Q-time flow analysis for a vid passkey: envelope flow,
+    pauses/continuity, transcript, alpha signature, and audio
+    binding vs other stored vid passkeys on the same site."""
+    flow = audio_flow(url, seconds=seconds)
+    text = transcribe(url, seconds=min(seconds, 45)) \
+        if _kind(url) == "vid" else None
+    sig = flow_signature(text or "")
+    out = {"url": url, "identity": identity_hash(url, _kind(url)),
+           "flow": flow, "signature": sig,
+           "transcript": (text or "")[:500] or None,
+           "keyphrase_score": keyphrase_score(text or "",
+                                              keyphrase or "")}
+    # persist flow fields onto the stored record
+    data = _load()
+    site = _site(url)
+    for rec in data.get(site, []):
+        if rec.get("url") == url:
+            rec.update({"flow_score": flow.get("flow_score"),
+                        "continuity": flow.get("voiced_ratio"),
+                        "pauses": flow.get("pauses"),
+                        "signature": sig,
+                        "transcript": out["transcript"],
+                        "keyphrase_score": out["keyphrase_score"]})
+            break
+    else:
+        data.setdefault(site, []).insert(0, {
+            "kind": _kind(url), "url": url, "via": "", "site": site,
+            "ts": time.time(), "verified": True,
+            "identity": out["identity"], "category": "flow",
+            "flow_score": flow.get("flow_score"),
+            "continuity": flow.get("voiced_ratio"),
+            "pauses": flow.get("pauses"), "signature": sig,
+            "transcript": out["transcript"],
+            "keyphrase_score": out["keyphrase_score"]})
+        data[site] = data[site][:20]
+    _save()
+    _store[site] = data.get(site, [])
+    # audio-correlation binding against sibling vid passkeys
+    bindings = []
+    for rec in data.get(site, []):
+        u = rec.get("url")
+        if not u or u == url or rec.get("kind") != "vid":
+            continue
+        c = correlate(url, u, seconds=min(seconds, 45))
+        if "binding" in c:
+            bindings.append({"url": u, "binding": c["binding"],
+                             "match": c["match"]})
+            # alpha-comparative between the two transcripts
+            other_sig = rec.get("signature") or flow_signature(
+                rec.get("transcript") or "")
+            bindings[-1]["alpha_score"] = signature_score(
+                sig, other_sig)
+    out["bindings"] = sorted(bindings,
+                             key=lambda b: -b["binding"])[:8]
+    return out

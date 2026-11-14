@@ -1551,6 +1551,31 @@ class Handler(BaseHTTPRequestHandler):
                 elif action == "hash":
                     self._send(200, {"identity": passkeys.identity_hash(
                         url, body.get("kind", ""))})
+                elif action == "flow":
+                    # Q-time audio flow: pauses/continuity/flow_score,
+                    # alpha signature, audio-correlation bindings
+                    target = url or site
+                    if not target:
+                        self._send(400, {"error":
+                                         "url or site required"})
+                        return
+                    if site and not url:
+                        target = passkeys.recall(site, "vid") or \
+                            passkeys.recall(site)
+                        if not target:
+                            self._send(404, {"error":
+                                             "no passkey for site"})
+                            return
+                    self._send(200, passkeys.analyze_flow(
+                        target, body.get("keyphrase"),
+                        int(body.get("seconds", 60))))
+                elif action == "correlate":
+                    a, b = body.get("a", ""), body.get("b", "")
+                    if not (a and b):
+                        self._send(400, {"error": "a and b required"})
+                        return
+                    self._send(200, passkeys.correlate(
+                        a, b, int(body.get("seconds", 60))))
                 else:
                     if not url:
                         self._send(400, {"error": "url required"})
