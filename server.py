@@ -141,6 +141,7 @@ import twitch  # noqa: E402
 import sites  # noqa: E402
 import economy  # noqa: E402
 import prime  # noqa: E402
+import tax  # noqa: E402
 import catalogue  # noqa: E402
 import vision  # noqa: E402
 
@@ -1219,6 +1220,18 @@ class Handler(BaseHTTPRequestHandler):
                 else:
                     self._send(200, prime.status())
                 return
+            if path == "/api/tax":
+                if qs.get("action", [""])[0] == "compliance":
+                    self._send(200, tax.compliance(
+                        node=qs.get("node", [""])[0] or None,
+                        since=float(qs.get("since", ["0"])[0] or 0),
+                        until=float(qs.get("until", ["0"])[0] or 0)))
+                    return
+                self._send(200, tax.statement(
+                    node=qs.get("node", [""])[0] or None,
+                    since=float(qs.get("since", ["0"])[0] or 0),
+                    until=float(qs.get("until", ["0"])[0] or 0)))
+                return
             if path == "/api/twitch":
                 self._send(200, twitch.status())
                 return
@@ -1682,6 +1695,27 @@ class Handler(BaseHTTPRequestHandler):
                     self._send(200, economy.reconcile())
                 else:
                     self._send(200, economy.status(node))
+            elif u.path == "/api/tax":
+                action = body.get("action", "statement")
+                node = body.get("node", "") or None
+                since = float(body.get("since", 0) or 0)
+                until = float(body.get("until", 0) or 0)
+                if action == "export":
+                    self._send(200, tax.export(
+                        node, since, until,
+                        body.get("fmt", "both")))
+                elif action == "compliance":
+                    self._send(200, tax.compliance(node, since, until))
+                elif action == "file":
+                    self._send(200, tax.file(node, since, until))
+                elif action == "config":
+                    cfg = {k: v for k, v in body.items()
+                           if k != "action"}
+                    DATA.joinpath("tax_config.json").write_text(
+                        json.dumps(cfg, indent=1))
+                    self._send(200, {"configured": sorted(cfg)})
+                else:
+                    self._send(200, tax.statement(node, since, until))
             elif u.path == "/api/prime":
                 action = body.get("action", "status")
                 if action == "generate":

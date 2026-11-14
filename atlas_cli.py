@@ -148,6 +148,14 @@ def main() -> None:
     tl.add_argument("since", nargs="?"); tl.add_argument("until", nargs="?")
     tl.add_argument("--kind", default="")
     rp = sub.add_parser("replay"); rp.add_argument("at", type=float)
+    tx = sub.add_parser("tax")
+    tx.add_argument("action",
+                    choices=["statement", "export", "file", "config",
+                             "compliance"])
+    tx.add_argument("a1", nargs="?"); tx.add_argument("a2", nargs="?")
+    tx.add_argument("--node", default=""); tx.add_argument("--since", type=float, default=0)
+    tx.add_argument("--until", type=float, default=0)
+
     pr = sub.add_parser("prime")
     pr.add_argument("action",
                     choices=["status", "wallets", "generate", "query"])
@@ -364,6 +372,28 @@ def main() -> None:
                 kind=ns.kind or None))
     elif ns.cmd == "replay":
         out(get("/api/replay", at=ns.at))
+    elif ns.cmd == "tax":
+        a = ns.action
+        if a == "config":
+            out(post("/api/tax", {"action": "config",
+                                  "authority": ns.a1 or "",
+                                  "endpoint": ns.a2 or "",
+                                  "token": ""}))
+        elif a == "export":
+            out(post("/api/tax", {"action": "export",
+                                  "node": ns.node or None,
+                                  "since": ns.since, "until": ns.until}))
+        elif a == "file":
+            out(post("/api/tax", {"action": "file",
+                                  "node": ns.node or None,
+                                  "since": ns.since, "until": ns.until}))
+        elif a == "compliance":
+            out(get("/api/tax", action="compliance",
+                    node=ns.node or None,
+                    since=ns.since or None, until=ns.until or None))
+        else:
+            out(get("/api/tax", node=ns.node or None,
+                    since=ns.since or None, until=ns.until or None))
     elif ns.cmd == "prime":
         a = ns.action
         if a == "status":
