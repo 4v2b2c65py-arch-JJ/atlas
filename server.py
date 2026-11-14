@@ -81,6 +81,17 @@ import tunnel  # noqa: E402
 import catalogue  # noqa: E402
 import vision  # noqa: E402
 
+# GML/SML-1 spec engine (AUTO-01 add-1 rule, CF-01 requirements)
+GML_DIR = ROOT / "gml" / "SML-1"
+if str(GML_DIR) not in sys.path:
+    sys.path.insert(0, str(GML_DIR))
+try:
+    import gml_spec  # noqa: E402
+except Exception:
+    gml_spec = None
+
+AUTO_PATH = DATA / "gml_auto.json"
+
 
 # ---------- small utils ----------
 
@@ -1026,6 +1037,11 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/api/tunnel":
                 self._send(200, tunnel.status())
                 return
+            if path == "/api/auto":
+                state = load_json(AUTO_PATH, {"counter": 0})
+                self._send(200, {"spec": "AUTO-01", "rule": "add 1",
+                                 **state})
+                return
             if path == "/api/wishlist":
                 # unresolved community descriptors — peers poll this and
                 # resolve what they can (torrent client, local rips)
@@ -1441,6 +1457,25 @@ class Handler(BaseHTTPRequestHandler):
                 pass
 
 
+def auto_worker(interval: int = 30) -> None:
+    """AUTO-01 'add 1' rule on auto: every interval ticks the GML
+    counter, persists it, and broadcasts the packet over SSE so every
+    connected client sees the automation live."""
+    if gml_spec is None:
+        return
+    while True:
+        try:
+            state = load_json(AUTO_PATH, {"counter": 0})
+            pkt = gml_spec.auto_packet(int(state.get("counter", 0)))
+            AUTO_PATH.write_text(json.dumps(
+                {"counter": pkt["counter"], "ts": time.time(),
+                 "bindings": pkt["bindings"]}, indent=1))
+            broadcast("auto", pkt)
+        except Exception:
+            pass
+        time.sleep(interval)
+
+
 def main():
     port = 8917
     srv = ThreadingHTTPServer(("0.0.0.0", port), Handler)
@@ -1458,6 +1493,8 @@ def main():
     # public tunnel: exposes /api/stream for Meta/social posting +
     # off-LAN peers; feeds social.set_public_base automatically
     threading.Thread(target=tunnel.start, daemon=True).start()
+    # AUTO-01 spec automation: 'add 1' rule ticking on interval
+    threading.Thread(target=auto_worker, daemon=True).start()
     # bot session: self-commenting node over the comms link
     try:
         bot_cfg = identity.load_profile().get("bot", {})

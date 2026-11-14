@@ -107,7 +107,8 @@ Optional: `ollama pull llama3.2` enables LLM query expansion/classification.
 | `/api/social/token` | POST | `{platform, access_token, user_id/ig_user_id/page_id, public_base?}` |
 | `/api/social/fetch` | POST | `{url}` pull a social post into the store |
 | `/api/social/post` | POST | `{platform, src|path, caption?}` publish a stored outlet |
-| `/api/tunnel` | GET/POST | tunnel status / `{action: configure\|named\|start\|stop\|restart}` |
+| `/api/tunnel` | GET/POST | tunnel status / `{action: configure\|named\|start\|stop\|restart\|discover}` |
+| `/api/auto` | GET | AUTO-01 spec state — `add 1` counter ticking every 30s, SSE `auto` events |
 | `/api/ingest` | POST | `{uri/magnet/m3u8/mpd/url, title, tags}` |
 | `/api/discover` | POST | `{topic, n}` LLM query expansion → candidates |
 | `/api/auth/signup\|login\|logout` | POST | API key lifecycle |
