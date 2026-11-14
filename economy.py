@@ -101,6 +101,18 @@ def payout(node: str, amount: float, method: str = "btc",
     req = {"id": int(time.time() * 1000), "ts": time.time(),
            "amount": amount, "method": method, "address": address,
            "status": "pending"}
+    # bank rail: fire the transfer through the prime QCP banking
+    # providers at request time; tx id recorded on the payout
+    if method == "bank":
+        try:
+            import prime
+            tx = prime.banking_transfer(
+                "sutton_bank", "cash_app", amount,
+                memo=f"atlas payout {req['id']}")
+            req["rail_tx"] = tx.get("tx_id") or tx
+            req["rail"] = "qcp-banking"
+        except Exception as e:
+            req["rail_error"] = str(e)
     w["payouts"].append(req)
     w["payouts"] = w["payouts"][-100:]
     st["events"].append({"ts": time.time(), "kind": "payout",

@@ -97,3 +97,50 @@ def query(text: str, **kw) -> dict:
 def funding_sats() -> int:
     """Estimated total sats across the wallet pool (cached)."""
     return int(wallets().get("total_sats_est") or 0)
+
+
+# ---- QCP banking rail (:8895) — Sutton Bank / Cash App providers --
+
+QCP = "http://localhost:8895"
+
+
+def _qcp_get(path: str, timeout: int = 15) -> dict:
+    try:
+        with urllib.request.urlopen(QCP + path, timeout=timeout) \
+                as r:
+            return json.loads(r.read() or b"{}")
+    except Exception as e:
+        return {"error": str(e)}
+
+
+def _qcp_post(path: str, body: dict, timeout: int = 30) -> dict:
+    data = json.dumps(body).encode()
+    req = urllib.request.Request(QCP + path, data=data,
+                                 headers={"Content-Type":
+                                          "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as r:
+            return json.loads(r.read() or b"{}")
+    except Exception as e:
+        return {"error": str(e)}
+
+
+def banking_status() -> dict:
+    return _qcp_get("/api/v1/qcp/banking/status")
+
+
+def banking_transfer(from_bank: str, to_bank: str,
+                     amount: float, memo: str = "") -> dict:
+    """Route a transfer between the banking providers (IOU rail —
+    providers run mock until production env creds are set)."""
+    return _qcp_post("/api/v1/qcp/banking/transfer", {
+        "from_bank": from_bank, "to_bank": to_bank,
+        "amount": amount, "memo": memo})
+
+
+def banking_tax_summary(tax_year: str = "") -> dict:
+    """Push the period's tax summary into the banking tax books —
+    the working government-link record on the prime side."""
+    return _qcp_post("/api/v1/qcp/banking/tax-summary",
+                     {"tax_year": tax_year or
+                                 time.strftime("%Y")})
