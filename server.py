@@ -980,12 +980,25 @@ class Handler(BaseHTTPRequestHandler):
                     return
                 src = qs.get("source", [""])[0]
                 if src:
-                    fn = {"mangadex": manga.search,
-                          "asura": manga.asura_search}.get(src)
+                    if src in manga.MADARA_SITES:
+                        fn = lambda q: manga.madara_search(q, src)  # noqa: E731
+                    else:
+                        fn = {"mangadex": manga.search,
+                              "asura": manga.asura_search}.get(src)
                     self._send(200, {"results": fn(q) if fn else [],
                                      "source": src})
                 else:
                     self._send(200, {"results": manga.search_all(q)})
+                return
+            if path == "/api/manga/chapters":
+                mid = qs.get("id", [""])[0]
+                src = qs.get("source", ["mangadex"])[0]
+                if not mid:
+                    self._send(400, {"error": "id required"})
+                    return
+                lim = int(qs.get("limit", ["30"])[0] or 30)
+                self._send(200, {"chapters": manga.chapters_for(
+                    src, mid, limit=lim)})
                 return
             if path == "/api/wishlist":
                 # unresolved community descriptors — peers poll this and

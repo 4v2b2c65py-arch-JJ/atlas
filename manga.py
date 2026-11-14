@@ -137,14 +137,129 @@ def asura_pages(series_slug: str, chapter_slug: str) -> list[str]:
     return [p["url"] for p in ch.get("pages", []) if p.get("url")]
 
 
-def search_all(query: str, limit: int = 6) -> list[dict]:
-    """Merged multi-source listing: MangaDex + Asura Scans (+ any
-    future providers). Each hit tagged with its source."""
+# --- Madara/WordPress scan sites (wp-manga-search-manga + manga_get_chapters
+# + chapter page <img> scrape). Register any Madara host here. ---
+MADARA_SITES = {
+    "mangaforfree": "https://mangaforfree.com",
+}
+
+
+def _madara_post(base: str, action: str, **params) -> str:
+    data = urllib.parse.urlencode({"action": action, **params}).encode()
+    req = urllib.request.Request(
+        base + "/wp-admin/admin-ajax.php", data=data, headers=UA)
+    with urllib.request.urlopen(req, timeout=20) as r:
+        return r.read().decode("utf-8", "replace")
+
+
+def _madara_get(url: str) -> str:
+    req = urllib.request.Request(url, headers=UA)
+    with urllib.request.urlopen(req, timeout=20) as r:
+        return r.read().decode("utf-8", "replace")
+
+
+def _madara_detail(base: str, url: str) -> dict:
+    """Pull manga_id + cover from a /manga/{slug}/ page."""
+    import re
+    html = _madara_get(url)
+    mid = re.search(r'"manga_id"\s*:\s*"?(\d+)', html)
+    cover = re.search(
+        r'"image"\s*:\s*\{[^}]*?"url"\s*:\s*"([^"]+)"', html, re.S)
+    title = re.search(r'"headline"\s*:\s*"([^"]+)"', html)
+    return {"manga_id": mid.group(1) if mid else None,
+            "cover_url": cover.group(1) if cover else None,
+            "title": title.group(1) if title else None}
+
+
+def madara_search(query: str, site: str = "mangaforfree",
+                  limit: int = 6) -> list[dict]:
+    """{site} title search via admin-ajax -> common result shape."""
+    base = MADARA_SITES[site]
+    raw = _madara_post(base, "wp-manga-search-manga", title=query)
+    try:
+        data = json.loads(raw)
+    except ValueError:
+        return []
+    if not data.get("success"):
+        return []
+    items = [i for i in (data.get("data") or [])
+             if i.get("url") and i.get("title")
+             and i.get("type") in (None, "manga", "manhwa", "manhua")]
     out = []
-    for fn in (search, asura_search):
+    for it in items[:limit]:
+        url = it.get("url") or ""
+        slug = url.rstrip("/").rsplit("/", 1)[-1]
+        rec = {"id": slug, "source": site,
+               "title": it.get("title", "untitled"),
+               "url": url, "cover_url": None, "tags": [],
+               "status": None}
+        try:
+            d = _madara_detail(base, url)
+            rec["manga_id"] = d["manga_id"]
+            rec["cover_url"] = d["cover_url"]
+            if d["title"]:
+                rec["title"] = d["title"]
+        except Exception:
+            pass
+        out.append(rec)
+    return out
+
+
+def madara_chapters(site: str, slug: str, limit: int = 5) -> list[dict]:
+    """Chapter list for a Madara manga slug -> common shape."""
+    import re
+    base = MADARA_SITES[site]
+    detail = _madara_detail(base, f"{base}/manga/{slug}/")
+    mid = detail["manga_id"]
+    if not mid:
+        return []
+    html = _madara_post(base, "manga_get_chapters", manga=mid)
+    links = re.findall(
+        r'href="([^"]*/manga/[^"]+)"[^>]*>(.*?)</a>', html, re.S)
+    out = []
+    for href, text in links:
+        label = re.sub(r"<[^>]+>|\s+", " ", text).strip()
+        if not label or "chapter" not in href.lower():
+            continue
+        num = re.search(r"(\d+)", label) or re.search(r"(\d+)", href)
+        out.append({"id": href, "source": site, "series_slug": slug,
+                    "title": label[:80],
+                    "number": int(num.group(1)) if num else 0})
+    out.sort(key=lambda c: c["number"], reverse=True)
+    return out[:limit] if limit else out
+
+
+def madara_pages(site: str, chapter_url: str) -> list[str]:
+    """Page image URLs from a Madara chapter page (document order)."""
+    import re
+    html = _madara_get(chapter_url)
+    imgs = re.findall(r'<img[^>]+src=["\']([^"\']+)["\']', html)
+    seen, out = set(), []
+    for s in imgs:
+        if not re.search(r"\.(jpe?g|png|webp|gif)(\?|$)", s, re.I):
+            continue
+        if not re.search(r"/uploads/|/WP-manga/|/chapter", s, re.I):
+            continue
+        if re.search(r"logo|icon|avatar|gravatar|site-icon|banner", s, re.I):
+            continue
+        if s in seen:
+            continue
+        seen.add(s)
+        out.append(s)
+    return out
+
+
+def search_all(query: str, limit: int = 6) -> list[dict]:
+    """Merged multi-source listing: MangaDex + Asura Scans + Madara
+    sites. Each hit tagged with its source."""
+    providers = [(search, "mangadex"), (asura_search, "asura")]
+    providers += [(lambda q, limit=limit, s=s: madara_search(q, s, limit), s)
+                  for s in MADARA_SITES]
+    out = []
+    for fn, src in providers:
         try:
             for h in fn(query, limit=limit):
-                h.setdefault("source", "mangadex" if fn is search else "asura")
+                h.setdefault("source", src)
                 out.append(h)
         except Exception:
             continue
@@ -154,12 +269,16 @@ def search_all(query: str, limit: int = 6) -> list[dict]:
 def chapters_for(source: str, manga_id: str, limit: int = 5) -> list[dict]:
     if source == "asura":
         return asura_chapters(manga_id, limit)
+    if source in MADARA_SITES:
+        return madara_chapters(source, manga_id, limit)
     return chapters(manga_id, limit)
 
 
 def pages_for(source: str, manga_id: str, chapter_id: str) -> list[str]:
     if source == "asura":
         return asura_pages(manga_id, chapter_id)
+    if source in MADARA_SITES:
+        return madara_pages(source, chapter_id)
     return page_urls(chapter_id)
 
 
@@ -184,7 +303,7 @@ def assemble_video(manga_id: str, out_dir: Path, max_pages: int = 40,
     if out.exists():
         out.unlink()
 
-    writer, w, h = None, None, None
+    writer, canvas = None, None
     count = 0
     for u in urls:
         try:
@@ -194,22 +313,35 @@ def assemble_video(manga_id: str, out_dir: Path, max_pages: int = 40,
             img = cv2.imdecode(arr, cv2.IMREAD_COLOR)
             if img is None:
                 continue
-            if img.shape[1] > img.shape[0] * 1.2:  # wide page -> pad
-                nw = int(img.shape[0] * 0.75)
-                pad = np.zeros((img.shape[0], nw, 3), np.uint8)
-                pad[:, :img.shape[1]] = img
-                img = pad
-            if writer is None:
-                h, w = img.shape[:2]
-                w = int(w * 0.8); h = int(h * 0.8)
-                writer = cv2.VideoWriter(str(out),
-                                         cv2.VideoWriter_fourcc(*"avc1"),
-                                         fps, (w, h))
-            img = cv2.resize(img, (w, h))
-            frames = max(1, int(fps * 1.6))
-            for _ in range(frames):
-                writer.write(img)
-            count += 1
+            # very tall strip pages -> slice into portrait segments so
+            # the outlet lands in a sane aspect instead of rejected
+            segments = [img]
+            if img.shape[0] > img.shape[1] * 2.0:
+                seg_h = int(img.shape[1] * 1.5)
+                segments = [img[y:y + seg_h]
+                            for y in range(0, img.shape[0], seg_h)
+                            if img[y:y + seg_h].shape[0] > 40]
+            for seg in segments:
+                if canvas is None:
+                    ch, cw = seg.shape[:2]
+                    aspect = min(1.6, max(0.45, cw / ch))
+                    h = 960
+                    w = int(min(1280, max(640, h * aspect)))
+                    canvas = (h, w)
+                    writer = cv2.VideoWriter(str(out),
+                                             cv2.VideoWriter_fourcc(*"avc1"),
+                                             fps, (w, h))
+                # fit segment into canvas preserving aspect, letterbox
+                ch, cw = seg.shape[:2]
+                scale = min(w / cw, h / ch)
+                nw, nh = max(1, int(cw * scale)), max(1, int(ch * scale))
+                rs = cv2.resize(seg, (nw, nh))
+                frame = np.zeros((h, w, 3), np.uint8)
+                y0, x0 = (h - nh) // 2, (w - nw) // 2
+                frame[y0:y0 + nh, x0:x0 + nw] = rs
+                for _ in range(max(1, int(fps * 1.2))):
+                    writer.write(frame)
+                count += 1
         except Exception:
             continue
     if writer:
