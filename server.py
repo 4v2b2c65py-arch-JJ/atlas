@@ -138,6 +138,7 @@ import browser  # noqa: E402
 import passkeys  # noqa: E402
 import flowviz  # noqa: E402
 import twitch  # noqa: E402
+import sites  # noqa: E402
 import catalogue  # noqa: E402
 import vision  # noqa: E402
 
@@ -1202,6 +1203,9 @@ class Handler(BaseHTTPRequestHandler):
                 else:
                     self._send(200, passkeys.list_all())
                 return
+            if path == "/api/sites":
+                self._send(200, sites.list_sites())
+                return
             if path == "/api/twitch":
                 self._send(200, twitch.status())
                 return
@@ -1775,6 +1779,34 @@ class Handler(BaseHTTPRequestHandler):
                     self._send(200, twitch.release(chan))
                 else:
                     self._send(200, twitch.status())
+            elif u.path == "/api/sites":
+                action = body.get("action", "list")
+                name = body.get("name", "")
+                if action == "add":
+                    self._send(200, sites.add(
+                        name, body.get("url", ""),
+                        body.get("username", ""),
+                        body.get("password", ""),
+                        body.get("kind", "")))
+                elif action == "remove":
+                    self._send(200, sites.remove(name))
+                elif action == "login":
+                    # drive the stored creds through the browser
+                    # session; secrets never leave the server
+                    rec = sites.get(name)
+                    if not rec:
+                        self._send(404, {"error": "unknown site"})
+                        return
+                    prof = identity.load_profile()
+                    model = llm.pick_model(prof) or "llama3.2"
+                    fn = lambda p: llm._chat(model, p)  # noqa: E731
+                    res = browser.auto_login(
+                        rec["url"], rec.get("username", ""),
+                        rec.get("password", ""), fn, site=name)
+                    sites.mark_login(name, not res.get("error"), res)
+                    self._send(200, res)
+                else:
+                    self._send(200, sites.list_sites())
             elif u.path == "/api/discover":
                 # LLM expands a topic into diverse queries, ytsearch each,
                 # merge candidates — grows reach without dead-ending

@@ -119,6 +119,12 @@ def main() -> None:
     t.add_argument("channel", nargs="?")
     t.add_argument("viewers", nargs="?", type=int)
 
+    st = sub.add_parser("sites")
+    st.add_argument("action",
+                    choices=["list", "add", "remove", "login"])
+    st.add_argument("name", nargs="?")
+    st.add_argument("args", nargs="*")
+
     tu = sub.add_parser("tunnel")
     tu.add_argument("action",
                     choices=["status", "login", "named", "cert",
@@ -260,6 +266,24 @@ def main() -> None:
             out(post("/api/twitch",
                      {"action": ns.action, "channel": ns.channel,
                       "viewers": ns.viewers or 3}))
+    elif ns.cmd == "sites":
+        a = ns.action
+        if a == "list":
+            out(get("/api/sites"))
+        elif a == "add":
+            # sites add <name> <url> [username] [password] [kind]
+            args = [ns.name or ""] + list(ns.args)
+            out(post("/api/sites", {
+                "action": "add", "name": args[0], "url": args[1],
+                "username": args[2] if len(args) > 2 else "",
+                "password": args[3] if len(args) > 3 else "",
+                "kind": args[4] if len(args) > 4 else ""}))
+        elif a == "remove":
+            out(post("/api/sites",
+                     {"action": "remove", "name": ns.name}))
+        else:  # login
+            out(post("/api/sites",
+                     {"action": "login", "name": ns.name}))
     elif ns.cmd == "tunnel":
         a = ns.action
         if a in ("status",):
