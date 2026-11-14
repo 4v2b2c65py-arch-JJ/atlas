@@ -27,6 +27,34 @@ DATA = ROOT / "data"
 ECON = DATA / "economy.json"
 CONFIG = DATA / "tax_config.json"
 OUT = DATA / "tax"
+SECRETS = DATA / "secrets.json"
+
+
+def _secrets() -> dict:
+    """Local secrets (SSN, tokens) — data/ is gitignored; values
+    are used for filing records but never logged or echoed."""
+    try:
+        return json.loads(SECRETS.read_text())
+    except Exception:
+        return {}
+
+
+def _us_identity() -> dict:
+    """US taxpayer identity for SSA/IRS-side filings — SSN and
+    form metadata from data/secrets.json."""
+    us = _secrets().get("us_taxpayer") or {}
+    if not us.get("ssn"):
+        return {}
+    digits = "".join(c for c in us["ssn"] if c.isdigit())
+    return {"ssn_last4": digits[-4:], "id_type": "SSN",
+            "taxpayer_name": us.get("name", ""),
+            "form": us.get("form", ""),
+            "authority": us.get("authority", ""),
+            "mailing_address": us.get("mailing_address", ""),
+            "reference_code": us.get("reference_code", ""),
+            "source": "data/secrets.json"}
+
+
 PRIME_DIR = Path(os.environ.get(
     "PRIME_API_DIR", "/Users/jjmarte/bitcoin-prime-api"))
 GOB_DIR = Path(os.environ.get(
@@ -141,8 +169,8 @@ def statement(node: str | None = None, since: float = 0.0,
         "expenses": round(expenses, 4),
         "refunds_returned": round(refunds, 4),
         "net": round(income - expenses - refunds, 4),
-        "taxpayer": ({**_banking_identity(), **_gobernanza_identity()}
-                     or None),
+        "taxpayer": ({**_banking_identity(), **_gobernanza_identity(),
+                      **_us_identity()} or None),
         "by_kind": by_kind,
         "lines": [{"ts": e["ts"], "kind": e["kind"],
                    "amount": e["amount"], "ref": e.get("ref", "")}
@@ -239,6 +267,37 @@ def file(node: str | None = None, since: float = 0.0,
             time.strftime("%Y"))
     except Exception as e:
         result["banking_tax_error"] = str(e)
+    # SSA-side filing: SSA-3000 record artifact (form data prepared
+    # for submission — SSA has no public e-file API; the record is
+    # the filing document with mailing instructions attached)
+    us = _us_identity()
+    if us:
+        try:
+            sec = _secrets().get("us_taxpayer", {})
+            OUT.mkdir(parents=True, exist_ok=True)
+            form = {
+                "form": us["form"], "filing_id": result["filing_id"],
+                "submitted_at": time.time(),
+                "taxpayer": {"name": us["taxpayer_name"],
+                             "ssn": sec.get("ssn", "")},
+                "earnings": {"gross_income": st["gross_income"],
+                             "net": st["net"],
+                             "period": st["period"]},
+                "authority": us["authority"],
+                "mailing_address": us["mailing_address"],
+                "reference_code": us["reference_code"],
+                "status": "prepared-for-submission",
+                "note": ("SSA-3000 has no public e-file endpoint — "
+                         "submit via ssa.gov office or mail to the "
+                         "address above; this artifact is the "
+                         "complete filing record")}
+            p = OUT / f"ssa3000_{result['filing_id']}.json"
+            p.write_text(json.dumps(form, indent=1))
+            result["ssa3000"] = {"file": str(p),
+                                 "status": form["status"],
+                                 "reference": us["reference_code"]}
+        except Exception as e:
+            result["ssa3000_error"] = str(e)
     return result
 
 
@@ -287,9 +346,12 @@ def compliance(node: str | None = None, since: float = 0.0,
            or gob.get("national_id")
            or gob.get("id_digits"))
     checks["tax_id_present"] = bool(tin)
+    checks["us_identity_present"] = bool(
+        cfg.get("us_ssn") or _secrets().get("us_taxpayer", {})
+        .get("ssn") or os.environ.get("TAX_SSN"))
     checks["taxpayer_identity"] = bool(
         cfg.get("taxpayer_name") or ident.get("taxpayer_name")
-        or gob.get("national_id"))
+        or gob.get("national_id") or _us_identity())
     if not checks["taxpayer_identity"]:
         issues.append("no taxpayer name/id in tax_config.json, "
                       "gobernanza credentials, or prime banking env")
