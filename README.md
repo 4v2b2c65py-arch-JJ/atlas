@@ -10,10 +10,13 @@ working likes, comments, DMs, and receiver/processor status panels.
 
 **Live:** https://web-five-blond-98.vercel.app
 
-Point it at your hub with `?api=`:
+Point it at your hub with `?api=` — comma-separate for overlay layers
+(first = primary for writes, all = read overlay, feeds merge + dedupe,
+SSE connects to every layer, videos stream per-layer):
 
 ```
-https://web-five-blond-98.vercel.app/?api=http://<hub-ip>:8917
+https://web-five-blond-98.vercel.app/?api=http://192.168.100.9:8917
+https://web-five-blond-98.vercel.app/?api=http://hub1:8917,http://hub2:8917
 ```
 
 The key is persisted in the browser; all API calls then round-trip to
