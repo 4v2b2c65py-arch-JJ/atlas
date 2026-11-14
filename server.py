@@ -77,6 +77,7 @@ import llm  # noqa: E402
 import manga  # noqa: E402
 import aniwatch  # noqa: E402
 import social  # noqa: E402
+import tunnel  # noqa: E402
 import catalogue  # noqa: E402
 import vision  # noqa: E402
 
@@ -1022,6 +1023,9 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/api/social":
                 self._send(200, social.status())
                 return
+            if path == "/api/tunnel":
+                self._send(200, tunnel.status())
+                return
             if path == "/api/wishlist":
                 # unresolved community descriptors — peers poll this and
                 # resolve what they can (torrent client, local rips)
@@ -1383,6 +1387,17 @@ class Handler(BaseHTTPRequestHandler):
                                   body.get("caption", ""))
                 broadcast("social", {"platform": plat, "post": res})
                 self._send(200, res)
+            elif u.path == "/api/tunnel":
+                action = body.get("action", "status")
+                if action == "start":
+                    self._send(200, tunnel.start())
+                elif action == "stop":
+                    self._send(200, tunnel.stop())
+                elif action == "restart":
+                    tunnel.stop()
+                    self._send(200, tunnel.start())
+                else:
+                    self._send(200, tunnel.status())
             elif u.path == "/api/discover":
                 # LLM expands a topic into diverse queries, ytsearch each,
                 # merge candidates — grows reach without dead-ending
@@ -1426,6 +1441,9 @@ def main():
     threading.Thread(target=stream_tuner, daemon=True).start()
     threading.Thread(target=community_sync, daemon=True).start()
     threading.Thread(target=torrent_worker, daemon=True).start()
+    # public tunnel: exposes /api/stream for Meta/social posting +
+    # off-LAN peers; feeds social.set_public_base automatically
+    threading.Thread(target=tunnel.start, daemon=True).start()
     # bot session: self-commenting node over the comms link
     try:
         bot_cfg = identity.load_profile().get("bot", {})

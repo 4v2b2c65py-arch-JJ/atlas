@@ -7,3 +7,4 @@ data/
 node_modules/
 bt/node_modules/
 bt/package-lock.json
+bin/
