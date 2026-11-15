@@ -1657,6 +1657,34 @@ class Handler(BaseHTTPRequestHandler):
                 else:
                     self._send(200, nodereg.status())
                 return
+            if path == "/api/boardctl":
+                import boardctl
+                action = qs.get("action", ["status"])[0]
+                if action == "scan":
+                    self._send(200, boardctl.scan_kernel())
+                elif action == "set":
+                    self._send(200, boardctl.set_reg(
+                        int(qs.get("addr", ["0"])[0]),
+                        qs.get("num", [""])[0],
+                        qs.get("val", [""])[0],
+                        qs.get("note", [""])[0]))
+                elif action == "eeprom":
+                    self._send(200, boardctl.eeprom_write(
+                        qs.get("bank", ["eeprom0"])[0],
+                        int(qs.get("addr", ["0"])[0]),
+                        qs.get("val", [""])[0],
+                        int(qs.get("size", ["1"])[0])))
+                elif action == "board":
+                    self._send(200, boardctl.board())
+                elif action == "history":
+                    self._send(200, boardctl.history(
+                        int(qs.get("limit", ["100"])[0])))
+                elif action == "gitsync":
+                    self._send(200, boardctl.git_sync(
+                        qs.get("msg", [""])[0] or None))
+                else:
+                    self._send(200, boardctl.status())
+                return
             if path == "/api/genesis":
                 import genesis
                 action = qs.get("action", ["status"])[0]
@@ -2154,6 +2182,34 @@ class Handler(BaseHTTPRequestHandler):
                         qs.get("file", [""])[0] or None))
                 else:
                     self._send(200, nodereg.status())
+                return
+            if path == "/api/boardctl":
+                import boardctl
+                action = qs.get("action", ["status"])[0]
+                if action == "scan":
+                    self._send(200, boardctl.scan_kernel())
+                elif action == "set":
+                    self._send(200, boardctl.set_reg(
+                        int(qs.get("addr", ["0"])[0]),
+                        qs.get("num", [""])[0],
+                        qs.get("val", [""])[0],
+                        qs.get("note", [""])[0]))
+                elif action == "eeprom":
+                    self._send(200, boardctl.eeprom_write(
+                        qs.get("bank", ["eeprom0"])[0],
+                        int(qs.get("addr", ["0"])[0]),
+                        qs.get("val", [""])[0],
+                        int(qs.get("size", ["1"])[0])))
+                elif action == "board":
+                    self._send(200, boardctl.board())
+                elif action == "history":
+                    self._send(200, boardctl.history(
+                        int(qs.get("limit", ["100"])[0])))
+                elif action == "gitsync":
+                    self._send(200, boardctl.git_sync(
+                        qs.get("msg", [""])[0] or None))
+                else:
+                    self._send(200, boardctl.status())
                 return
             if path == "/api/genesis":
                 import genesis

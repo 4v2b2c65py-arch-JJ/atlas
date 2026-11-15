@@ -401,6 +401,19 @@ def main() -> None:
                                              type=float)
     nr.add_argument("--file")
 
+    bd = sub.add_parser("boardctl")
+    bd.add_argument("action", nargs="?",
+                    choices=["status", "scan", "set", "eeprom",
+                             "board", "history", "gitsync"],
+                    default="status")
+    bd.add_argument("addr", type=int)
+    bd.add_argument("num"); bd.add_argument("val")
+    bd.add_argument("bank"); bd.add_argument("size",
+                                           type=int)
+    bd.add_argument("note"); bd.add_argument("limit",
+                                           type=int)
+    bd.add_argument("msg")
+
     gn = sub.add_parser("genesis")
     gn.add_argument("action", nargs="?",
                     choices=["status", "observe", "set"],
@@ -1129,6 +1142,15 @@ def main() -> None:
                     file=ns.file or ""))
         else:
             out(get("/api/nodereg"))
+    elif ns.cmd == "boardctl":
+        a = ns.action or "status"
+        q = {"action": a}
+        for k in ("addr", "num", "val", "bank", "size",
+                  "note", "limit", "msg"):
+            v = getattr(ns, k, None)
+            if v is not None:
+                q[k] = v
+        out(get("/api/boardctl", **q))
     elif ns.cmd == "genesis":
         a = ns.action or "status"
         if a == "observe":
