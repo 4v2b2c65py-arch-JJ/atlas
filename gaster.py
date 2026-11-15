@@ -25,6 +25,8 @@ METRICS = OUT / "metrics.jsonl"
 STATE = OUT / "state.json"
 REPORTS = OUT / "reports"
 GGUF_PATH = OUT / "gaster_knowledge.gguf"
+RECORDS = OUT / "gaster_records.jsonl"
+STRINGS_TXT = ROOT / "data" / "undertale" / "strings.txt"
 
 TRIGGER_PLATE = "jhan jhonniel flores marte = arthur leywin"
 
@@ -301,6 +303,117 @@ def extract_strings(win_path: Path, out_path: Path) -> dict:
             "count_field": count}
 
 
+def pull_records() -> dict:
+    """Pull Gaster's original records in from its derived spatial
+    form factors and store them:
+
+      1. preset contracts — every W-J-Gaster JSON verbatim,
+         fingerprinted (the credential layer)
+      2. game strings — gaster-tagged entries from the decoded
+         data.win STRG table (the grimware text layer)
+      3. object/sprite names — obj_gaster_* and SPRT-name records
+         found in the string table (the spatial asset layer)
+
+    Records are derived artifacts in data/gaster/gaster_records.jsonl
+    — sources are never modified. Re-running is idempotent: records
+    dedupe on content hash."""
+    import hashlib
+    recs = []
+    seen = set()
+
+    def add(kind: str, **kw):
+        body = json.dumps(kw, sort_keys=True, ensure_ascii=False)
+        h = hashlib.sha256(body.encode()).hexdigest()[:16]
+        if h in seen:
+            return
+        seen.add(h)
+        recs.append({"kind": kind, "rec_hash": h,
+                     "ts": _now(), **kw})
+
+    # 1. preset contract records (verbatim content preserved)
+    for f in sorted(GASTER_DIR.glob("*.json")):
+        try:
+            content = json.loads(f.read_text())
+        except Exception as e:
+            content = {"error": str(e)}
+        add("preset_contract", file=f.name,
+            keys=sorted(content.keys())
+            if isinstance(content, dict) else [],
+            bytes=f.stat().st_size,
+            fingerprint=preset_fingerprint(),
+            content=content)
+    # editor.py is code, not JSON — record its hash only
+    ed = GASTER_DIR / "editor.py"
+    if ed.exists():
+        add("preset_tool", file=ed.name, bytes=ed.stat().st_size,
+            sha256=hashlib.sha256(ed.read_bytes()).hexdigest()[:16])
+
+    # 2+3. game records from the decoded spatial form (data.win ->
+    # strings.txt). Gaster strings + object names = original
+    # records pulled out of the derived container.
+    gaster_strings, gaster_objects = [], set()
+    if STRINGS_TXT.exists():
+        for line in STRINGS_TXT.read_text(
+                encoding="utf-8", errors="replace").splitlines():
+            low = line.lower()
+            if "gaster" not in low:
+                continue
+            gaster_strings.append(line)
+            for tok in line.replace("*", " ").split():
+                t = tok.strip("^&%<>|_-")
+                if t.lower().startswith("obj_gaster") or \
+                        t.lower().startswith("s_gaster") or \
+                        t.lower().startswith("snd_gaster"):
+                    gaster_objects.add(t)
+    for s in gaster_strings:
+        add("game_string", text=s[:500])
+    for o in sorted(gaster_objects):
+        add("game_object", name=o)
+
+    # merge with existing records (dedupe across runs)
+    existing = set()
+    if RECORDS.exists():
+        for line in RECORDS.read_text().splitlines():
+            try:
+                existing.add(json.loads(line).get("rec_hash"))
+            except Exception:
+                pass
+    new_recs = [r for r in recs
+                if r["rec_hash"] not in existing]
+    OUT.mkdir(parents=True, exist_ok=True)
+    with RECORDS.open("a") as f:
+        for r in new_recs:
+            f.write(json.dumps(r, ensure_ascii=False) + "\n")
+    _metric("pull_records", preset=len(list(GASTER_DIR.glob("*.json"))),
+            strings=len(gaster_strings),
+            objects=len(gaster_objects), new=len(new_recs))
+    return {"records_written": len(new_recs),
+            "preset_contracts": len(list(GASTER_DIR.glob("*.json"))),
+            "game_strings": len(gaster_strings),
+            "game_objects": sorted(gaster_objects),
+            "out": str(RECORDS)}
+
+
+def encounter_status() -> dict:
+    """What's missing to complete the encounter — honest gap list."""
+    s = status()
+    missing = []
+    if not list(OUT.parent.glob("underworld/creator_*.mp4")):
+        missing.append("creator_environment_media — only fan "
+                       "uploads found; genuine source pending")
+    recs = 0
+    if RECORDS.exists():
+        recs = sum(1 for _ in RECORDS.open())
+    return {"gaster": s, "gaster_records": recs,
+            "missing": missing,
+            "complete_when": ["creator media installed + portal "
+                              "casts emitted",
+                              "local-ai conditions real (not "
+                              "fallback)",
+                              "gaster_records stored (done)"],
+            "records_pulled": recs > 0}
+
+
 def store_gguf() -> dict:
     import namescrape
     recs = []
@@ -316,6 +429,14 @@ def store_gguf() -> dict:
         recs.append({"kind": "observation_report",
                      "file": rp.name, "bytes": rp.stat().st_size,
                      "src": "gaster"})
+    for line in RECORDS.read_text().splitlines() \
+            if RECORDS.exists() else []:
+        try:
+            r = json.loads(line)
+            r["kind"] = "gaster_record"
+            recs.append(r)
+        except Exception:
+            pass
     res = namescrape.write_gguf(recs, path=GGUF_PATH)
     res["verify"] = namescrape.read_gguf_count(GGUF_PATH)
     return res
