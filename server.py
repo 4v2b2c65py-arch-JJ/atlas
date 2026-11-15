@@ -1685,6 +1685,16 @@ class Handler(BaseHTTPRequestHandler):
                 else:
                     self._send(200, boardctl.status())
                 return
+            if path == "/api/circuit":
+                import circuit
+                action = qs.get("action", ["status"])[0]
+                if action == "scan":
+                    self._send(200, circuit.scan())
+                elif action == "test":
+                    self._send(200, circuit.test())
+                else:
+                    self._send(200, circuit.status())
+                return
             if path == "/api/genesis":
                 import genesis
                 action = qs.get("action", ["status"])[0]
@@ -2210,6 +2220,16 @@ class Handler(BaseHTTPRequestHandler):
                         qs.get("msg", [""])[0] or None))
                 else:
                     self._send(200, boardctl.status())
+                return
+            if path == "/api/circuit":
+                import circuit
+                action = qs.get("action", ["status"])[0]
+                if action == "scan":
+                    self._send(200, circuit.scan())
+                elif action == "test":
+                    self._send(200, circuit.test())
+                else:
+                    self._send(200, circuit.status())
                 return
             if path == "/api/genesis":
                 import genesis

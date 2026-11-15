@@ -414,6 +414,11 @@ def main() -> None:
                                            type=int)
     bd.add_argument("msg")
 
+    ci = sub.add_parser("circuit")
+    ci.add_argument("action", nargs="?",
+                    choices=["status", "scan", "test"],
+                    default="status")
+
     gn = sub.add_parser("genesis")
     gn.add_argument("action", nargs="?",
                     choices=["status", "observe", "set"],
@@ -1151,6 +1156,9 @@ def main() -> None:
             if v is not None:
                 q[k] = v
         out(get("/api/boardctl", **q))
+    elif ns.cmd == "circuit":
+        a = ns.action or "status"
+        out(get("/api/circuit", action=a))
     elif ns.cmd == "genesis":
         a = ns.action or "status"
         if a == "observe":
