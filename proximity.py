@@ -55,7 +55,7 @@ def _features(node: str) -> set:
     hid = familytree.HIDDEN.get(node)
     # hidden variants inherit their kin's feature set so they
     # don't all collapse to an identical {hidden:true} vector
-    if c is None and node in familytree.HIDDEN:
+    if c is None and familytree.HIDDEN.get(node):
         kin = KIN.get(node) or familytree.PARENT.get(node)
         if kin in charpack.CHAR_PACK:
             c = charpack.CHAR_PACK[kin]
@@ -78,7 +78,7 @@ def _features(node: str) -> set:
         if parent and parent in charpack.CHAR_PACK:
             feats.add(f"origin:"
                       f"{charpack.CHAR_PACK[parent]['origin']}")
-    if node in familytree.HIDDEN:
+    if familytree.HIDDEN.get(node):
         feats.add("hidden:true")
     return feats
 
@@ -165,7 +165,7 @@ def encounter(center: str = "reaper_sans") -> dict:
                 "label": familytree.LABEL.get(node, node),
                 "emoji": familytree.EMOJI.get(node),
                 "distance": d,
-                "hidden": node in familytree.HIDDEN,
+                "hidden": familytree.HIDDEN.get(node),
                 "tier": c.get("tier") or "hidden",
                 "origin": c.get("origin") or hid.get("note",
                                                     "hidden"),

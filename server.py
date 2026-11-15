@@ -1325,6 +1325,22 @@ class Handler(BaseHTTPRequestHandler):
                 else:
                     self._send(200, spectrum.status())
                 return
+            if path == "/api/variants":
+                import variants
+                action = qs.get("action", ["status"])[0]
+                if action == "register":
+                    n = variants.register()
+                    variants.store()
+                    self._send(200, {"registered": n,
+                                     **variants.status()})
+                elif action == "expand":
+                    variants.register()
+                    variants.store()
+                    import truename
+                    self._send(200, truename.discover())
+                else:
+                    self._send(200, variants.status())
+                return
             if path == "/api/branches":
                 import branches
                 action = qs.get("action", ["status"])[0]
@@ -1333,6 +1349,22 @@ class Handler(BaseHTTPRequestHandler):
                         qs.get("center", [""])[0] or None))
                 else:
                     self._send(200, branches.status())
+                return
+            if path == "/api/variants":
+                import variants
+                action = qs.get("action", ["status"])[0]
+                if action == "register":
+                    n = variants.register()
+                    variants.store()
+                    self._send(200, {"registered": n,
+                                     **variants.status()})
+                elif action == "expand":
+                    variants.register()
+                    variants.store()
+                    import truename
+                    self._send(200, truename.discover())
+                else:
+                    self._send(200, variants.status())
                 return
             if path == "/api/branches":
                 import branches

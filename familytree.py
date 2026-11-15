@@ -104,14 +104,14 @@ def summon(node: str, via: str = "tree") -> dict:
     if roots_needed:
         # the hidden branch opens once the tree is awake —
         # any 3+ summons count as 'the game has been entered'
-        if "hidden" in _ancestors(node) or node in HIDDEN:
+        if "hidden" in _ancestors(node) or HIDDEN.get(node):
             if len(have) >= 3:
                 roots_needed = []
         if roots_needed:
             return {"node": node, "summoned": False,
                     "error": "ancestors required",
                     "missing": roots_needed}
-    hidden = node in HIDDEN
+    hidden = bool(HIDDEN.get(node))
     rec = {"ts": time.time(), "kind": "familytree_summon",
            "node": node, "label": LABEL[node],
            "emoji": EMOJI.get(node), "hidden": hidden,
@@ -134,9 +134,9 @@ def render() -> str:
             k in have for k in kids) else "◇"
         lines.append(f"{root_mark} {root.upper()}")
         for k in kids:
-            mark = "★" if k in have else ("▒" if k in HIDDEN
+            mark = "★" if k in have else ("▒" if HIDDEN.get(k)
                                           else "·")
-            tag = " [hidden]" if k in HIDDEN else ""
+            tag = " [hidden]" if HIDDEN.get(k) else ""
             note = HIDDEN.get(k, {}).get("note", "")
             suffix = f"  — {note}" if note and k in have else ""
             lines.append(f"    {mark} {EMOJI.get(k,' ')} "

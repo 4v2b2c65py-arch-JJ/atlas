@@ -225,6 +225,11 @@ def main() -> None:
     sp.add_argument("--interval", type=float, default=60)
     sp.add_argument("--cycles", type=int, default=1)
 
+    vr = sub.add_parser("variants")
+    vr.add_argument("action", nargs="?",
+                    choices=["status", "register", "expand"],
+                    default="status")
+
     br = sub.add_parser("branches")
     br.add_argument("action", nargs="?",
                     choices=["status", "map"], default="status")
@@ -669,6 +674,14 @@ def main() -> None:
             out(get("/api/spectrum", action="gguf"))
         else:
             out(get("/api/spectrum"))
+    elif ns.cmd == "variants":
+        a = ns.action or "status"
+        if a == "register":
+            out(get("/api/variants", action="register"))
+        elif a == "expand":
+            out(get("/api/variants", action="expand"))
+        else:
+            out(get("/api/variants"))
     elif ns.cmd == "branches":
         a = ns.action or "status"
         if a == "map":

@@ -55,7 +55,7 @@ def _true_name(node: str, tag: dict) -> str:
     variant = str(tag.get("variant") or "baseline").upper()
     variant = re.sub(r"[^A-Z0-9]+", "_", variant).strip("_")
     name = f"{label}::{state}::{variant}"
-    if node in familytree.HIDDEN:
+    if familytree.HIDDEN.get(node):
         name = f"SHADOW::{name}"
     return name
 
@@ -82,7 +82,7 @@ def discover(center: str = CENTER) -> dict:
     for node in sorted(familytree.LABEL):
         d = proximity.distance(center, node)
         tag = proximity.timeline_tag(node, souls)
-        hidden = node in familytree.HIDDEN
+        hidden = bool(familytree.HIDDEN.get(node))
         c = __import__("charpack").CHAR_PACK.get(node, {})
         tier = c.get("tier") or "hidden"
         tname = _true_name(node, tag)
