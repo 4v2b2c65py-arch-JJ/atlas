@@ -1192,6 +1192,16 @@ class Handler(BaseHTTPRequestHandler):
                 else:
                     self._send(200, reg)
                 return
+            if path == "/api/nexus":
+                import nexus
+                title = qs.get("title", [""])[0]
+                if title:
+                    self._send(200, nexus.nexus_refs(
+                        title, mod_count=int(
+                            qs.get("mods", ["10"])[0])))
+                else:
+                    self._send(200, nexus.status())
+                return
             if path == "/api/gamerefs":
                 import gamerefs
                 title = qs.get("title", [""])[0]

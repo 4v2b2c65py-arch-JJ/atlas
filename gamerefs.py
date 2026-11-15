@@ -99,11 +99,16 @@ def fitgirl_search(title: str) -> list[dict]:
 
 
 def nexus_status() -> dict:
-    """Nexus Mods — gated. The official API needs a user key;
-    the site 403s plain fetches. Honest status, no fake data."""
-    return {"status": "gated", "reason": "HTTP 403 — requires "
-            "Nexus API key (user-supplied) or browser session",
-            "api": "https://api.nexusmods.com/v2/"}
+    """Nexus Mods — live via public GraphQL (nexus.py), no key.
+    Falls back to gated note if the session can't warm."""
+    try:
+        import nexus
+        st = nexus.status()
+        return {"status": "live", "refs": st.get("refs", 0),
+                "api": "https://next.nexusmods.com/api/graphql"}
+    except Exception as e:
+        return {"status": "gated", "reason": str(e)[:120],
+                "api": "https://api.nexusmods.com/v2/"}
 
 
 def match_title(title: str) -> dict:
@@ -120,7 +125,17 @@ def match_title(title: str) -> dict:
                                      len(nt)))
         best = steam_app(best["appid"])
     fg = fitgirl_search(title)
-    nexus = nexus_status()
+    # nexus via public GraphQL — real game+mods data, no key
+    try:
+        import nexus
+        nx = nexus.nexus_refs(title, mod_count=8)
+        nexus_info = {"status": "live",
+                      "game": nx.get("game"),
+                      "mods": nx.get("mods") or [],
+                      "top_mod": nx.get("top_mod"),
+                      "note": nx.get("note")}
+    except Exception as e:
+        nexus_info = {"status": "error", "reason": str(e)[:120]}
     # loader ask: what the loader needs = official version state +
     # repack reference + content hints
     loader = {
@@ -133,10 +148,13 @@ def match_title(title: str) -> dict:
         "dlc_expansions": (best or {}).get("dlc") or [],
         "expansions_hint": "see steam app page dlc/ost "
                            "listings + repack post updates",
-        "nexus": nexus["status"],
+        "nexus": nexus_info.get("status"),
+        "nexus_top_mod": nexus_info.get("top_mod"),
+        "nexus_mod_count": (nexus_info.get("game") or {})
+        .get("modCount"),
     }
     rec = {"ts": time.time(), "title": title, "norm": _norm(title),
-           "steam": best, "fitgirl": fg, "nexus": nexus,
+           "steam": best, "fitgirl": fg, "nexus": nexus_info,
            "loader_match": loader,
            "elapsed_s": round(time.time() - t0, 2)}
     OUT.mkdir(parents=True, exist_ok=True)
