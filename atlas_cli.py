@@ -235,7 +235,7 @@ def main() -> None:
     cp = sub.add_parser("charpack")
     cp.add_argument("action", nargs="?",
                     choices=["status", "unlock", "emoji", "pack",
-                             "icons", "icon", "gguf"],
+                             "icons", "icon", "probe", "gguf"],
                     default="status")
     cp.add_argument("target", nargs="?",
                     help="phrase to unlock or character name")
@@ -669,6 +669,8 @@ def main() -> None:
             out(get("/api/charpack", action="pack"))
         elif a == "icons":
             out(get("/api/charpack", action="icons"))
+        elif a == "probe":
+            out(get("/api/charpack", action="probe"))
         elif a == "icon":
             import base64
             data = Path(ns.icon_src).read_bytes()

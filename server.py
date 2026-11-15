@@ -1359,6 +1359,8 @@ class Handler(BaseHTTPRequestHandler):
                     self._send(200, charpack.emoji_pack())
                 elif action == "icons":
                     self._send(200, charpack.icon_pack())
+                elif action == "probe":
+                    self._send(200, charpack.probe())
                 elif action == "icon":
                     ch = qs.get("char", [""])[0]
                     p = charpack.icon_path(ch)

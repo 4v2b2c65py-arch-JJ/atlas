@@ -324,6 +324,70 @@ def install_icon_bytes(character: str, filename: str,
         tmp.unlink(missing_ok=True)
 
 
+def probe() -> dict:
+    """Probe what emerges from the social-security layer:
+    aggregate unlocks, extract emitted grimware tokens, cross-
+    reference against gaster records and soul names to see which
+    invocation seeds re-emerge."""
+    recs = []
+    if UNLOCKS.exists():
+        for line in UNLOCKS.open():
+            line = line.strip()
+            if line:
+                try:
+                    recs.append(json.loads(line))
+                except json.JSONDecodeError:
+                    continue
+    ok = [r for r in recs
+          if r.get("kind") == "charpack_unlock"
+          and r.get("unlocked")]
+    toks = {}
+    for r in ok:
+        for t in r.get("grimware") or []:
+            toks[t] = toks.get(t, 0) + 1
+    # cross-reference stores
+    gtext = stext = ""
+    gp = ROOT / "data" / "gaster" / "gaster_records.jsonl"
+    sp = ROOT / "data" / "souls" / "souls.jsonl"
+    if gp.exists():
+        gtext = gp.read_text().lower()
+    if sp.exists():
+        stext = sp.read_text().lower()
+    emergent = {}
+    for t, n in toks.items():
+        tl = t.lower()
+        emergent[t] = {
+            "emitted": n,
+            "in_gaster_records": tl in gtext,
+            "in_souls": tl in stext,
+            "resurfaces_seed": tl in gtext or tl in stext}
+    chars = {}
+    for r in ok:
+        chars[r["character"]] = chars.get(
+            r["character"], 0) + 1
+    out = {"ts": time.time(), "kind": "charpack_probe",
+           "unlock_records": sum(
+               1 for r in recs
+               if r.get("kind") == "charpack_unlock"),
+           "unlocked": len(ok),
+           "denied": sum(1 for r in recs
+                         if r.get("kind") == "charpack_unlock"
+                         and not r.get("unlocked")),
+           "by_character": chars,
+           "by_tier": {t: sum(1 for r in ok
+                              if r.get("tier") == t)
+                       for t in {r.get("tier") for r in ok}},
+           "grimware_emitted": toks,
+           "emergent": emergent,
+           "new_tokens": [t for t, e in emergent.items()
+                          if not e["resurfaces_seed"]],
+           "derived": True}
+    OUT.mkdir(parents=True, exist_ok=True)
+    with UNLOCKS.open("a") as f:
+        f.write(json.dumps(out, ensure_ascii=False) + "\n")
+    return out
+
+
 def pack_gguf() -> dict:
     import namescrape
     recs = []
