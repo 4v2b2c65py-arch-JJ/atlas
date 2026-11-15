@@ -159,11 +159,12 @@ def batch_match(titles: list[str],
         time.sleep(delay)
     return {"matched": len(done),
             "with_steam": sum(1 for d in done
-                              if d.get("steam", {}).get("name")),
+                              if (d.get("steam") or {})
+                              .get("name")),
             "with_fitgirl": sum(1 for d in done
                                 if any("title" in f
-                                       for f in d.get("fitgirl",
-                                                       [])))}
+                                       for f in (d.get("fitgirl")
+                                                 or [])))}
 
 
 def match_dlps(limit: int = 25) -> dict:
@@ -189,9 +190,10 @@ def status() -> dict:
                 if l.strip()]
     return {"matches": len(rows),
             "with_steam": sum(1 for r in rows
-                              if r.get("steam", {}).get("name")),
+                              if (r.get("steam") or {})
+                              .get("name")),
             "with_fitgirl": sum(1 for r in rows
                                 if any("title" in f for f in
-                                       r.get("fitgirl", []))),
+                                       (r.get("fitgirl") or []))),
             "nexus": nexus_status()["status"],
             "out": str(MATCHES)}
