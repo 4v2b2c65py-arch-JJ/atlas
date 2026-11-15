@@ -225,6 +225,14 @@ def main() -> None:
     sp.add_argument("--interval", type=float, default=60)
     sp.add_argument("--cycles", type=int, default=1)
 
+    gn = sub.add_parser("genesis")
+    gn.add_argument("action", nargs="?",
+                    choices=["status", "observe", "set"],
+                    default="status")
+    gn.add_argument("node", nargs="?")
+    gn.add_argument("profile", nargs="?")
+    gn.add_argument("--ticks", type=int, default=100)
+
     tl2 = sub.add_parser("tierlayers")
     tl2.add_argument("action", nargs="?",
                      choices=["status", "range", "game",
@@ -721,6 +729,17 @@ def main() -> None:
             out(get("/api/spectrum", action="gguf"))
         else:
             out(get("/api/spectrum"))
+    elif ns.cmd == "genesis":
+        a = ns.action or "status"
+        if a == "observe":
+            out(get("/api/genesis", action="observe",
+                    node=ns.node or "",
+                    profile=ns.profile or "default",
+                    ticks=ns.ticks))
+        elif a == "set":
+            out(get("/api/genesis", action="set"))
+        else:
+            out(get("/api/genesis"))
     elif ns.cmd == "tierlayers":
         a = ns.action or "status"
         if a == "range":

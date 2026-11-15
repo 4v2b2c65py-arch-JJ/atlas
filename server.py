@@ -1325,6 +1325,19 @@ class Handler(BaseHTTPRequestHandler):
                 else:
                     self._send(200, spectrum.status())
                 return
+            if path == "/api/genesis":
+                import genesis
+                action = qs.get("action", ["status"])[0]
+                if action == "observe":
+                    self._send(200, genesis.observe(
+                        qs.get("node", [""])[0],
+                        qs.get("profile", ["default"])[0],
+                        ticks=int(qs.get("ticks", ["100"])[0])))
+                elif action == "set":
+                    self._send(200, genesis.reality_set())
+                else:
+                    self._send(200, genesis.status())
+                return
             if path == "/api/tierlayers":
                 import tierlayers
                 action = qs.get("action", ["status"])[0]
@@ -1469,6 +1482,19 @@ class Handler(BaseHTTPRequestHandler):
                         qs.get("center", [""])[0] or None))
                 else:
                     self._send(200, branches.status())
+                return
+            if path == "/api/genesis":
+                import genesis
+                action = qs.get("action", ["status"])[0]
+                if action == "observe":
+                    self._send(200, genesis.observe(
+                        qs.get("node", [""])[0],
+                        qs.get("profile", ["default"])[0],
+                        ticks=int(qs.get("ticks", ["100"])[0])))
+                elif action == "set":
+                    self._send(200, genesis.reality_set())
+                else:
+                    self._send(200, genesis.status())
                 return
             if path == "/api/tierlayers":
                 import tierlayers
