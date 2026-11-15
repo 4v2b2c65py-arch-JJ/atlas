@@ -230,15 +230,64 @@ def scan(roots=None) -> dict:
                       for n in nodes[:50]]}
 
 
+def _ollama_show(name: str) -> dict:
+    """Fetch /api/show for an ollama model — architecture,
+    params, quant, context — then rope-classify it."""
+    d = _probe(11434, "/api/show", timeout=3)
+    # /api/show is POST; do it manually
+    try:
+        body = json.dumps({"model": name}).encode()
+        req = urllib.request.Request(
+            "http://127.0.0.1:11434/api/show", data=body,
+            headers={"Content-Type": "application/json"})
+        with urllib.request.urlopen(req, timeout=25) as r:
+            d = json.loads(r.read().decode()[:100_000])
+    except Exception:
+        return {}
+    mi = d.get("model_info") or {}
+    arch = mi.get("general.architecture")
+    meta = {k: v for k, v in mi.items()
+            if not k.startswith("general.")}
+    meta["general.architecture"] = arch or "unknown"
+    try:
+        import rope as _rope
+        cls = _rope.classify(meta)
+        cls.pop("label", None)
+        return {"architecture": arch,
+                "basename": mi.get("general.basename"),
+                "parameter_count": mi.get(
+                    "general.parameter_count"),
+                "size_label": mi.get("general.size_label"),
+                "finetune": mi.get("general.finetune"),
+                "parameters": d.get("parameters"),
+                "quantization": (d.get("details") or {}).get(
+                    "quantization_level"),
+                "format": d.get("format"),
+                "rope": cls.get("rope"),
+                "era": cls.get("era"),
+                "weave": cls.get("weave"),
+                "context_length": cls.get("context_length"),
+                "derived": True}
+    except Exception:
+        return {"architecture": arch,
+                "model_info_keys": len(mi)}
+
+
 def detect() -> dict:
     """Full detect: running gateways + scanned weight nodes."""
     pls = ports()
     gws = []
     for p in pls:
         if p.get("gateway"):
+            models = p.get("models", [])
+            for m in models:
+                if p["kind"] == "ollama" and m.get("name"):
+                    det = _ollama_show(m["name"])
+                    if det:
+                        m["details_probe"] = det
             gws.append({"port": p["port"], "kind": p["kind"],
                         "pid": p.get("pid"),
-                        "models": p.get("models", []),
+                        "models": models,
                         "reachable": p.get("reachable")})
             _append(GATEWAYS, {"kind": "gateway_seen",
                                "device_time": _device_time(),
