@@ -1325,6 +1325,17 @@ class Handler(BaseHTTPRequestHandler):
                 else:
                     self._send(200, spectrum.status())
                 return
+            if path == "/api/familytree":
+                import familytree
+                action = qs.get("action", ["status"])[0]
+                if action == "summon":
+                    self._send(200, familytree.summon(
+                        qs.get("node", [""])[0]))
+                elif action == "render":
+                    self._send(200, {"tree": familytree.render()})
+                else:
+                    self._send(200, familytree.status())
+                return
             if path == "/api/dna":
                 import dna
                 action = qs.get("action", ["status"])[0]

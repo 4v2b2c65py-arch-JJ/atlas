@@ -225,6 +225,12 @@ def main() -> None:
     sp.add_argument("--interval", type=float, default=60)
     sp.add_argument("--cycles", type=int, default=1)
 
+    ft = sub.add_parser("familytree")
+    ft.add_argument("action", nargs="?",
+                    choices=["status", "render", "summon"],
+                    default="status")
+    ft.add_argument("node", nargs="?")
+
     dn = sub.add_parser("dna")
     dn.add_argument("action", nargs="?",
                     choices=["status", "fetch", "expand", "gguf"],
@@ -646,6 +652,15 @@ def main() -> None:
             out(get("/api/spectrum", action="gguf"))
         else:
             out(get("/api/spectrum"))
+    elif ns.cmd == "familytree":
+        a = ns.action or "status"
+        if a == "render":
+            out(get("/api/familytree", action="render"))
+        elif a == "summon":
+            out(get("/api/familytree", action="summon",
+                    node=ns.node or ""))
+        else:
+            out(get("/api/familytree"))
     elif ns.cmd == "dna":
         a = ns.action or "status"
         if a == "fetch":
