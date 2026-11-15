@@ -201,6 +201,10 @@ def main() -> None:
     lr = sub.add_parser("lore")
     lr.add_argument("key", nargs="?")
 
+    pt = sub.add_parser("partition")
+    pt.add_argument("profile", nargs="?")
+    pt.add_argument("--run", action="store_true")
+
     au = sub.add_parser("auth")
     au.add_argument("action", choices=["signup", "login", "status"])
     au.add_argument("user", nargs="?"); au.add_argument("password", nargs="?")
@@ -568,6 +572,9 @@ def main() -> None:
                     download="0" if ns.nodesc else "1"))
     elif ns.cmd == "lore":
         out(get("/api/lore", key=ns.key or None))
+    elif ns.cmd == "partition":
+        out(get("/api/partition", profile=ns.profile or "default",
+                run="1" if ns.run else None))
     elif ns.cmd == "auth":
         if ns.action == "status":
             out(get("/api/auth/status"))

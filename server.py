@@ -1192,6 +1192,14 @@ class Handler(BaseHTTPRequestHandler):
                 else:
                     self._send(200, reg)
                 return
+            if path == "/api/partition":
+                import partition
+                profile = qs.get("profile", ["default"])[0]
+                if qs.get("run", [""])[0]:
+                    self._send(200, partition.run(profile))
+                else:
+                    self._send(200, partition.partition_status(profile))
+                return
             if path == "/api/unlock":
                 import unlock
                 title = qs.get("title", qs.get("q", [""]))[0]
