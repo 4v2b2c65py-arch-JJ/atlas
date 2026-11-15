@@ -320,7 +320,8 @@ def main() -> None:
     nl = sub.add_parser("netlock")
     nl.add_argument("action", nargs="?",
                     choices=["status", "lock", "unlock", "hop",
-                             "mac", "send", "macs", "history"],
+                             "mac", "send", "macs", "history",
+                             "scrape"],
                     default="status")
     nl.add_argument("--mode")
     nl.add_argument("--radius", type=float)

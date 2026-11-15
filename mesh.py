@@ -329,6 +329,15 @@ def ingest(snapshot_id: str, payload: dict,
         (payload or {}).get("source")
     if src:
         heartbeat(str(src))
+    # scrape/credential reports refresh the netlock GGUF
+    kind = str((payload or {}).get("kind", "")).lower()
+    if kind in ("scrape", "scrape_report", "credential") or \
+            (payload or {}).get("store"):
+        try:
+            import netlock as _nl
+            _nl.record_scrape_report(payload)
+        except Exception:
+            pass
     return {"kind": "mesh_ingest_result",
             "snapshotId": snapshot_id,
             "stored": True,

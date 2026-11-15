@@ -40,6 +40,8 @@ LOCK = OUT / "lock_state.json"
 HOPS = OUT / "hops.jsonl"
 MACS = OUT / "macs.jsonl"
 HIST = OUT / "history.jsonl"
+CRED = OUT / "credentials.json"
+GGUF = OUT / "netlock_known.gguf"
 
 MODES = {
     "mesh_global": {"radius_km": 34_000.0, "expand": True,
@@ -216,6 +218,95 @@ def interpreter(transport: str, snapshot_id: str,
         payload=payload, connection_spec=spec))
 
 
+
+def _credential() -> dict:
+    """The store credential — password filled in, scoped to
+    profile tag 'known'. Generated once, persisted; a derived
+    local token, NOT a real secret."""
+    import secrets
+    if CRED.exists():
+        try:
+            return json.loads(CRED.read_text())
+        except json.JSONDecodeError:
+            pass
+    cred = {"profile": "known",
+            "password": secrets.token_hex(16),
+            "scope": "mesh_netlock",
+            "created": _device_time()["ts"],
+            "derived": True}
+    OUT.mkdir(parents=True, exist_ok=True)
+    CRED.write_text(json.dumps(cred, indent=1))
+    return cred
+
+
+def scrape() -> dict:
+    """Scrape the whole netlock+mesh state into GGUF records —
+    lock, hops, MACs, mesh nodes, history tail — with the
+    'known' profile credential filled in."""
+    import namescrape
+    cred = _credential()
+    records = []
+    st = handler("status")
+    records.append({"src": "netlock", "kind": "lock_state",
+                    "profile": "known", **{
+                        k: st.get(k) for k in (
+                            "mode", "locked",
+                            "effective_radius_km", "hops",
+                            "read_only", "expand")},
+                    "credential": cred})
+    for r in _jsonl(HOPS) or []:
+        records.append({"src": "netlock", "kind": "hop",
+                        "profile": "known", **r})
+    for r in _jsonl(MACS) or []:
+        records.append({"src": "netlock", "kind": "mac",
+                        "profile": "known", **r})
+    try:
+        import mesh as _mesh
+        for n in _mesh.mesh_nodes():
+            records.append({"src": "mesh", "kind": "node",
+                            "profile": "known", **{
+                                k: n.get(k) for k in (
+                                    "node", "url", "ip", "geo",
+                                    "alive", "located",
+                                    "distance_km",
+                                    "within_radius", "kind")}})
+    except Exception:
+        pass
+    hist = list(_jsonl(HIST) or [])
+    for r in hist[-200:]:
+        records.append({"src": "netlock", "kind": "history",
+                        "profile": "known", **r})
+    res = namescrape.write_gguf(records, GGUF)
+    res["profile"] = "known"
+    res["credential_profile"] = cred["profile"]
+    _append(HIST, {"ts": _device_time()["ts"],
+                   "kind": "netlock", "action": "scrape",
+                   "records": len(records),
+                   "gguf": res["path"]})
+    return {"kind": "netlock_scrape", **res,
+            "records": len(records)}
+
+
+def record_scrape_report(report: dict) -> dict:
+    """A node reported a scrape to another store — merge the
+    report into credentials and refresh the GGUF under
+    profile 'known'."""
+    node = (report.get("node") or report.get("source")
+            or "unknown")
+    cred = _credential()
+    rec = {"ts": _device_time()["ts"],
+           "device_time": _device_time(),
+           "kind": "scrape_report", "node": node,
+           "store": report.get("store"),
+           "scraped": report.get("scraped", report),
+           "profile": "known", "derived": True}
+    _append(CRED.with_suffix(".reports.jsonl"), rec)
+    scrape()
+    return {"kind": "scrape_report_result",
+            "node": node, "profile": "known",
+            "gguf_updated": True}
+
+
 def handler(action: str, **kw) -> dict:
     """MAIN HANDLER — the only entry point. Validates lock,
     dispatches to hop/mac/interpreter, writes history."""
@@ -251,6 +342,8 @@ def handler(action: str, **kw) -> dict:
                        "routed": res.get("routed"),
                        "transport": kw.get("transport")})
         return res
+    if a == "scrape":
+        return scrape()
     if a == "macs":
         return macs()
     if a == "history":
@@ -269,4 +362,5 @@ def handler(action: str, **kw) -> dict:
         return state
     return {"error": "unknown_action", "action": a,
             "actions": ["lock", "unlock", "hop", "mac",
-                        "send", "macs", "history", "status"]}
+                        "send", "macs", "history", "status",
+                        "scrape"]}
