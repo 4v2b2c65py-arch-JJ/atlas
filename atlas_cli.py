@@ -225,6 +225,16 @@ def main() -> None:
     sp.add_argument("--interval", type=float, default=60)
     sp.add_argument("--cycles", type=int, default=1)
 
+    tl = sub.add_parser("termlib")
+    tl.add_argument("action", nargs="?",
+                    choices=["status", "ingest", "terms",
+                             "apply", "apply_branch"],
+                    default="status")
+    tl.add_argument("target", nargs="?")
+    tl.add_argument("--terms", default="")
+    tl.add_argument("--cat", default="")
+    tl.add_argument("--limit", type=int, default=0)
+
     vr = sub.add_parser("variants")
     vr.add_argument("action", nargs="?",
                     choices=["status", "register", "expand", "config"],
@@ -675,6 +685,23 @@ def main() -> None:
             out(get("/api/spectrum", action="gguf"))
         else:
             out(get("/api/spectrum"))
+    elif ns.cmd == "termlib":
+        a = ns.action or "status"
+        if a == "ingest":
+            out(get("/api/termlib", action="ingest"))
+        elif a == "terms":
+            out(get("/api/termlib", action="terms",
+                    cat=ns.cat or None, limit=ns.limit))
+        elif a == "apply":
+            out(get("/api/termlib", action="apply",
+                    node=ns.target or "",
+                    terms=ns.terms))
+        elif a == "apply_branch":
+            out(get("/api/termlib", action="apply_branch",
+                    branch=ns.target or "",
+                    terms=ns.terms, limit=ns.limit))
+        else:
+            out(get("/api/termlib"))
     elif ns.cmd == "variants":
         a = ns.action or "status"
         if a == "register":

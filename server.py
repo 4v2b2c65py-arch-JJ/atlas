@@ -1325,6 +1325,30 @@ class Handler(BaseHTTPRequestHandler):
                 else:
                     self._send(200, spectrum.status())
                 return
+            if path == "/api/termlib":
+                import termlib
+                action = qs.get("action", ["status"])[0]
+                if action == "ingest":
+                    self._send(200, termlib.ingest(
+                        per_seed=int(qs.get("n", ["25"])[0])))
+                elif action == "terms":
+                    self._send(200, {"terms": termlib.list_terms(
+                        qs.get("cat", [""])[0] or None,
+                        limit=int(qs.get("limit", ["50"])[0]))})
+                elif action == "apply":
+                    terms = [t for t in qs.get("terms", [""])[0]
+                             .split(",") if t]
+                    self._send(200, termlib.apply_selection(
+                        qs.get("node", [""])[0], terms))
+                elif action == "apply_branch":
+                    terms = [t for t in qs.get("terms", [""])[0]
+                             .split(",") if t]
+                    self._send(200, termlib.apply_branch(
+                        qs.get("branch", [""])[0], terms,
+                        limit=int(qs.get("limit", ["5"])[0])))
+                else:
+                    self._send(200, termlib.status())
+                return
             if path == "/api/variants":
                 import variants
                 action = qs.get("action", ["status"])[0]
@@ -1353,6 +1377,30 @@ class Handler(BaseHTTPRequestHandler):
                         qs.get("center", [""])[0] or None))
                 else:
                     self._send(200, branches.status())
+                return
+            if path == "/api/termlib":
+                import termlib
+                action = qs.get("action", ["status"])[0]
+                if action == "ingest":
+                    self._send(200, termlib.ingest(
+                        per_seed=int(qs.get("n", ["25"])[0])))
+                elif action == "terms":
+                    self._send(200, {"terms": termlib.list_terms(
+                        qs.get("cat", [""])[0] or None,
+                        limit=int(qs.get("limit", ["50"])[0]))})
+                elif action == "apply":
+                    terms = [t for t in qs.get("terms", [""])[0]
+                             .split(",") if t]
+                    self._send(200, termlib.apply_selection(
+                        qs.get("node", [""])[0], terms))
+                elif action == "apply_branch":
+                    terms = [t for t in qs.get("terms", [""])[0]
+                             .split(",") if t]
+                    self._send(200, termlib.apply_branch(
+                        qs.get("branch", [""])[0], terms,
+                        limit=int(qs.get("limit", ["5"])[0])))
+                else:
+                    self._send(200, termlib.status())
                 return
             if path == "/api/variants":
                 import variants
