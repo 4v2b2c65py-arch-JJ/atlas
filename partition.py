@@ -126,6 +126,20 @@ def live_nodes() -> list[dict]:
                               str(meta.get("source", "?"))
                               if isinstance(meta, dict) else
                               "peer_urls"})
+    # stremio magnet pool — torrentio/apibay live magnets
+    sm = DATA / "stremio" / "magnets.jsonl"
+    if sm.exists():
+        for line in sm.read_text().splitlines():
+            try:
+                r = json.loads(line)
+                if r.get("magnet"):
+                    nodes.append({"uri": r["magnet"],
+                                  "dn": r.get("name") or
+                                  r.get("title") or "",
+                                  "source": "stremio:" +
+                                  r.get("via", "?")})
+            except Exception:
+                pass
     # DLPS store scraps — the cusa-registered catalog is a live
     # title basis for derivation
     try:

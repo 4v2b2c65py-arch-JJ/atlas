@@ -206,6 +206,51 @@ def unlock_comment(result: dict) -> dict:
                 "text": text}
 
 
+QUEUE = ROOT / "data" / "unlock_queue.jsonl"
+
+
+def enqueue(titles: list[str], profile: str = "default",
+            batch: str = "") -> dict:
+    """Leave unlocks open to new batches — any feature appends
+    titles here; drain_queue() processes them."""
+    QUEUE.parent.mkdir(parents=True, exist_ok=True)
+    n = 0
+    with QUEUE.open("a") as f:
+        for t in titles:
+            f.write(json.dumps({"ts": time.time(), "title": t,
+                                "profile": profile,
+                                "batch": batch},
+                               ensure_ascii=False) + "\n")
+            n += 1
+    return {"enqueued": n, "queue": str(QUEUE)}
+
+
+def drain_queue(limit: int = 20,
+                download: bool = False) -> dict:
+    """Process queued unlock titles — consumes the queue file
+    (read all, process up to limit, rewrite remainder)."""
+    if not QUEUE.exists():
+        return {"processed": 0, "remaining": 0}
+    rows = [json.loads(l) for l in QUEUE.read_text().splitlines()
+            if l.strip()]
+    batch, rest = rows[:limit], rows[limit:]
+    results = []
+    for r in batch:
+        try:
+            res = unlock_title(r["title"], r.get("profile",
+                                                 "default"),
+                               download=download)
+            res["batch"] = r.get("batch", "")
+            results.append(res)
+        except Exception as e:
+            results.append({"title": r.get("title"),
+                            "error": str(e)[:120]})
+    QUEUE.write_text("".join(json.dumps(r, ensure_ascii=False)
+                             + "\n" for r in rest))
+    return {"processed": len(results), "remaining": len(rest),
+            "results": results}
+
+
 def profile_status(profile: str = "default") -> dict:
     d = _profile_dir(profile)
     recs = []
