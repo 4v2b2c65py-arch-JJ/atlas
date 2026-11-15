@@ -267,6 +267,13 @@ def main() -> None:
     mu.add_argument("--label")
     mu.add_argument("--limit", type=int)
 
+    fo = sub.add_parser("forum")
+    fo.add_argument("action", nargs="?",
+                    choices=["status", "load"],
+                    default="status")
+    fo.add_argument("url", nargs="?")
+    fo.add_argument("--profile")
+
     gn = sub.add_parser("genesis")
     gn.add_argument("action", nargs="?",
                     choices=["status", "observe", "set"],
@@ -837,6 +844,14 @@ def main() -> None:
                     id=ns.instance or ""))
         else:
             out(get("/api/multi"))
+    elif ns.cmd == "forum":
+        a = ns.action or "status"
+        if a == "load":
+            out(get("/api/forum", action="load",
+                    url=ns.url or "", profile=ns.profile
+                    or "default"))
+        else:
+            out(get("/api/forum"))
     elif ns.cmd == "genesis":
         a = ns.action or "status"
         if a == "observe":

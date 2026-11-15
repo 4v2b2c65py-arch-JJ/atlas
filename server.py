@@ -1415,6 +1415,16 @@ class Handler(BaseHTTPRequestHandler):
                 else:
                     self._send(200, mp.status())
                 return
+            if path == "/api/forum":
+                import forum
+                action = qs.get("action", ["status"])[0]
+                if action == "load":
+                    self._send(200, forum.load(
+                        qs.get("url", [""])[0],
+                        qs.get("profile", ["default"])[0]))
+                else:
+                    self._send(200, forum.status())
+                return
             if path == "/api/genesis":
                 import genesis
                 action = qs.get("action", ["status"])[0]
@@ -1662,6 +1672,16 @@ class Handler(BaseHTTPRequestHandler):
                         qs.get("id", [""])[0]))
                 else:
                     self._send(200, mp.status())
+                return
+            if path == "/api/forum":
+                import forum
+                action = qs.get("action", ["status"])[0]
+                if action == "load":
+                    self._send(200, forum.load(
+                        qs.get("url", [""])[0],
+                        qs.get("profile", ["default"])[0]))
+                else:
+                    self._send(200, forum.status())
                 return
             if path == "/api/genesis":
                 import genesis
