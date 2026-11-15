@@ -354,6 +354,14 @@ def main() -> None:
     qb.add_argument("--key")
     qb.add_argument("--value")
 
+    rl = sub.add_parser("renderlab")
+    rl.add_argument("action", nargs="?",
+                    choices=["status", "emit", "probe",
+                             "saves"], default="status")
+    rl.add_argument("node", nargs="?")
+    rl.add_argument("--renderer")
+    rl.add_argument("--profile")
+
     gn = sub.add_parser("genesis")
     gn.add_argument("action", nargs="?",
                     choices=["status", "observe", "set"],
@@ -1016,6 +1024,19 @@ def main() -> None:
                     value=ns.value or ""))
         else:
             out(get("/api/qbits"))
+    elif ns.cmd == "renderlab":
+        a = ns.action or "status"
+        if a == "emit":
+            out(get("/api/renderlab", action="emit",
+                    node=ns.node or "sans",
+                    renderer=ns.renderer or "local",
+                    profile=ns.profile or "default"))
+        elif a == "probe":
+            out(get("/api/renderlab", action="probe"))
+        elif a == "saves":
+            out(get("/api/renderlab", action="saves"))
+        else:
+            out(get("/api/renderlab"))
     elif ns.cmd == "genesis":
         a = ns.action or "status"
         if a == "observe":

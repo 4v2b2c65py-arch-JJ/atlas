@@ -1542,6 +1542,21 @@ class Handler(BaseHTTPRequestHandler):
                 else:
                     self._send(200, qbits.status())
                 return
+            if path == "/api/renderlab":
+                import renderlab
+                action = qs.get("action", ["status"])[0]
+                if action == "emit":
+                    self._send(200, renderlab.emit(
+                        qs.get("node", ["sans"])[0],
+                        qs.get("renderer", ["local"])[0],
+                        qs.get("profile", ["default"])[0]))
+                elif action == "probe":
+                    self._send(200, renderlab.probe_gpu())
+                elif action == "saves":
+                    self._send(200, renderlab.saves())
+                else:
+                    self._send(200, renderlab.status())
+                return
             if path == "/api/genesis":
                 import genesis
                 action = qs.get("action", ["status"])[0]
@@ -1924,6 +1939,21 @@ class Handler(BaseHTTPRequestHandler):
                         self._send(200, qbits.config())
                 else:
                     self._send(200, qbits.status())
+                return
+            if path == "/api/renderlab":
+                import renderlab
+                action = qs.get("action", ["status"])[0]
+                if action == "emit":
+                    self._send(200, renderlab.emit(
+                        qs.get("node", ["sans"])[0],
+                        qs.get("renderer", ["local"])[0],
+                        qs.get("profile", ["default"])[0]))
+                elif action == "probe":
+                    self._send(200, renderlab.probe_gpu())
+                elif action == "saves":
+                    self._send(200, renderlab.saves())
+                else:
+                    self._send(200, renderlab.status())
                 return
             if path == "/api/genesis":
                 import genesis
@@ -2386,6 +2416,11 @@ class Handler(BaseHTTPRequestHandler):
                     self._send(200, res)
                 else:
                     self._send(400, {"error": "action required"})
+            elif u.path == "/api/renderlab/ingest":
+                import renderlab as _rl
+                self._send(200, _rl.ingest_remote(
+                    body.get("renderer", "remote"),
+                    body.get("dataset") or {}))
             elif u.path == "/api/netlock":
                 import netlock as _nl
                 self._send(200, _nl.handler(
