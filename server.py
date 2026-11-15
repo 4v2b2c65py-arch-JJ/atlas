@@ -1325,6 +1325,15 @@ class Handler(BaseHTTPRequestHandler):
                 else:
                     self._send(200, spectrum.status())
                 return
+            if path == "/api/truename":
+                import truename
+                action = qs.get("action", ["status"])[0]
+                if action == "discover":
+                    self._send(200, truename.discover(
+                        qs.get("center", ["reaper_sans"])[0]))
+                else:
+                    self._send(200, truename.status())
+                return
             if path == "/api/proximity":
                 import proximity
                 action = qs.get("action", ["status"])[0]

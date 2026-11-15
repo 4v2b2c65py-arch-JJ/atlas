@@ -225,6 +225,12 @@ def main() -> None:
     sp.add_argument("--interval", type=float, default=60)
     sp.add_argument("--cycles", type=int, default=1)
 
+    tn = sub.add_parser("truename")
+    tn.add_argument("action", nargs="?",
+                    choices=["status", "discover"],
+                    default="status")
+    tn.add_argument("center", nargs="?")
+
     px = sub.add_parser("proximity")
     px.add_argument("action", nargs="?",
                     choices=["status", "encounter"],
@@ -658,6 +664,13 @@ def main() -> None:
             out(get("/api/spectrum", action="gguf"))
         else:
             out(get("/api/spectrum"))
+    elif ns.cmd == "truename":
+        a = ns.action or "status"
+        if a == "discover":
+            out(get("/api/truename", action="discover",
+                    center=ns.center or "reaper_sans"))
+        else:
+            out(get("/api/truename"))
     elif ns.cmd == "proximity":
         a = ns.action or "status"
         if a == "encounter":
