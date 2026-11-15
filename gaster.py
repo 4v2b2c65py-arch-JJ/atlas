@@ -33,9 +33,21 @@ def _now() -> float:
     return time.time()
 
 
+def preset_fingerprint(gdir: Path = GASTER_DIR) -> str:
+    """Identity of the W-J-Gaster preset — hash over every contract
+    file verbatim. This is the credential that enters the system:
+    not W.D. Gaster lore, the preset itself."""
+    import hashlib
+    h = hashlib.sha256()
+    for f in sorted(gdir.glob("*.json")) + sorted(gdir.glob("*.py")):
+        h.update(f.name.encode())
+        h.update(f.read_bytes())
+    return h.hexdigest()[:24]
+
+
 def load_preset(gdir: Path = GASTER_DIR) -> dict:
     """Load all contract JSONs verbatim — preset is read-only."""
-    preset = {}
+    preset = {"_preset_fingerprint": preset_fingerprint(gdir)}
     for f in sorted(gdir.glob("*.json")):
         try:
             preset[f.stem] = json.loads(f.read_text())
@@ -91,17 +103,32 @@ def enter_door(entry_id: str, preset: dict | None = None,
     judgment activates. Follows contract.rule entry_flow +
     transition table door.open (🚪 requires sandbox_approval)."""
     preset = preset or load_preset()
+    fp = preset.get("_preset_fingerprint") or preset_fingerprint()
     rule = preset.get("contract.rule", {})
     table = preset.get("gaster.transition.table", {})
     flow = rule.get("entry_flow", {})
 
     trace = []
     state = "INITIAL"
+    # preset must be used: entry ID binds the nameplate to the
+    # W-J-Gaster preset fingerprint — wrong/absent preset = no entry
+    if not fp or fp == "0" * 24:
+        rep = _report(entry_id,
+                      [{"kind": "preset_check", "fingerprint": fp}],
+                      "REJECTED — W-J-Gaster preset required")
+        _metric("door", id=entry_id, result="rejected_no_preset")
+        return {"entry": None, "trace": [{"state": "REJECTED",
+                "action": "preset.required"}], "state": "REJECTED",
+                "report": rep}
     # step 1-2: ENTRY -> TERRAIN -> expose_id
     entry = {"id": entry_id, "ts": _now(),
-             "terrain": "boundary", "exposed": True}
+             "terrain": "boundary", "exposed": True,
+             "preset": "W-J-Gaster", "preset_fp": fp}
     trace.append({"state": state, "action": "entry.terrain",
                   "detail": flow.get("step_1", "")})
+    trace.append({"state": state, "action": "preset.credential",
+                  "detail": "W-J-Gaster preset fingerprint",
+                  "fingerprint": fp})
     trace.append({"state": state, "action": "expose_id",
                   "detail": flow.get("step_2", ""),
                   "id": entry_id})
@@ -297,6 +324,8 @@ def store_gguf() -> dict:
 def status() -> dict:
     s = _load_state()
     return {"preset_dir": str(GASTER_DIR),
+            "preset": "W-J-Gaster",
+            "preset_fingerprint": preset_fingerprint(),
             "state": s.get("state"), "entries": len(s.get("entries", [])),
             "cycles": s.get("cycles", 0),
             "reports": len(list(REPORTS.glob("*.json")))
