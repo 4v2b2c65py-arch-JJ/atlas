@@ -225,6 +225,14 @@ def main() -> None:
     sp.add_argument("--interval", type=float, default=60)
     sp.add_argument("--cycles", type=int, default=1)
 
+    tl2 = sub.add_parser("tierlayers")
+    tl2.add_argument("action", nargs="?",
+                     choices=["status", "range", "game",
+                              "target"], default="status")
+    tl2.add_argument("node", nargs="?")
+    tl2.add_argument("skill", nargs="?")
+    tl2.add_argument("profile", nargs="?")
+
     sk = sub.add_parser("stack")
     sk.add_argument("action", nargs="?",
                     choices=["status", "build", "warp", "engage"],
@@ -713,6 +721,20 @@ def main() -> None:
             out(get("/api/spectrum", action="gguf"))
         else:
             out(get("/api/spectrum"))
+    elif ns.cmd == "tierlayers":
+        a = ns.action or "status"
+        if a == "range":
+            out(get("/api/tierlayers", action="range",
+                    node=ns.node or "",
+                    profile=ns.profile or "default"))
+        elif a == "game":
+            out(get("/api/tierlayers", action="game"))
+        elif a == "target":
+            out(get("/api/tierlayers", action="target",
+                    node=ns.node or "", skill=ns.skill or "",
+                    profile=ns.profile or "default"))
+        else:
+            out(get("/api/tierlayers"))
     elif ns.cmd == "stack":
         a = ns.action or "status"
         if a == "build":

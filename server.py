@@ -1325,6 +1325,23 @@ class Handler(BaseHTTPRequestHandler):
                 else:
                     self._send(200, spectrum.status())
                 return
+            if path == "/api/tierlayers":
+                import tierlayers
+                action = qs.get("action", ["status"])[0]
+                if action == "range":
+                    self._send(200, tierlayers.output_range(
+                        qs.get("node", [""])[0],
+                        qs.get("profile", ["default"])[0]))
+                elif action == "game":
+                    self._send(200, tierlayers.the_game_layer())
+                elif action == "target":
+                    self._send(200, tierlayers.target_all(
+                        qs.get("node", [""])[0],
+                        qs.get("skill", [""])[0],
+                        qs.get("profile", ["default"])[0]))
+                else:
+                    self._send(200, tierlayers.status())
+                return
             if path == "/api/stack":
                 import stack
                 action = qs.get("action", ["status"])[0]
@@ -1452,6 +1469,23 @@ class Handler(BaseHTTPRequestHandler):
                         qs.get("center", [""])[0] or None))
                 else:
                     self._send(200, branches.status())
+                return
+            if path == "/api/tierlayers":
+                import tierlayers
+                action = qs.get("action", ["status"])[0]
+                if action == "range":
+                    self._send(200, tierlayers.output_range(
+                        qs.get("node", [""])[0],
+                        qs.get("profile", ["default"])[0]))
+                elif action == "game":
+                    self._send(200, tierlayers.the_game_layer())
+                elif action == "target":
+                    self._send(200, tierlayers.target_all(
+                        qs.get("node", [""])[0],
+                        qs.get("skill", [""])[0],
+                        qs.get("profile", ["default"])[0]))
+                else:
+                    self._send(200, tierlayers.status())
                 return
             if path == "/api/stack":
                 import stack
