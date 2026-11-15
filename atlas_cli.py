@@ -225,6 +225,11 @@ def main() -> None:
     sp.add_argument("--interval", type=float, default=60)
     sp.add_argument("--cycles", type=int, default=1)
 
+    br = sub.add_parser("branches")
+    br.add_argument("action", nargs="?",
+                    choices=["status", "map"], default="status")
+    br.add_argument("center", nargs="?")
+
     tn = sub.add_parser("truename")
     tn.add_argument("action", nargs="?",
                     choices=["status", "discover"],
@@ -664,6 +669,13 @@ def main() -> None:
             out(get("/api/spectrum", action="gguf"))
         else:
             out(get("/api/spectrum"))
+    elif ns.cmd == "branches":
+        a = ns.action or "status"
+        if a == "map":
+            out(get("/api/branches", action="map",
+                    center=ns.center or ""))
+        else:
+            out(get("/api/branches"))
     elif ns.cmd == "truename":
         a = ns.action or "status"
         if a == "discover":

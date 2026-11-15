@@ -1325,6 +1325,24 @@ class Handler(BaseHTTPRequestHandler):
                 else:
                     self._send(200, spectrum.status())
                 return
+            if path == "/api/branches":
+                import branches
+                action = qs.get("action", ["status"])[0]
+                if action == "map":
+                    self._send(200, branches.branch_map(
+                        qs.get("center", [""])[0] or None))
+                else:
+                    self._send(200, branches.status())
+                return
+            if path == "/api/branches":
+                import branches
+                action = qs.get("action", ["status"])[0]
+                if action == "map":
+                    self._send(200, branches.branch_map(
+                        qs.get("center", [""])[0]))
+                else:
+                    self._send(200, branches.status())
+                return
             if path == "/api/truename":
                 import truename
                 action = qs.get("action", ["status"])[0]
