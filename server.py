@@ -1367,6 +1367,22 @@ class Handler(BaseHTTPRequestHandler):
                 else:
                     self._send(200, sessions.status())
                 return
+            if path == "/api/ripples":
+                import ripples
+                action = qs.get("action", ["status"])[0]
+                if action == "detect":
+                    self._send(200, ripples.detect(
+                        qs.get("entity", [""])[0],
+                        qs.get("from", [""])[0],
+                        qs.get("to", [""])[0],
+                        qs.get("via", ["statement"])[0],
+                        kind_hint=qs.get("kind", [""])[0]
+                        or None))
+                elif action == "scan":
+                    self._send(200, ripples.scan())
+                else:
+                    self._send(200, ripples.status())
+                return
             if path == "/api/genesis":
                 import genesis
                 action = qs.get("action", ["status"])[0]
@@ -1566,6 +1582,22 @@ class Handler(BaseHTTPRequestHandler):
                         qs.get("id", ["default"])[0]))
                 else:
                     self._send(200, sessions.status())
+                return
+            if path == "/api/ripples":
+                import ripples
+                action = qs.get("action", ["status"])[0]
+                if action == "detect":
+                    self._send(200, ripples.detect(
+                        qs.get("entity", [""])[0],
+                        qs.get("from", [""])[0],
+                        qs.get("to", [""])[0],
+                        qs.get("via", ["statement"])[0],
+                        kind_hint=qs.get("kind", [""])[0]
+                        or None))
+                elif action == "scan":
+                    self._send(200, ripples.scan())
+                else:
+                    self._send(200, ripples.status())
                 return
             if path == "/api/genesis":
                 import genesis

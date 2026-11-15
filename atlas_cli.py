@@ -243,6 +243,16 @@ def main() -> None:
     se.add_argument("--outputs")
     se.add_argument("--node")
 
+    rp = sub.add_parser("ripples")
+    rp.add_argument("action", nargs="?",
+                    choices=["status", "scan", "detect"],
+                    default="status")
+    rp.add_argument("entity", nargs="?")
+    rp.add_argument("src", nargs="?")
+    rp.add_argument("dst", nargs="?")
+    rp.add_argument("--via")
+    rp.add_argument("--kind")
+
     gn = sub.add_parser("genesis")
     gn.add_argument("action", nargs="?",
                     choices=["status", "observe", "set"],
@@ -771,6 +781,19 @@ def main() -> None:
                     id=ns.session or "default"))
         else:
             out(get("/api/sessions"))
+    elif ns.cmd == "ripples":
+        a = ns.action or "status"
+        if a == "scan":
+            out(get("/api/ripples", action="scan"))
+        elif a == "detect":
+            out(get("/api/ripples", action="detect",
+                    entity=ns.entity or "",
+                    **{"from": ns.src or ""},
+                    to=ns.dst or "",
+                    via=ns.via or "statement",
+                    kind=ns.kind or ""))
+        else:
+            out(get("/api/ripples"))
     elif ns.cmd == "genesis":
         a = ns.action or "status"
         if a == "observe":
