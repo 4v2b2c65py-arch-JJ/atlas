@@ -205,6 +205,10 @@ def main() -> None:
     pt.add_argument("profile", nargs="?")
     pt.add_argument("--run", action="store_true")
 
+    md = sub.add_parser("mods")
+    md.add_argument("action", nargs="?",
+                    choices=["list", "enrich", "discover"])
+
     au = sub.add_parser("auth")
     au.add_argument("action", choices=["signup", "login", "status"])
     au.add_argument("user", nargs="?"); au.add_argument("password", nargs="?")
@@ -575,6 +579,14 @@ def main() -> None:
     elif ns.cmd == "partition":
         out(get("/api/partition", profile=ns.profile or "default",
                 run="1" if ns.run else None))
+    elif ns.cmd == "mods":
+        a = ns.action or "list"
+        if a == "enrich":
+            out(get("/api/mods", enrich="1"))
+        elif a == "discover":
+            out(get("/api/mods", discover="1"))
+        else:
+            out(get("/api/mods"))
     elif ns.cmd == "auth":
         if ns.action == "status":
             out(get("/api/auth/status"))

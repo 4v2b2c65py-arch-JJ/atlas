@@ -1192,6 +1192,15 @@ class Handler(BaseHTTPRequestHandler):
                 else:
                     self._send(200, reg)
                 return
+            if path == "/api/mods":
+                import modlib
+                if qs.get("enrich", [""])[0]:
+                    self._send(200, modlib.enrich_file())
+                elif qs.get("discover", [""])[0]:
+                    self._send(200, modlib.model_discover())
+                else:
+                    self._send(200, modlib.list_mods())
+                return
             if path == "/api/partition":
                 import partition
                 profile = qs.get("profile", ["default"])[0]
