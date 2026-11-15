@@ -56,10 +56,23 @@ def _record(profile: str, rec: dict) -> None:
                            ensure_ascii=False) + "\n")
 
 
-def candidates(title: str) -> list[dict]:
-    """Sweep sources for the title — manga index, archive.org,
-    YouTube. Candidates only; nothing is validated as 'the' work."""
+def candidates(title: str, lore_key: str | None = None) -> list[dict]:
+    """Sweep sources for the title — DLPS store (cusa key), manga
+    index, archive.org, YouTube. Candidates only; nothing is
+    validated as 'the' work."""
     out = []
+    key = lore_key or lore_key_for(title)
+    # DLPS store first when the cusa registry governs the title
+    if key == "cusa":
+        try:
+            import dlps
+            for r in dlps.search(title)[:5]:
+                out.append({"source": "dlps", "title": r["title"],
+                            "id": r["url"], "url": r["url"],
+                            "cat": r.get("cat"),
+                            "site": r.get("site")})
+        except Exception:
+            pass
     # manga sources (ToA/Vanitas pipeline)
     try:
         import manga
@@ -115,7 +128,7 @@ def unlock_title(title: str, profile: str = "default",
     """Auto-unlock a title under a profile: registry key ->
     candidates -> download best -> record -> comment."""
     key = lore_key_for(title)
-    cands = candidates(title)
+    cands = candidates(title, lore_key=key)
     _record(profile, {"event": "unlock_query", "title": title,
                       "lore_key": key, "candidates": len(cands)})
     result = {"title": title, "profile": profile,

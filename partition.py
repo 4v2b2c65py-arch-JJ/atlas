@@ -126,11 +126,20 @@ def live_nodes() -> list[dict]:
                               str(meta.get("source", "?"))
                               if isinstance(meta, dict) else
                               "peer_urls"})
+    # DLPS store scraps — the cusa-registered catalog is a live
+    # title basis for derivation
+    try:
+        import dlps
+        for r in dlps.titles():
+            nodes.append({"uri": r["url"], "dn": r["title"],
+                          "source": "dlps:" + r.get("cat", "?")})
+    except Exception:
+        pass
     return nodes
 
 
 def derive_titles(magnets: list[dict] | None = None,
-                  limit: int = 20) -> list[dict]:
+                  limit: int = 300) -> list[dict]:
     """Decode other titles from the live nodes: each dn/title
     reduces to a series base; bases cluster into derived titles."""
     mags = magnets if magnets is not None else live_nodes()
