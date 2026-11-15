@@ -225,6 +225,16 @@ def main() -> None:
     sp.add_argument("--interval", type=float, default=60)
     sp.add_argument("--cycles", type=int, default=1)
 
+    sk = sub.add_parser("stack")
+    sk.add_argument("action", nargs="?",
+                    choices=["status", "build", "warp", "engage"],
+                    default="status")
+    sk.add_argument("node", nargs="?")
+    sk.add_argument("node2", nargs="?")
+    sk.add_argument("plane", nargs="?")
+    sk.add_argument("profile", nargs="?")
+    sk.add_argument("--env", default="{}")
+
     mc = sub.add_parser("mechanics")
     mc.add_argument("action", nargs="?",
                     choices=["status", "combos", "expand",
@@ -703,6 +713,25 @@ def main() -> None:
             out(get("/api/spectrum", action="gguf"))
         else:
             out(get("/api/spectrum"))
+    elif ns.cmd == "stack":
+        a = ns.action or "status"
+        if a == "build":
+            out(get("/api/stack", action="build",
+                    node=ns.node or "",
+                    profile=ns.profile or "default"))
+        elif a == "warp":
+            out(get("/api/stack", action="warp",
+                    node=ns.node or "", plane=ns.plane or "",
+                    env=ns.env,
+                    profile=ns.profile or "default"))
+        elif a == "engage":
+            out(get("/api/stack", action="engage",
+                    a=ns.node or "", b=ns.node2 or "",
+                    plane=ns.plane or "plane_3d", env=ns.env,
+                    profile=ns.profile or "default"))
+        else:
+            out(get("/api/stack",
+                    profile=ns.profile or "default"))
     elif ns.cmd == "mechanics":
         a = ns.action or "status"
         if a == "combos":

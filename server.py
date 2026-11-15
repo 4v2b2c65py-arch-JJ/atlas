@@ -1325,6 +1325,38 @@ class Handler(BaseHTTPRequestHandler):
                 else:
                     self._send(200, spectrum.status())
                 return
+            if path == "/api/stack":
+                import stack
+                action = qs.get("action", ["status"])[0]
+                if action == "build":
+                    self._send(200, stack.build_stack(
+                        qs.get("node", [""])[0],
+                        qs.get("profile", ["default"])[0]))
+                elif action == "warp":
+                    env = {}
+                    try:
+                        env = json.loads(qs.get("env", ["{}"])[0])
+                    except Exception:
+                        pass
+                    self._send(200, stack.warp(
+                        qs.get("node", [""])[0],
+                        qs.get("plane", ["plane_3d"])[0], env,
+                        qs.get("profile", ["default"])[0]))
+                elif action == "engage":
+                    env = {}
+                    try:
+                        env = json.loads(qs.get("env", ["{}"])[0])
+                    except Exception:
+                        pass
+                    self._send(200, stack.engage(
+                        qs.get("a", [""])[0],
+                        qs.get("b", [""])[0],
+                        qs.get("plane", ["plane_3d"])[0], env,
+                        qs.get("profile", ["default"])[0]))
+                else:
+                    self._send(200, stack.status(
+                        qs.get("profile", ["default"])[0]))
+                return
             if path == "/api/mechanics":
                 import mechanics
                 action = qs.get("action", ["status"])[0]
@@ -1420,6 +1452,38 @@ class Handler(BaseHTTPRequestHandler):
                         qs.get("center", [""])[0] or None))
                 else:
                     self._send(200, branches.status())
+                return
+            if path == "/api/stack":
+                import stack
+                action = qs.get("action", ["status"])[0]
+                if action == "build":
+                    self._send(200, stack.build_stack(
+                        qs.get("node", [""])[0],
+                        qs.get("profile", ["default"])[0]))
+                elif action == "warp":
+                    env = {}
+                    try:
+                        env = json.loads(qs.get("env", ["{}"])[0])
+                    except Exception:
+                        pass
+                    self._send(200, stack.warp(
+                        qs.get("node", [""])[0],
+                        qs.get("plane", ["plane_3d"])[0], env,
+                        qs.get("profile", ["default"])[0]))
+                elif action == "engage":
+                    env = {}
+                    try:
+                        env = json.loads(qs.get("env", ["{}"])[0])
+                    except Exception:
+                        pass
+                    self._send(200, stack.engage(
+                        qs.get("a", [""])[0],
+                        qs.get("b", [""])[0],
+                        qs.get("plane", ["plane_3d"])[0], env,
+                        qs.get("profile", ["default"])[0]))
+                else:
+                    self._send(200, stack.status(
+                        qs.get("profile", ["default"])[0]))
                 return
             if path == "/api/mechanics":
                 import mechanics
