@@ -438,8 +438,21 @@ def model_continue_cast(name: str) -> dict:
             cast_tokens.append(line[5:].strip())
         elif line.upper().startswith("CHEAT:"):
             cheats.append(line[6:].strip().lower())
+    model_used = "llama3.2:latest"
+    if not cast_tokens:
+        # model produced no usable continuation — deterministic
+        # fallback derived from the soul's own state fields
+        state = (soul_recs[-1].get("soul_state", "unknown")
+                 if soul_recs else "unknown")
+        cast_tokens = [f"{name.strip().upper()}_"
+                       f"{str(state).upper()}_CONTINUED"]
+        cheats = ["conditional_bypass", "form_persist"]
+        model_used = "deterministic_fallback"
+        _metric("model_continue_degenerate", name=name,
+                note="model output unusable — deterministic "
+                     "fallback applied")
     rec = {"ts": time.time(), "name": name.strip().lower(),
-           "model": "llama3.2:latest",
+           "model": model_used,
            "continuation": cast_tokens,
            "cheats": cheats, "raw": out[:2000],
            "kind": "cast_continuation"}
