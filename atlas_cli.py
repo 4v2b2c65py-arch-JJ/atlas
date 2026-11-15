@@ -470,7 +470,28 @@ def main() -> None:
                                    "seconds": float(ns.a4 or 8)}))
     elif ns.cmd == "names":
         q = " ".join(ns.query or [])
-        out(get("/api/names", q=q) if q else get("/api/names"))
+        if ns.query and ns.query[0] in (
+                "vote", "plate", "weights", "status"):
+            a = ns.query[0]
+            if a == "vote":
+                out(post("/api/consensus",
+                         {"action": "vote",
+                          "name": " ".join(ns.query[1:])}))
+            elif a == "plate":
+                out(post("/api/consensus",
+                         {"action": "plate",
+                          "plate": ns.query[1] if len(ns.query) > 1
+                          else "",
+                          "alias": ns.query[2] if len(ns.query) > 2
+                          else ""}))
+            elif a == "weights":
+                out(post("/api/consensus", {"action": "weights"}))
+            else:
+                out(get("/api/consensus"))
+        elif q:
+            out(get("/api/names", q=q))
+        else:
+            out(get("/api/names"))
     elif ns.cmd == "auth":
         if ns.action == "status":
             out(get("/api/auth/status"))

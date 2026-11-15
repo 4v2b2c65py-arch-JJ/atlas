@@ -146,6 +146,7 @@ import catalogue  # noqa: E402
 import vision  # noqa: E402
 import cardinal  # noqa: E402
 import namescrape  # noqa: E402
+import nameconsensus  # noqa: E402
 
 # GML/SML-1 spec engine (AUTO-01 add-1 rule, CF-01 requirements)
 GML_DIR = ROOT / "gml" / "SML-1"
@@ -1225,6 +1226,9 @@ class Handler(BaseHTTPRequestHandler):
                 else:
                     self._send(200, namescrape.status())
                 return
+            if path == "/api/consensus":
+                self._send(200, nameconsensus.status())
+                return
             if path == "/api/prime":
                 action = qs.get("action", ["status"])[0]
                 if action == "wallets":
@@ -1880,6 +1884,20 @@ class Handler(BaseHTTPRequestHandler):
                         return
                     self._send(200, passkeys.harvest(
                         url, int(body.get("max_try", 15))))
+            elif u.path == "/api/consensus":
+                action = body.get("action", "status")
+                if action == "vote":
+                    self._send(200, nameconsensus.vote(
+                        body.get("name", "")))
+                elif action == "plate":
+                    self._send(200, nameconsensus.add_plate(
+                        body.get("plate", ""), body.get("alias", ""),
+                        bool(body.get("combination", True)),
+                        body.get("note", "")))
+                elif action == "weights":
+                    self._send(200, nameconsensus.update_weights())
+                else:
+                    self._send(200, nameconsensus.status())
             elif u.path == "/api/book":
                 action = body.get("action", "status")
                 if action == "open":

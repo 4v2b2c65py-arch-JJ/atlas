@@ -82,6 +82,7 @@
       <div class="tab" :class="{on:tab==='comms'}" @click="tab='comms';loadComms()">Comms</div>
       <div class="tab" :class="{on:tab==='node'}" @click="tab='node';loadNode()">Node</div>
       <div class="tab" :class="{on:tab==='sys'}" @click="tab='sys';loadSys()">Sys</div>
+      <div class="tab" :class="{on:tab==='names'}" @click="tab='names';loadNames()">Names</div>
     </div>
 
     <!-- STREAM TAB -->
@@ -254,6 +255,49 @@
         <div class="kv" v-if="sys.passkeys"><span>passkeys</span><span>{{ Object.keys(sys.passkeys.passkeys||{}).length }} sites</span></div>
         <div class="kv" v-for="(c,n) in (sys.twitchch||{}).channels||{}" :key="n">
           <span>twitch: {{ n }}</span><span>{{ c.alive }}/{{ c.viewers }} viewers</span>
+        </div>
+      </div>
+    </template>
+
+    <template v-else-if="tab==='names'">
+      <div class="panel">
+        <h3>Name consensus</h3>
+        <div class="kv"><span>dataset</span><span>{{ names.status?.report?.sources?.deduped || '—' }} records · {{ names.status?.gguf_bytes ? Math.round(names.status.gguf_bytes/1048576)+'MB' : '—' }}</span></div>
+        <div class="kv"><span>mirrors</span><span>{{ (names.status?.mirrors||[]).join(' · ') }}</span></div>
+        <div class="kv" v-for="(v,k) in names.status?.timeline?.by_consensus||{}" :key="k"><span>{{ k }}</span><span>{{ v }}</span></div>
+      </div>
+      <div class="panel">
+        <h3>Lookup / vote</h3>
+        <div class="cmt-form" style="flex-wrap:wrap;gap:6px">
+          <input class="search" style="flex:1;min-width:140px" v-model="nameQ" placeholder="name or nameplate">
+          <button class="send" @click="namesLookup">lookup</button>
+          <button class="pill" @click="namesVote">vote all mirrors</button>
+          <button class="pill" @click="namesWeights">repack weights</button>
+        </div>
+        <div v-if="names.hits" style="margin-top:8px">
+          <div class="kv" v-for="h in names.hits.hits||[]" :key="h.name+h.src">
+            <span>{{ h.name }} <span class="badge">{{ h.kind||h.sex||'' }}</span></span>
+            <span>{{ h.count||h.prop100k||h.sitelinks||'' }} · {{ h.src }}</span>
+          </div>
+        </div>
+        <div v-if="names.vote" style="margin-top:8px">
+          <div class="kv"><span>consensus</span><span>{{ names.vote.consensus }} · {{ names.vote.present_mirrors }}/{{ (names.status?.mirrors||[]).length }} mirrors</span></div>
+          <div class="kv"><span>est. global bearers</span><span>{{ names.vote.est_global_bearers }}</span></div>
+          <div class="kv" v-for="(v,k) in names.vote.votes" :key="k">
+            <span>{{ k }}</span><span>{{ v.status||v.hit?'●':'○' }} {{ v.rank?'#'+v.rank:'' }}</span>
+          </div>
+        </div>
+      </div>
+      <div class="panel">
+        <h3>Nameplates (.new)</h3>
+        <div class="kv" v-for="p in names.plates||[]" :key="p.ts">
+          <span>{{ p.plate }}<template v-if="p.alias"> = {{ p.alias }}</template></span>
+          <span>{{ p.combination?'combo':'single' }}</span>
+        </div>
+        <div class="cmt-form" style="flex-wrap:wrap;gap:6px;margin-top:6px">
+          <input class="search" style="flex:1;min-width:120px" v-model="plateA" placeholder="plate">
+          <input class="search" style="flex:1;min-width:120px" v-model="plateB" placeholder="alias (=)">
+          <button class="send" @click="namesPlate">insert .new</button>
         </div>
       </div>
     </template>
@@ -451,6 +495,38 @@ createApp({
       setTimeout(loadSys, 4000);
     };
 
+    // names tab: consensus mirrors, lookup, vote, nameplates
+    const names = ref({}), nameQ = ref(''), plateA = ref(''),
+          plateB = ref('');
+    const loadNames = async () => { names.value.status = await api('/api/consensus'); };
+    const namesLookup = async () => {
+      if (!nameQ.value) return;
+      names.value.hits = await api('/api/names?q=' + encodeURIComponent(nameQ.value));
+    };
+    const namesVote = async () => {
+      if (!nameQ.value) return;
+      names.value.vote = await api('/api/consensus', {method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({action:'vote', name:nameQ.value})});
+      loadNames();
+    };
+    const namesWeights = async () => {
+      const r = await api('/api/consensus', {method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({action:'weights'})});
+      toast('gguf: ' + (r.records || r.error || 'repacked'));
+      loadNames();
+    };
+    const namesPlate = async () => {
+      if (!plateA.value) return;
+      const r = await api('/api/consensus', {method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({action:'plate', plate:plateA.value,
+                              alias:plateB.value, combination:true})});
+      toast('plate: ' + (r.plate || r.error || 'inserted'));
+      plateA.value = ''; plateB.value = ''; loadNames();
+    };
+
     // federated engagement: merge per-layer state, dedupe by client/text
     const engRaw = ref({});
     const rebuildEng = () => {
@@ -583,7 +659,9 @@ createApp({
              quality, fmtSize, fmtDur, ago, engage, toggleComments, comment,
              sendDm, copyLink, rename,
              sys, cfHost, socPlat, socToken, socExtra, approveMsg,
-             loadSys, tunnelAct, saveSocial, siteLogin, modelApprove };
+             loadSys, tunnelAct, saveSocial, siteLogin, modelApprove,
+             names, nameQ, plateA, plateB, loadNames, namesLookup,
+             namesVote, namesWeights, namesPlate };
   }
 }).mount('#app');
 </script>
