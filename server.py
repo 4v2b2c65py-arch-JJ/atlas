@@ -1630,6 +1630,33 @@ class Handler(BaseHTTPRequestHandler):
                 else:
                     self._send(200, silicon.status())
                 return
+            if path == "/api/nodereg":
+                import nodereg
+                action = qs.get("action", ["status"])[0]
+                if action == "register":
+                    self._send(200, nodereg.register(
+                        qs.get("node", [""])[0],
+                        qs.get("kind", ["device"])[0],
+                        float(qs.get("radius",
+                                     ["34000"])[0])))
+                elif action == "chum":
+                    self._send(200, nodereg.chum_all(
+                        float(qs.get("radius",
+                                     ["34000"])[0])))
+                elif action == "beat":
+                    self._send(200, nodereg.heartbeat(
+                        qs.get("node", [""])[0]))
+                elif action == "cycles":
+                    self._send(200, nodereg.cycles(
+                        qs.get("node", [""])[0] or None))
+                elif action == "forward":
+                    self._send(200, nodereg.forward())
+                elif action == "restore":
+                    self._send(200, nodereg.restore(
+                        qs.get("file", [""])[0] or None))
+                else:
+                    self._send(200, nodereg.status())
+                return
             if path == "/api/genesis":
                 import genesis
                 action = qs.get("action", ["status"])[0]
@@ -2100,6 +2127,33 @@ class Handler(BaseHTTPRequestHandler):
                         qs.get("note", [""])[0]))
                 else:
                     self._send(200, silicon.status())
+                return
+            if path == "/api/nodereg":
+                import nodereg
+                action = qs.get("action", ["status"])[0]
+                if action == "register":
+                    self._send(200, nodereg.register(
+                        qs.get("node", [""])[0],
+                        qs.get("kind", ["device"])[0],
+                        float(qs.get("radius",
+                                     ["34000"])[0])))
+                elif action == "chum":
+                    self._send(200, nodereg.chum_all(
+                        float(qs.get("radius",
+                                     ["34000"])[0])))
+                elif action == "beat":
+                    self._send(200, nodereg.heartbeat(
+                        qs.get("node", [""])[0]))
+                elif action == "cycles":
+                    self._send(200, nodereg.cycles(
+                        qs.get("node", [""])[0] or None))
+                elif action == "forward":
+                    self._send(200, nodereg.forward())
+                elif action == "restore":
+                    self._send(200, nodereg.restore(
+                        qs.get("file", [""])[0] or None))
+                else:
+                    self._send(200, nodereg.status())
                 return
             if path == "/api/genesis":
                 import genesis

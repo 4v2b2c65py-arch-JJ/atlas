@@ -391,6 +391,16 @@ def main() -> None:
     si.add_argument("--value"); si.add_argument("--note")
     si.add_argument("--url"); si.add_argument("--type")
 
+    nr = sub.add_parser("nodereg")
+    nr.add_argument("action", nargs="?",
+                    choices=["status", "register", "chum",
+                             "beat", "cycles", "forward",
+                             "restore"], default="status")
+    nr.add_argument("node", nargs="?")
+    nr.add_argument("--kind"); nr.add_argument("--radius",
+                                             type=float)
+    nr.add_argument("--file")
+
     gn = sub.add_parser("genesis")
     gn.add_argument("action", nargs="?",
                     choices=["status", "observe", "set"],
@@ -1097,6 +1107,28 @@ def main() -> None:
             if v is not None:
                 q[k] = v
         out(get("/api/silicon", **q))
+    elif ns.cmd == "nodereg":
+        a = ns.action or "status"
+        if a == "register":
+            out(get("/api/nodereg", action="register",
+                    node=ns.node or "", kind=ns.kind or "",
+                    radius=ns.radius or 34000))
+        elif a == "chum":
+            out(get("/api/nodereg", action="chum",
+                    radius=ns.radius or 34000))
+        elif a == "beat":
+            out(get("/api/nodereg", action="beat",
+                    node=ns.node or ""))
+        elif a == "cycles":
+            out(get("/api/nodereg", action="cycles",
+                    node=ns.node or ""))
+        elif a == "forward":
+            out(get("/api/nodereg", action="forward"))
+        elif a == "restore":
+            out(get("/api/nodereg", action="restore",
+                    file=ns.file or ""))
+        else:
+            out(get("/api/nodereg"))
     elif ns.cmd == "genesis":
         a = ns.action or "status"
         if a == "observe":
