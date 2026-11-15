@@ -1501,6 +1501,39 @@ class Handler(BaseHTTPRequestHandler):
                       "limit": qs.get("limit", ["100"])[0]}
                 self._send(200, netlock.handler(action, **kw))
                 return
+            if path == "/api/qbits":
+                import qbits
+                action = qs.get("action", ["status"])[0]
+                if action == "cross":
+                    self._send(200, qbits.cross(
+                        qs.get("node", [""])[0],
+                        qs.get("from", [""])[0],
+                        qs.get("to", [""])[0],
+                        qs.get("reality", [""])[0] or None,
+                        qs.get("qbit", [""])[0] or None,
+                        qs.get("via", ["traversal"])[0]))
+                elif action == "packet":
+                    self._send(200, qbits.packet(
+                        qs.get("qbit", [""])[0],
+                        qs.get("dir", ["out"])[0],
+                        qs.get("kind", ["data"])[0],
+                        qs.get("summary", [""])[0],
+                        int(qs.get("bytes", ["0"])[0]),
+                        qs.get("node", [""])[0] or None))
+                elif action == "traffic":
+                    self._send(200, qbits.traffic(
+                        qs.get("qbit", [""])[0] or None))
+                elif action == "config":
+                    if qs.get("set"):
+                        self._send(200, qbits.set_config(
+                            qs.get("section", ["qbits"])[0],
+                            qs.get("key", [""])[0],
+                            qs.get("value", [""])[0]))
+                    else:
+                        self._send(200, qbits.config())
+                else:
+                    self._send(200, qbits.status())
+                return
             if path == "/api/genesis":
                 import genesis
                 action = qs.get("action", ["status"])[0]
@@ -1834,6 +1867,39 @@ class Handler(BaseHTTPRequestHandler):
                                         ["manual"])[0],
                       "limit": qs.get("limit", ["100"])[0]}
                 self._send(200, netlock.handler(action, **kw))
+                return
+            if path == "/api/qbits":
+                import qbits
+                action = qs.get("action", ["status"])[0]
+                if action == "cross":
+                    self._send(200, qbits.cross(
+                        qs.get("node", [""])[0],
+                        qs.get("from", [""])[0],
+                        qs.get("to", [""])[0],
+                        qs.get("reality", [""])[0] or None,
+                        qs.get("qbit", [""])[0] or None,
+                        qs.get("via", ["traversal"])[0]))
+                elif action == "packet":
+                    self._send(200, qbits.packet(
+                        qs.get("qbit", [""])[0],
+                        qs.get("dir", ["out"])[0],
+                        qs.get("kind", ["data"])[0],
+                        qs.get("summary", [""])[0],
+                        int(qs.get("bytes", ["0"])[0]),
+                        qs.get("node", [""])[0] or None))
+                elif action == "traffic":
+                    self._send(200, qbits.traffic(
+                        qs.get("qbit", [""])[0] or None))
+                elif action == "config":
+                    if qs.get("set"):
+                        self._send(200, qbits.set_config(
+                            qs.get("section", ["qbits"])[0],
+                            qs.get("key", [""])[0],
+                            qs.get("value", [""])[0]))
+                    else:
+                        self._send(200, qbits.config())
+                else:
+                    self._send(200, qbits.status())
                 return
             if path == "/api/genesis":
                 import genesis

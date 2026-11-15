@@ -1,0 +1,26 @@
+{
+  "kind": "atlas_main_config",
+  "version": 1,
+  "mesh": {
+    "read_radius_km": 34000,
+    "continuity_ttl_s": 300
+  },
+  "netlock": {
+    "default_mode": "mesh_global",
+    "hop_km": 1000
+  },
+  "qbits": {
+    "enabled": true,
+    "prefix": "qb",
+    "in_domain": ["atlas_mesh", "self", "peer_hub"],
+    "parallel_realties": [
+      "genesis_1", "toa_timeline", "vanitas_timeline",
+      "dreamtale", "glitchtale", "errortale",
+      "default", "testprofile", "queue-test", "cli-test"
+    ],
+    "outside_domain_requires_qbit": true,
+    "packet_log_limit": 500
+  },
+  "derived": true,
+  "note": "custom main configuration — domain scope + qbit rules for parallel-reality traversal"
+}

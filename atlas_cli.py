@@ -335,6 +335,24 @@ def main() -> None:
     nl.add_argument("--node")
     nl.add_argument("--limit", type=int)
 
+    qb = sub.add_parser("qbits")
+    qb.add_argument("action", nargs="?",
+                    choices=["status", "cross", "packet",
+                             "traffic", "config"],
+                    default="status")
+    qb.add_argument("node", nargs="?")
+    qb.add_argument("--from", dest="frm")
+    qb.add_argument("--to")
+    qb.add_argument("--reality")
+    qb.add_argument("--qbit")
+    qb.add_argument("--dir")
+    qb.add_argument("--kind")
+    qb.add_argument("--summary")
+    qb.add_argument("--bytes", type=int)
+    qb.add_argument("--section")
+    qb.add_argument("--key")
+    qb.add_argument("--value")
+
     gn = sub.add_parser("genesis")
     gn.add_argument("action", nargs="?",
                     choices=["status", "observe", "set"],
@@ -966,6 +984,29 @@ def main() -> None:
             out(post("/api/netlock", body))
         else:
             out(get("/api/netlock", action=a, **_nl_qs(ns)))
+    elif ns.cmd == "qbits":
+        a = ns.action or "status"
+        if a == "cross":
+            out(get("/api/qbits", action="cross",
+                    node=ns.node or "", **{"from": ns.frm or ""},
+                    to=ns.to or "", reality=ns.reality or "",
+                    qbit=ns.qbit or ""))
+        elif a == "packet":
+            out(get("/api/qbits", action="packet",
+                    qbit=ns.qbit or "", dir=ns.dir or "out",
+                    kind=ns.kind or "data",
+                    summary=ns.summary or "",
+                    bytes=ns.bytes or 0, node=ns.node or ""))
+        elif a == "traffic":
+            out(get("/api/qbits", action="traffic",
+                    qbit=ns.qbit or ""))
+        elif a == "config":
+            out(get("/api/qbits", action="config",
+                    set=ns.key or "", section=ns.section
+                    or "qbits", key=ns.key or "",
+                    value=ns.value or ""))
+        else:
+            out(get("/api/qbits"))
     elif ns.cmd == "genesis":
         a = ns.action or "status"
         if a == "observe":
