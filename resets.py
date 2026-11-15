@@ -240,6 +240,20 @@ def record_reset(node: str, to_reality: str,
                                      "neutral"}},
            "tiny_branch": tiny,
            "values": vals, "derived": True}
+    # qbit tagging — a rewind/hop into a parallel reality or
+    # outside domain scope mints a qb- crossing tag; the
+    # reset record carries it for traffic accounting
+    try:
+        import qbits as _qb
+        if _qb.is_parallel_reality(to_reality) or \
+                not _qb.in_domain(to_reality):
+            _xc = _qb.cross(node, frm, to_reality,
+                            reality=to_reality,
+                            via="reset_" + transition)
+            rec["qbit"] = _xc.get("qbit")
+            rec["qbit_crossing"] = _xc.get("outside_domain")
+    except Exception:
+        pass
     OUT.mkdir(parents=True, exist_ok=True)
     with RESETS.open("a") as f:
         f.write(json.dumps(rec, ensure_ascii=False) + "\n")
