@@ -1425,6 +1425,15 @@ class Handler(BaseHTTPRequestHandler):
                 else:
                     self._send(200, forum.status())
                 return
+            if path == "/api/scaffold":
+                import scaffold
+                action = qs.get("action", ["status"])[0]
+                if action == "fill":
+                    self._send(200, scaffold.fill(
+                        qs.get("name", ["scaffold_block"])[0]))
+                else:
+                    self._send(200, scaffold.status())
+                return
             if path == "/api/genesis":
                 import genesis
                 action = qs.get("action", ["status"])[0]
@@ -1682,6 +1691,15 @@ class Handler(BaseHTTPRequestHandler):
                         qs.get("profile", ["default"])[0]))
                 else:
                     self._send(200, forum.status())
+                return
+            if path == "/api/scaffold":
+                import scaffold
+                action = qs.get("action", ["status"])[0]
+                if action == "fill":
+                    self._send(200, scaffold.fill(
+                        qs.get("name", ["scaffold_block"])[0]))
+                else:
+                    self._send(200, scaffold.status())
                 return
             if path == "/api/genesis":
                 import genesis

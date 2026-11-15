@@ -274,6 +274,12 @@ def main() -> None:
     fo.add_argument("url", nargs="?")
     fo.add_argument("--profile")
 
+    sc = sub.add_parser("scaffold")
+    sc.add_argument("action", nargs="?",
+                    choices=["status", "fill"],
+                    default="status")
+    sc.add_argument("name", nargs="?")
+
     gn = sub.add_parser("genesis")
     gn.add_argument("action", nargs="?",
                     choices=["status", "observe", "set"],
@@ -852,6 +858,13 @@ def main() -> None:
                     or "default"))
         else:
             out(get("/api/forum"))
+    elif ns.cmd == "scaffold":
+        a = ns.action or "status"
+        if a == "fill":
+            out(get("/api/scaffold", action="fill",
+                    name=ns.name or "scaffold_block"))
+        else:
+            out(get("/api/scaffold"))
     elif ns.cmd == "genesis":
         a = ns.action or "status"
         if a == "observe":
