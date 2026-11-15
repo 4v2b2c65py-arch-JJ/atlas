@@ -1591,6 +1591,45 @@ class Handler(BaseHTTPRequestHandler):
                 else:
                     self._send(200, cpulink.status())
                 return
+            if path == "/api/silicon":
+                import silicon
+                action = qs.get("action", ["status"])[0]
+                if action == "register":
+                    self._send(200, silicon.register(
+                        qs.get("name", [""])[0],
+                        qs.get("kind", ["gpu"])[0],
+                        width=int(qs["width"][0])
+                        if qs.get("width") else None,
+                        vendor=qs.get("vendor", [""])[0],
+                        arch=qs.get("arch", [""])[0],
+                        cores=int(qs["cores"][0])
+                        if qs.get("cores") else None,
+                        ports=qs.get("ports", [""])[0]
+                        .split(",") if qs.get("ports")
+                        else None,
+                        enrich_web=qs.get("enrich",
+                                          ["1"])[0] != "0"))
+                elif action == "pin":
+                    self._send(200, silicon.pin(
+                        qs.get("name", [""])[0]))
+                elif action == "port":
+                    self._send(200, silicon.port_entry(
+                        qs.get("name", [""])[0],
+                        qs.get("port", [""])[0],
+                        qs.get("value", [""])[0],
+                        qs.get("note", [""])[0]))
+                elif action == "draw":
+                    self._send(200, silicon.draw(
+                        qs.get("name", [""])[0]))
+                elif action == "source":
+                    self._send(200, silicon.add_source(
+                        qs.get("name", [""])[0],
+                        qs.get("url", [""])[0],
+                        qs.get("type", ["web"])[0],
+                        qs.get("note", [""])[0]))
+                else:
+                    self._send(200, silicon.status())
+                return
             if path == "/api/genesis":
                 import genesis
                 action = qs.get("action", ["status"])[0]
@@ -2022,6 +2061,45 @@ class Handler(BaseHTTPRequestHandler):
                     self._send(200, cpulink.pack_gguf())
                 else:
                     self._send(200, cpulink.status())
+                return
+            if path == "/api/silicon":
+                import silicon
+                action = qs.get("action", ["status"])[0]
+                if action == "register":
+                    self._send(200, silicon.register(
+                        qs.get("name", [""])[0],
+                        qs.get("kind", ["gpu"])[0],
+                        width=int(qs["width"][0])
+                        if qs.get("width") else None,
+                        vendor=qs.get("vendor", [""])[0],
+                        arch=qs.get("arch", [""])[0],
+                        cores=int(qs["cores"][0])
+                        if qs.get("cores") else None,
+                        ports=qs.get("ports", [""])[0]
+                        .split(",") if qs.get("ports")
+                        else None,
+                        enrich_web=qs.get("enrich",
+                                          ["1"])[0] != "0"))
+                elif action == "pin":
+                    self._send(200, silicon.pin(
+                        qs.get("name", [""])[0]))
+                elif action == "port":
+                    self._send(200, silicon.port_entry(
+                        qs.get("name", [""])[0],
+                        qs.get("port", [""])[0],
+                        qs.get("value", [""])[0],
+                        qs.get("note", [""])[0]))
+                elif action == "draw":
+                    self._send(200, silicon.draw(
+                        qs.get("name", [""])[0]))
+                elif action == "source":
+                    self._send(200, silicon.add_source(
+                        qs.get("name", [""])[0],
+                        qs.get("url", [""])[0],
+                        qs.get("type", ["web"])[0],
+                        qs.get("note", [""])[0]))
+                else:
+                    self._send(200, silicon.status())
                 return
             if path == "/api/genesis":
                 import genesis

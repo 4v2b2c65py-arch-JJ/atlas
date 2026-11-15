@@ -377,6 +377,20 @@ def main() -> None:
     cp.add_argument("--to")
     cp.add_argument("--bytes", type=int)
 
+    si = sub.add_parser("silicon")
+    si.add_argument("action", nargs="?",
+                    choices=["status", "register", "pin",
+                             "port", "draw", "source"],
+                    default="status")
+    si.add_argument("name", nargs="?")
+    si.add_argument("--kind"); si.add_argument("--width",
+                                             type=int)
+    si.add_argument("--vendor"); si.add_argument("--arch")
+    si.add_argument("--cores", type=int)
+    si.add_argument("--ports"); si.add_argument("--port")
+    si.add_argument("--value"); si.add_argument("--note")
+    si.add_argument("--url"); si.add_argument("--type")
+
     gn = sub.add_parser("genesis")
     gn.add_argument("action", nargs="?",
                     choices=["status", "observe", "set"],
@@ -1073,6 +1087,16 @@ def main() -> None:
             out(get("/api/cpulink", action="gguf"))
         else:
             out(get("/api/cpulink"))
+    elif ns.cmd == "silicon":
+        a = ns.action or "status"
+        q = {"action": a, "name": ns.name or ""}
+        for k in ("kind", "width", "vendor", "arch", "cores",
+                  "ports", "port", "value", "note", "url",
+                  "type"):
+            v = getattr(ns, k, None)
+            if v is not None:
+                q[k] = v
+        out(get("/api/silicon", **q))
     elif ns.cmd == "genesis":
         a = ns.action or "status"
         if a == "observe":
