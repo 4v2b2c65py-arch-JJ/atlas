@@ -168,6 +168,13 @@ def main() -> None:
     ea.add_argument("a1", nargs="?"); ea.add_argument("a2", nargs="?")
     ea.add_argument("a3", nargs="?"); ea.add_argument("a4", nargs="?")
 
+    bk = sub.add_parser("book")
+    bk.add_argument("action",
+                    choices=["status", "open", "session", "scrape",
+                             "engrave"])
+    bk.add_argument("a1", nargs="?"); bk.add_argument("a2", nargs="?")
+    bk.add_argument("a3", nargs="?"); bk.add_argument("a4", nargs="?")
+
     au = sub.add_parser("auth")
     au.add_argument("action", choices=["signup", "login", "status"])
     au.add_argument("user", nargs="?"); au.add_argument("password", nargs="?")
@@ -435,6 +442,28 @@ def main() -> None:
                                    "id": int(ns.a1 or 0),
                                    "node": ns.a2 or "",
                                    "tx": ns.a3 or ""}))
+    elif ns.cmd == "book":
+        a = ns.action
+        if a == "status":
+            out(get("/api/book"))
+        elif a == "open":
+            out(post("/api/book", {"action": "open",
+                                   "name": ns.a1 or "",
+                                   "token": ns.a2 or ""}))
+        elif a == "session":
+            out(post("/api/book", {"action": "session",
+                                   "kind": ns.a1 or "note",
+                                   "detail": ns.a2 or ""}))
+        elif a == "scrape":
+            out(post("/api/book", {"action": "scrape",
+                                   "url": ns.a1 or ""}))
+        elif a == "engrave":
+            # atlas book engrave <src> <at> "<instruction>" [seconds]
+            out(post("/api/book", {"action": "engrave",
+                                   "src": ns.a1 or "",
+                                   "at": float(ns.a2 or 0),
+                                   "instruction": ns.a3 or "",
+                                   "seconds": float(ns.a4 or 8)}))
     elif ns.cmd == "auth":
         if ns.action == "status":
             out(get("/api/auth/status"))

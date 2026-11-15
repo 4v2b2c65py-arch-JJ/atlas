@@ -144,6 +144,7 @@ import prime  # noqa: E402
 import tax  # noqa: E402
 import catalogue  # noqa: E402
 import vision  # noqa: E402
+import cardinal  # noqa: E402
 
 # GML/SML-1 spec engine (AUTO-01 add-1 rule, CF-01 requirements)
 GML_DIR = ROOT / "gml" / "SML-1"
@@ -1213,6 +1214,9 @@ class Handler(BaseHTTPRequestHandler):
                 node = qs.get("node", [""])[0] or None
                 self._send(200, economy.status(node))
                 return
+            if path == "/api/book":
+                self._send(200, cardinal.status())
+                return
             if path == "/api/prime":
                 action = qs.get("action", ["status"])[0]
                 if action == "wallets":
@@ -1868,6 +1872,36 @@ class Handler(BaseHTTPRequestHandler):
                         return
                     self._send(200, passkeys.harvest(
                         url, int(body.get("max_try", 15))))
+            elif u.path == "/api/book":
+                action = body.get("action", "status")
+                if action == "open":
+                    self._send(200, cardinal.open_book(
+                        body.get("name", ""), body.get("token", ""),
+                        body.get("identity", "")))
+                elif action == "session":
+                    self._send(200, cardinal.record_event(
+                        body.get("kind", "note"),
+                        body.get("detail", "")))
+                elif action == "scrape":
+                    url = body.get("url", "")
+                    if not url:
+                        self._send(400, {"error": "url required"})
+                        return
+                    self._send(200, cardinal.scrape_identities(
+                        url, int(body.get("max_try", 10))))
+                elif action == "engrave":
+                    src = body.get("src") or body.get("url") or ""
+                    instruction = body.get("instruction", "")
+                    if not (src and instruction):
+                        self._send(400, {"error":
+                                         "src and instruction required"})
+                        return
+                    self._send(200, cardinal.engrave(
+                        src, float(body.get("at", 0)), instruction,
+                        float(body.get("seconds", 8)),
+                        body.get("out", "")))
+                else:
+                    self._send(200, cardinal.status())
             elif u.path == "/api/twitch":
                 action = body.get("action", "status")
                 chan = body.get("channel") or body.get("url", "")
