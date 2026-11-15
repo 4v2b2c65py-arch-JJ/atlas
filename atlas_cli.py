@@ -192,6 +192,15 @@ def main() -> None:
     nm.add_argument("query", nargs="*",
                     help="name to look up; empty = dataset status")
 
+    un = sub.add_parser("unlock")
+    un.add_argument("title", nargs="?")
+    un.add_argument("profile", nargs="?")
+    un.add_argument("--nodesc", action="store_true",
+                    help="skip download (candidates only)")
+
+    lr = sub.add_parser("lore")
+    lr.add_argument("key", nargs="?")
+
     au = sub.add_parser("auth")
     au.add_argument("action", choices=["signup", "login", "status"])
     au.add_argument("user", nargs="?"); au.add_argument("password", nargs="?")
@@ -550,6 +559,15 @@ def main() -> None:
             out(get("/api/names", q=q))
         else:
             out(get("/api/names"))
+    elif ns.cmd == "unlock":
+        if not ns.title:
+            out(get("/api/unlock", title="", profile=ns.profile))
+        else:
+            out(get("/api/unlock", title=ns.title,
+                    profile=ns.profile or "default",
+                    download="0" if ns.nodesc else "1"))
+    elif ns.cmd == "lore":
+        out(get("/api/lore", key=ns.key or None))
     elif ns.cmd == "auth":
         if ns.action == "status":
             out(get("/api/auth/status"))

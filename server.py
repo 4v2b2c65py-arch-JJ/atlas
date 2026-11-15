@@ -1181,6 +1181,34 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/api/social":
                 self._send(200, social.status())
                 return
+            if path == "/api/lore":
+                import unlock
+                key = qs.get("key", [""])[0]
+                reg = unlock.registry()
+                if key:
+                    self._send(200, {"key": key,
+                                     "entry": reg.get("keys", {})
+                                     .get(key)})
+                else:
+                    self._send(200, reg)
+                return
+            if path == "/api/unlock":
+                import unlock
+                title = qs.get("title", qs.get("q", [""]))[0]
+                profile = qs.get("profile", ["default"])[0]
+                if not title:
+                    self._send(400, {"error": "title required"})
+                    return
+                if qs.get("status", [""])[0]:
+                    self._send(200, unlock.profile_status(profile))
+                    return
+                dl = qs.get("download", ["1"])[0] not in ("0", "false")
+                res = unlock.unlock_title(title, profile,
+                                          download=dl)
+                c = unlock.unlock_comment(res)
+                res["comment"] = c
+                self._send(200, res)
+                return
             if path == "/api/tunnel":
                 st = tunnel.status()
                 st["cert"] = tunnel.cert_status()
