@@ -15,6 +15,7 @@ data/gaster/state.json; results pack into casts-style GGUF.
 """
 
 import json
+import struct
 import time
 from pathlib import Path
 
@@ -540,6 +541,124 @@ def pull_shell_commands() -> dict:
     return {"commands_found": len(found),
             "missing": sorted(set(GAME_SHELL_COMMANDS) - set(found)),
             "commands": {k: v["line"] for k, v in found.items()}}
+
+
+# Lore-rewrite rule: each invocation condition is renamed into the
+# TOA/Vanitas grimware vocabulary — the seed token matches the
+# condition's role, not the engine's name for it.
+LORE_SEED_RULE = {
+    "dogcheck": "SENKETSU_GATE",       # the guardian that bars entry
+    "deaddog": "GATE_BREAKER",         # the kill path past the gate
+    "save": "SCORE_RECORD",            # the Score inscribes fate
+    "tempsave": "SCORE_DRAFT",         # provisional inscription
+    "saveprocess": "SCORE_COUNCIL",    # the generals deliberate
+    "binfowrite": "GRIMOIRE_INK",      # the book takes the write
+    "itemrewrite": "LORE_REWRITE",     # fate:change
+    "writetext": "CHRONICLE_HAND",     # the chronicler writes
+    "floweybodysave": "FLOWER_VESSEL", # the flower keeps a soul
+    "floweybodyload": "FLOWER_AWAKING",# the flower wakes
+    "file_text_open_write": "PAGE_TURN",   # overwrite = new page
+    "file_text_open_read": "PAGE_READ",    # the grimoire is read
+    "steam_file": "SKY_ARCHIVE",       # cloud = the firmament
+    "ini_write": "MARGIN_NOTE",        # config = marginalia
+}
+
+
+def _read_cstr(off: int) -> str:
+    end = DATA.find(b"\x00", off, off + 200) \
+        if 0 < off < len(DATA) else -1
+    return DATA[off:end].decode("latin1", "replace") \
+        if end > 0 else ""
+
+
+DATA = None  # bound lazily to avoid loading 57MB at import
+
+
+def func_map(win_path: Path | None = None) -> dict:
+    """Decode the FUNC chunk — 300 entries of
+    {name_ptr, arg_count, code_offset} mapping every script /
+    function name to its bytecode offset inside CODE. This is the
+    invocation map: names live in STRG, calls are indexed here."""
+    global DATA
+    wp = win_path or (ROOT / "data" / "undertale" / "extracted" /
+                      "Undertale v1.001" / "data.win")
+    if not wp.exists():
+        return {"error": f"no data.win at {wp}"}
+    DATA = wp.read_bytes()
+    # locate FUNC + STRG chunks
+    pos, chunks = 8, {}
+    while pos + 8 <= len(DATA):
+        tag = DATA[pos:pos + 4]
+        if not all(32 <= c < 127 for c in tag):
+            break
+        size = struct.unpack("<I", DATA[pos + 4:pos + 8])[0]
+        chunks[tag.decode("latin1")] = (pos + 8, size)
+        pos += 8 + size + (size & 1)
+    if "FUNC" not in chunks:
+        return {"error": "FUNC chunk not found"}
+    fo, fs = chunks["FUNC"]
+    func = DATA[fo:fo + fs]
+    cnt = struct.unpack("<I", func[:4])[0]
+    entries = []
+    for i in range(cnt):
+        base = 4 + i * 12
+        if base + 12 > len(func):
+            break
+        np_, arg_count, code = struct.unpack(
+            "<III", func[base:base + 12])
+        entries.append({"name": _read_cstr(np_),
+                        "args": arg_count,
+                        "code_offset": hex(code)})
+    return {"count": len(entries), "entries": entries,
+            "chunks": {k: hex(v[0]) for k, v in chunks.items()}}
+
+
+def invocation_seeds(win_path: Path | None = None) -> dict:
+    """Generate lore-matched seeds: every file/save/dogcheck
+    function in the FUNC map becomes a seed whose token is the
+    TOA/Vanitas name for its condition. Stored as records."""
+    fm = func_map(win_path)
+    if "entries" not in fm:
+        return fm
+    import hashlib
+    seeds = []
+    for e in fm["entries"]:
+        nm = e["name"]
+        lore = None
+        # most-specific pattern wins — "floweybodysave" must beat
+        # the generic "save" or the flower's vessel gets renamed
+        for pat, tok in sorted(LORE_SEED_RULE.items(),
+                               key=lambda kv: -len(kv[0])):
+            if pat in nm:
+                lore = tok
+                break
+        if lore is None:
+            continue
+        body = json.dumps({"func": nm, "seed": lore,
+                           "code": e["code_offset"]},
+                          sort_keys=True)
+        h = hashlib.sha256(body.encode()).hexdigest()[:16]
+        rec = {"kind": "invocation_seed", "rec_hash": h,
+               "ts": _now(), "func": nm, "args": e["args"],
+               "code_offset": e["code_offset"],
+               "lore_seed": lore}
+        exists = False
+        if RECORDS.exists():
+            for line in RECORDS.read_text().splitlines():
+                try:
+                    if json.loads(line).get("rec_hash") == h:
+                        exists = True
+                        break
+                except Exception:
+                    pass
+        if not exists:
+            with RECORDS.open("a") as f:
+                f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+        seeds.append(rec)
+    _metric("invocation_seeds", count=len(seeds))
+    return {"seeds": len(seeds),
+            "lore_seeds": sorted({s["lore_seed"] for s in seeds}),
+            "funcs": [s["func"] for s in seeds]}
 
 
 def encounter_status() -> dict:
