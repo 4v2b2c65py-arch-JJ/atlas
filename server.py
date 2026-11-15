@@ -1557,6 +1557,40 @@ class Handler(BaseHTTPRequestHandler):
                 else:
                     self._send(200, renderlab.status())
                 return
+            if path == "/api/cpulink":
+                import cpulink
+                action = qs.get("action", ["status"])[0]
+                if action == "detect":
+                    self._send(200, cpulink.detect_local())
+                elif action == "register":
+                    self._send(200, cpulink.register(
+                        qs.get("name", [""])[0],
+                        qs.get("vendor", [""])[0],
+                        qs.get("arch", [""])[0],
+                        cores=int(qs["cores"][0])
+                        if qs.get("cores") else None,
+                        threads=int(qs["threads"][0])
+                        if qs.get("threads") else None,
+                        width=int(qs.get("width",
+                                        ["64"])[0]),
+                        sockets=int(qs.get("sockets",
+                                           ["1"])[0]),
+                        enrich=qs.get("enrich",
+                                      ["1"])[0] != "0"))
+                elif action == "traverse":
+                    self._send(200, cpulink.traverse(
+                        qs.get("from", [""])[0],
+                        qs.get("to", [""])[0],
+                        nbytes=int(qs.get("bytes",
+                                          ["0"])[0])))
+                elif action == "list":
+                    self._send(200, cpulink.list_cpus(
+                        qs.get("arch", [""])[0] or None))
+                elif action == "gguf":
+                    self._send(200, cpulink.pack_gguf())
+                else:
+                    self._send(200, cpulink.status())
+                return
             if path == "/api/genesis":
                 import genesis
                 action = qs.get("action", ["status"])[0]
@@ -1954,6 +1988,40 @@ class Handler(BaseHTTPRequestHandler):
                     self._send(200, renderlab.saves())
                 else:
                     self._send(200, renderlab.status())
+                return
+            if path == "/api/cpulink":
+                import cpulink
+                action = qs.get("action", ["status"])[0]
+                if action == "detect":
+                    self._send(200, cpulink.detect_local())
+                elif action == "register":
+                    self._send(200, cpulink.register(
+                        qs.get("name", [""])[0],
+                        qs.get("vendor", [""])[0],
+                        qs.get("arch", [""])[0],
+                        cores=int(qs["cores"][0])
+                        if qs.get("cores") else None,
+                        threads=int(qs["threads"][0])
+                        if qs.get("threads") else None,
+                        width=int(qs.get("width",
+                                        ["64"])[0]),
+                        sockets=int(qs.get("sockets",
+                                           ["1"])[0]),
+                        enrich=qs.get("enrich",
+                                      ["1"])[0] != "0"))
+                elif action == "traverse":
+                    self._send(200, cpulink.traverse(
+                        qs.get("from", [""])[0],
+                        qs.get("to", [""])[0],
+                        nbytes=int(qs.get("bytes",
+                                          ["0"])[0])))
+                elif action == "list":
+                    self._send(200, cpulink.list_cpus(
+                        qs.get("arch", [""])[0] or None))
+                elif action == "gguf":
+                    self._send(200, cpulink.pack_gguf())
+                else:
+                    self._send(200, cpulink.status())
                 return
             if path == "/api/genesis":
                 import genesis

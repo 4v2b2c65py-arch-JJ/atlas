@@ -362,6 +362,21 @@ def main() -> None:
     rl.add_argument("--renderer")
     rl.add_argument("--profile")
 
+    cp = sub.add_parser("cpulink")
+    cp.add_argument("action", nargs="?",
+                    choices=["status", "detect", "register",
+                             "traverse", "list", "gguf"],
+                    default="status")
+    cp.add_argument("name", nargs="?")
+    cp.add_argument("--vendor"); cp.add_argument("--arch")
+    cp.add_argument("--cores", type=int)
+    cp.add_argument("--threads", type=int)
+    cp.add_argument("--width", type=int)
+    cp.add_argument("--sockets", type=int)
+    cp.add_argument("--from", dest="frm")
+    cp.add_argument("--to")
+    cp.add_argument("--bytes", type=int)
+
     gn = sub.add_parser("genesis")
     gn.add_argument("action", nargs="?",
                     choices=["status", "observe", "set"],
@@ -1037,6 +1052,27 @@ def main() -> None:
             out(get("/api/renderlab", action="saves"))
         else:
             out(get("/api/renderlab"))
+    elif ns.cmd == "cpulink":
+        a = ns.action or "status"
+        if a == "detect":
+            out(get("/api/cpulink", action="detect"))
+        elif a == "register":
+            out(get("/api/cpulink", action="register",
+                    name=ns.name or "", vendor=ns.vendor or "",
+                    arch=ns.arch or "", cores=ns.cores,
+                    threads=ns.threads, width=ns.width,
+                    sockets=ns.sockets))
+        elif a == "traverse":
+            out(get("/api/cpulink", action="traverse",
+                    **{"from": ns.frm or ""}, to=ns.to or "",
+                    bytes=ns.bytes or 0))
+        elif a == "list":
+            out(get("/api/cpulink", action="list",
+                    arch=ns.arch or ""))
+        elif a == "gguf":
+            out(get("/api/cpulink", action="gguf"))
+        else:
+            out(get("/api/cpulink"))
     elif ns.cmd == "genesis":
         a = ns.action or "status"
         if a == "observe":
