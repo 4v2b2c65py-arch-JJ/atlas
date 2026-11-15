@@ -227,8 +227,9 @@ def main() -> None:
 
     vr = sub.add_parser("variants")
     vr.add_argument("action", nargs="?",
-                    choices=["status", "register", "expand"],
+                    choices=["status", "register", "expand", "config"],
                     default="status")
+    vr.add_argument("cfg", nargs="?")
 
     br = sub.add_parser("branches")
     br.add_argument("action", nargs="?",
@@ -680,6 +681,9 @@ def main() -> None:
             out(get("/api/variants", action="register"))
         elif a == "expand":
             out(get("/api/variants", action="expand"))
+        elif a == "config":
+            out(get("/api/variants", action="config",
+                    cfg=ns.cfg or ""))
         else:
             out(get("/api/variants"))
     elif ns.cmd == "branches":

@@ -168,3 +168,104 @@ def status() -> dict:
     return {"variants": n, "bases": len(VARIANTS),
             "canon": sum(1 for r in records() if r["canon"]),
             "au": sum(1 for r in records() if not r["canon"])}
+
+
+# ---------- difficulty / settings configs ----------
+# A config is a soul-state modifier applied across a scope. Applying
+# one appends <node>__<cfg> variant records and registers hidden
+# nodes — the variant list itself changes.
+CONFIGS = {
+    "nightmare": {
+        "label": "Nightmare Mode",
+        "scope": "undertale",           # franchise branch
+        "rule": "LV locked, no EXP gain, "
+                "enemies +ATK — Hard Mode rules",
+        "multiplier": 1.5,              # save-cost multiplier
+    },
+    "hard_mode": {
+        "label": "Hard Mode",
+        "scope": "undertale",
+        "rule": "start LV19, no leveling — "
+                "Undertale Hard Mode",
+        "multiplier": 1.2,
+    },
+    "post_genocide": {
+        "label": "Post-Genocide Timeline",
+        "scope": "all",
+        "rule": "world already destroyed once — "
+                "endings permanently altered",
+        "multiplier": 2.0,
+    },
+    "true_reset": {
+        "label": "True Reset",
+        "scope": "all",
+        "rule": "soul returned — timelines restacked, "
+                "determination retained",
+        "multiplier": 0.5,
+    },
+    "merged_au": {
+        "label": "Merged AU (Fusiontale)",
+        "scope": "all",
+        "rule": "multiple soul variants fused into one node — "
+                "design composite",
+        "multiplier": 1.0,
+    },
+}
+
+
+def _in_scope(node: str, scope: str) -> bool:
+    if scope == "all":
+        return True
+    # node -> franchise root
+    cur = node
+    seen = set()
+    while cur in familytree.PARENT and cur not in seen:
+        seen.add(cur)
+        cur = familytree.PARENT[cur]
+    return cur == scope or cur in familytree.TREE.get(scope, [])
+
+
+def apply_config(cfg: str) -> dict:
+    """Apply a difficulty/settings config: appends a variant
+    record + registers a hidden node for every in-scope entry.
+    Returns what changed."""
+    cfg = cfg.lower().replace(" ", "_")
+    conf = CONFIGS.get(cfg)
+    if not conf:
+        return {"config": cfg, "applied": False,
+                "known": sorted(CONFIGS)}
+    targets = []
+    # base pack nodes + existing variants in scope
+    bases = [n for n in familytree.LABEL
+             if "__" not in n and _in_scope(n, conf["scope"])]
+    variants_in = [n for n in familytree.LABEL
+                   if "__" in n and _in_scope(n, conf["scope"])]
+    targets = bases + variants_in
+    OUT.mkdir(parents=True, exist_ok=True)
+    added = []
+    with RECORDS.open("a") as f:
+        for node in targets:
+            vname = f"{node}__{cfg}"
+            rec = {"ts": time.time(), "kind": "config_variant",
+                   "node": vname, "base": node, "config": cfg,
+                   "config_label": conf["label"],
+                   "rule": conf["rule"],
+                   "multiplier": conf["multiplier"],
+                   "scope": conf["scope"], "derived": True}
+            f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+            # register as hidden variant node
+            familytree.LABEL[vname] = \
+                f"{familytree.LABEL.get(node, node)} [{conf['label']}]"
+            familytree.EMOJI[vname] = familytree.EMOJI.get(
+                node.split("__")[0], "🎚️")
+            familytree.PARENT[vname] = node
+            familytree.HIDDEN[vname] = {
+                "emoji": familytree.EMOJI.get(
+                    node.split("__")[0], "🎚️"),
+                "label": rec["config_label"],
+                "note": f"{conf['rule']} [config:{cfg}]"}
+            added.append(vname)
+    return {"config": cfg, "applied": True,
+            "label": conf["label"], "scope": conf["scope"],
+            "rule": conf["rule"], "multiplier": conf["multiplier"],
+            "nodes_added": len(added), "sample": added[:5]}
