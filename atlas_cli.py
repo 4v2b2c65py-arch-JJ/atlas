@@ -68,6 +68,22 @@ def out(d) -> None:
     print(json.dumps(d, indent=1, default=str))
 
 
+def _nl_qs(ns) -> dict:
+    q = {}
+    if ns.mode: q["mode"] = ns.mode
+    if ns.radius is not None: q["radius_km"] = ns.radius
+    if ns.frm: q["from"] = ns.frm
+    if ns.to: q["to"] = ns.to
+    if ns.mac: q["mac"] = ns.mac
+    if ns.port: q["port"] = ns.port
+    if ns.transport: q["transport"] = ns.transport
+    if ns.snapshot: q["snapshot"] = ns.snapshot
+    if ns.payload: q["payload"] = ns.payload
+    if ns.node: q["node"] = ns.node
+    if ns.limit: q["limit"] = ns.limit
+    return q
+
+
 def main() -> None:
     global API
     p = argparse.ArgumentParser(prog="atlas", description=__doc__,
@@ -300,6 +316,23 @@ def main() -> None:
     sg.add_argument("--transport")
     sg.add_argument("--mac")
     sg.add_argument("--port", type=int)
+
+    nl = sub.add_parser("netlock")
+    nl.add_argument("action", nargs="?",
+                    choices=["status", "lock", "unlock", "hop",
+                             "mac", "send", "macs", "history"],
+                    default="status")
+    nl.add_argument("--mode")
+    nl.add_argument("--radius", type=float)
+    nl.add_argument("--from", dest="frm")
+    nl.add_argument("--to")
+    nl.add_argument("--mac")
+    nl.add_argument("--port", type=int)
+    nl.add_argument("--transport")
+    nl.add_argument("--snapshot")
+    nl.add_argument("--payload")
+    nl.add_argument("--node")
+    nl.add_argument("--limit", type=int)
 
     gn = sub.add_parser("genesis")
     gn.add_argument("action", nargs="?",
@@ -917,6 +950,21 @@ def main() -> None:
                 "established": True}))
         else:
             out(get("/api/seedgate"))
+    elif ns.cmd == "netlock":
+        a = ns.action or "status"
+        import json as _j
+        if a == "send":
+            import json as _j
+            body = {"action": "send"}
+            body.update(_nl_qs(ns))
+            if ns.payload:
+                try:
+                    body["payload"] = _j.loads(ns.payload)
+                except Exception:
+                    body["payload"] = {"raw": ns.payload}
+            out(post("/api/netlock", body))
+        else:
+            out(get("/api/netlock", action=a, **_nl_qs(ns)))
     elif ns.cmd == "genesis":
         a = ns.action or "status"
         if a == "observe":

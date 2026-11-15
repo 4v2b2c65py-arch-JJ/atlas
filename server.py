@@ -1477,6 +1477,30 @@ class Handler(BaseHTTPRequestHandler):
                 else:
                     self._send(200, mesh.status())
                 return
+            if path == "/api/netlock":
+                import netlock
+                action = qs.get("action", ["status"])[0]
+                kw = {"mode": qs.get("mode", [""])[0],
+                      "radius_km": float(qs["radius_km"][0])
+                      if qs.get("radius_km") else None,
+                      "from": qs.get("from", [""])[0],
+                      "to": qs.get("to", [""])[0],
+                      "mac": qs.get("mac", [""])[0],
+                      "via": qs.get("via", ["driver"])[0],
+                      "transport": qs.get("transport",
+                                          ["network"])[0],
+                      "snapshot": qs.get("snapshot",
+                                         ["netlock"])[0],
+                      "port": int(qs["port"][0])
+                      if qs.get("port") else None,
+                      "established": qs.get(
+                          "established", ["1"])[0] != "0",
+                      "node": qs.get("node", [""])[0],
+                      "context": qs.get("context",
+                                        ["manual"])[0],
+                      "limit": qs.get("limit", ["100"])[0]}
+                self._send(200, netlock.handler(action, **kw))
+                return
             if path == "/api/genesis":
                 import genesis
                 action = qs.get("action", ["status"])[0]
@@ -1786,6 +1810,30 @@ class Handler(BaseHTTPRequestHandler):
                     self._send(200, mesh.continuity())
                 else:
                     self._send(200, mesh.status())
+                return
+            if path == "/api/netlock":
+                import netlock
+                action = qs.get("action", ["status"])[0]
+                kw = {"mode": qs.get("mode", [""])[0],
+                      "radius_km": float(qs["radius_km"][0])
+                      if qs.get("radius_km") else None,
+                      "from": qs.get("from", [""])[0],
+                      "to": qs.get("to", [""])[0],
+                      "mac": qs.get("mac", [""])[0],
+                      "via": qs.get("via", ["driver"])[0],
+                      "transport": qs.get("transport",
+                                          ["network"])[0],
+                      "snapshot": qs.get("snapshot",
+                                         ["netlock"])[0],
+                      "port": int(qs["port"][0])
+                      if qs.get("port") else None,
+                      "established": qs.get(
+                          "established", ["1"])[0] != "0",
+                      "node": qs.get("node", [""])[0],
+                      "context": qs.get("context",
+                                        ["manual"])[0],
+                      "limit": qs.get("limit", ["100"])[0]}
+                self._send(200, netlock.handler(action, **kw))
                 return
             if path == "/api/genesis":
                 import genesis
@@ -2240,6 +2288,12 @@ class Handler(BaseHTTPRequestHandler):
                     self._send(200, res)
                 else:
                     self._send(400, {"error": "action required"})
+            elif u.path == "/api/netlock":
+                import netlock as _nl
+                self._send(200, _nl.handler(
+                    body.get("action", "status"), **{
+                        k: v for k, v in body.items()
+                        if k != "action"}))
             elif u.path == "/api/seedgate/route":
                 import asyncio as _aio
                 import sys as _sys
