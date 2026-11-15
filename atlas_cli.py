@@ -209,6 +209,11 @@ def main() -> None:
     md.add_argument("action", nargs="?",
                     choices=["list", "enrich", "discover"])
 
+    gr = sub.add_parser("gamerefs")
+    gr.add_argument("title", nargs="?")
+    gr.add_argument("--batch", action="store_true")
+    gr.add_argument("--limit", type=int, default=25)
+
     au = sub.add_parser("auth")
     au.add_argument("action", choices=["signup", "login", "status"])
     au.add_argument("user", nargs="?"); au.add_argument("password", nargs="?")
@@ -587,6 +592,13 @@ def main() -> None:
             out(get("/api/mods", discover="1"))
         else:
             out(get("/api/mods"))
+    elif ns.cmd == "gamerefs":
+        if ns.batch:
+            out(get("/api/gamerefs", batch="1", limit=ns.limit))
+        elif ns.title:
+            out(get("/api/gamerefs", title=ns.title))
+        else:
+            out(get("/api/gamerefs"))
     elif ns.cmd == "auth":
         if ns.action == "status":
             out(get("/api/auth/status"))

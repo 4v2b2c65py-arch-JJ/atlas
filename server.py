@@ -1192,6 +1192,17 @@ class Handler(BaseHTTPRequestHandler):
                 else:
                     self._send(200, reg)
                 return
+            if path == "/api/gamerefs":
+                import gamerefs
+                title = qs.get("title", [""])[0]
+                if title:
+                    self._send(200, gamerefs.match_title(title))
+                elif qs.get("batch", [""])[0]:
+                    lim = int(qs.get("limit", ["25"])[0])
+                    self._send(200, gamerefs.match_dlps(limit=lim))
+                else:
+                    self._send(200, gamerefs.status())
+                return
             if path == "/api/mods":
                 import modlib
                 if qs.get("enrich", [""])[0]:
