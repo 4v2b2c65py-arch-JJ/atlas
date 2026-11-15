@@ -225,6 +225,12 @@ def main() -> None:
     sp.add_argument("--interval", type=float, default=60)
     sp.add_argument("--cycles", type=int, default=1)
 
+    tc = sub.add_parser("timelinecombos")
+    tc.add_argument("action", nargs="?",
+                    choices=["status", "combos", "expand"],
+                    default="status")
+    tc.add_argument("profile", nargs="?")
+
     tl = sub.add_parser("termlib")
     tl.add_argument("action", nargs="?",
                     choices=["status", "ingest", "terms",
@@ -685,6 +691,16 @@ def main() -> None:
             out(get("/api/spectrum", action="gguf"))
         else:
             out(get("/api/spectrum"))
+    elif ns.cmd == "timelinecombos":
+        a = ns.action or "status"
+        if a == "combos":
+            out(get("/api/timelinecombos", action="combos"))
+        elif a == "expand":
+            out(get("/api/timelinecombos", action="expand",
+                    profile=ns.profile or "default"))
+        else:
+            out(get("/api/timelinecombos",
+                    profile=ns.profile or "default"))
     elif ns.cmd == "termlib":
         a = ns.action or "status"
         if a == "ingest":

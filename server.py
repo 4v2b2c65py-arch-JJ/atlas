@@ -1325,6 +1325,19 @@ class Handler(BaseHTTPRequestHandler):
                 else:
                     self._send(200, spectrum.status())
                 return
+            if path == "/api/timelinecombos":
+                import timelinecombos
+                action = qs.get("action", ["status"])[0]
+                if action == "expand":
+                    self._send(200, timelinecombos.expand(
+                        qs.get("profile", ["default"])[0]))
+                elif action == "combos":
+                    self._send(200, {"combos":
+                                     timelinecombos.combos()})
+                else:
+                    self._send(200, timelinecombos.status(
+                        qs.get("profile", ["default"])[0]))
+                return
             if path == "/api/termlib":
                 import termlib
                 action = qs.get("action", ["status"])[0]
@@ -1377,6 +1390,19 @@ class Handler(BaseHTTPRequestHandler):
                         qs.get("center", [""])[0] or None))
                 else:
                     self._send(200, branches.status())
+                return
+            if path == "/api/timelinecombos":
+                import timelinecombos
+                action = qs.get("action", ["status"])[0]
+                if action == "expand":
+                    self._send(200, timelinecombos.expand(
+                        qs.get("profile", ["default"])[0]))
+                elif action == "combos":
+                    self._send(200, {"combos":
+                                     timelinecombos.combos()})
+                else:
+                    self._send(200, timelinecombos.status(
+                        qs.get("profile", ["default"])[0]))
                 return
             if path == "/api/termlib":
                 import termlib
