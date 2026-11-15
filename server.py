@@ -1340,6 +1340,33 @@ class Handler(BaseHTTPRequestHandler):
                 else:
                     self._send(200, resets.status())
                 return
+            if path == "/api/sessions":
+                import sessions
+                action = qs.get("action", ["status"])[0]
+                if action == "event":
+                    import json as _json
+                    try:
+                        _in = _json.loads(qs.get("inputs",
+                                     ["{}"])[0])
+                    except Exception:
+                        _in = {}
+                    try:
+                        _out = _json.loads(qs.get("outputs",
+                                      ["{}"])[0])
+                    except Exception:
+                        _out = {}
+                    self._send(200, sessions.record_event(
+                        qs.get("session", ["default"])[0],
+                        inputs=_in, outputs=_out,
+                        node=qs.get("node", [""])[0] or None,
+                        cause=qs.get("cause",
+                                     ["player"])[0]))
+                elif action == "session":
+                    self._send(200, sessions.session_events(
+                        qs.get("id", ["default"])[0]))
+                else:
+                    self._send(200, sessions.status())
+                return
             if path == "/api/genesis":
                 import genesis
                 action = qs.get("action", ["status"])[0]
@@ -1512,6 +1539,33 @@ class Handler(BaseHTTPRequestHandler):
                         qs.get("cause", ["player_reset"])[0]))
                 else:
                     self._send(200, resets.status())
+                return
+            if path == "/api/sessions":
+                import sessions
+                action = qs.get("action", ["status"])[0]
+                if action == "event":
+                    import json as _json
+                    try:
+                        _in = _json.loads(qs.get("inputs",
+                                     ["{}"])[0])
+                    except Exception:
+                        _in = {}
+                    try:
+                        _out = _json.loads(qs.get("outputs",
+                                      ["{}"])[0])
+                    except Exception:
+                        _out = {}
+                    self._send(200, sessions.record_event(
+                        qs.get("session", ["default"])[0],
+                        inputs=_in, outputs=_out,
+                        node=qs.get("node", [""])[0] or None,
+                        cause=qs.get("cause",
+                                     ["player"])[0]))
+                elif action == "session":
+                    self._send(200, sessions.session_events(
+                        qs.get("id", ["default"])[0]))
+                else:
+                    self._send(200, sessions.status())
                 return
             if path == "/api/genesis":
                 import genesis

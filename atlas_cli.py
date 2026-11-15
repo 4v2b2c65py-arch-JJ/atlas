@@ -234,6 +234,15 @@ def main() -> None:
     rs.add_argument("frm", nargs="?")
     rs.add_argument("profile", nargs="?")
 
+    se = sub.add_parser("sessions")
+    se.add_argument("action", nargs="?",
+                    choices=["status", "event", "session"],
+                    default="status")
+    se.add_argument("session", nargs="?")
+    se.add_argument("--inputs")
+    se.add_argument("--outputs")
+    se.add_argument("--node")
+
     gn = sub.add_parser("genesis")
     gn.add_argument("action", nargs="?",
                     choices=["status", "observe", "set"],
@@ -749,6 +758,19 @@ def main() -> None:
                     profile=ns.profile or "default"))
         else:
             out(get("/api/resets"))
+    elif ns.cmd == "sessions":
+        a = ns.action or "status"
+        if a == "event":
+            out(get("/api/sessions", action="event",
+                    session=ns.session or "default",
+                    node=ns.node or "",
+                    inputs=ns.inputs or "{}",
+                    outputs=ns.outputs or "{}"))
+        elif a == "session":
+            out(get("/api/sessions", action="session",
+                    id=ns.session or "default"))
+        else:
+            out(get("/api/sessions"))
     elif ns.cmd == "genesis":
         a = ns.action or "status"
         if a == "observe":
