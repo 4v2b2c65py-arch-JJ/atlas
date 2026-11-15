@@ -32,6 +32,7 @@ OUT = DATA / "qbits"
 XINGS = OUT / "crossings.jsonl"
 PACKETS = OUT / "packets.jsonl"
 TAGS = OUT / "qbits.json"
+CAL = OUT / "calendar"
 CONFIG = ROOT / "atlas.config.json"
 
 DEFAULT_QBIT_CFG = {
@@ -61,10 +62,37 @@ def _jsonl(path: Path):
             continue
 
 
+_IP_CACHE = {"ip": None, "ts": 0.0}
+
+
+def _ip() -> str | None:
+    """Public IP for traffic records — cached 5 min via
+    mesh._public_ip; honest None when offline."""
+    if _IP_CACHE["ip"] and time.time() - _IP_CACHE["ts"] < 300:
+        return _IP_CACHE["ip"]
+    try:
+        import mesh as _m
+        ip = _m._public_ip() or None
+    except Exception:
+        ip = None
+    _IP_CACHE["ip"] = ip
+    _IP_CACHE["ts"] = time.time()
+    return ip
+
+
 def _append(path: Path, rec: dict) -> None:
     OUT.mkdir(parents=True, exist_ok=True)
+    line = json.dumps(rec, ensure_ascii=False) + "\n"
     with path.open("a") as f:
-        f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+        f.write(line)
+    # calendar partition — historical timeline by device-local
+    # date; every crossing/packet lands in its day file
+    if path in (XINGS, PACKETS):
+        day = CAL / (rec.get("device_time", {})
+                     .get("date", "unknown") + ".jsonl")
+        day.parent.mkdir(parents=True, exist_ok=True)
+        with day.open("a") as f:
+            f.write(line)
 
 
 def config() -> dict:
@@ -176,11 +204,26 @@ def cross(node: str, from_domain: str, to_domain: str,
            "node": node, "from_domain": from_domain,
            "to_domain": to_domain, "reality": reality,
            "qbit": qbit, "minted": minted is not None,
-           "via": via,
+           "via": via, "ip": _ip(),
+           "guided_seq": _guided_seq(qbit),
            "outside_domain": needs_qbit,
            "derived": True}
     _append(XINGS, rec)
     return rec
+
+
+def _guided_seq(qbit: str | None) -> int:
+    """Guided log order — per-qbit sequence so each tag's
+    crossings/packets read as an ordered trail."""
+    if not qbit:
+        return 0
+    t = _tags()
+    ent = t["tags"].get(qbit)
+    if ent is None:
+        return 0
+    ent["events"] = ent.get("events", 0) + 1
+    _save_tags(t)
+    return ent["events"]
 
 
 def packet(qbit: str, direction: str, kind: str = "data",
@@ -196,7 +239,9 @@ def packet(qbit: str, direction: str, kind: str = "data",
            "kind": "qbit_packet", "qbit": qbit,
            "direction": direction, "packet_kind": kind,
            "summary": summary[:200], "nbytes": nbytes,
-           "node": node, "derived": True}
+           "node": node, "ip": _ip(),
+           "guided_seq": _guided_seq(qbit),
+           "derived": True}
     _append(PACKETS, rec)
     return rec
 
@@ -223,6 +268,53 @@ def traffic(qbit: str | None = None) -> dict:
         a["bytes"] += p.get("nbytes", 0)
     return {"kind": "qbit_traffic_all", "per_qbit": per,
             "total_packets": len(pkts)}
+
+
+def timeline(qbit: str | None = None,
+             day: str | None = None) -> dict:
+    """Historical timeline — every crossing/packet ordered by
+    timestamp, grouped by calendar day, carrying IP. Optionally
+    filtered to one qbit or one day (YYYY-MM-DD)."""
+    events = []
+    for r in _jsonl(XINGS) or []:
+        events.append({"ts": r.get("ts"),
+                       "device_time": r.get("device_time"),
+                       "type": "crossing", **{
+                           k: r.get(k) for k in (
+                               "node", "from_domain",
+                               "to_domain", "reality", "qbit",
+                               "ip", "guided_seq",
+                               "outside_domain")}})
+    for r in _jsonl(PACKETS) or []:
+        events.append({"ts": r.get("ts"),
+                       "device_time": r.get("device_time"),
+                       "type": "packet", **{
+                           k: r.get(k) for k in (
+                               "qbit", "direction",
+                               "packet_kind", "summary",
+                               "nbytes", "node", "ip",
+                               "guided_seq")}})
+    events.sort(key=lambda e: e.get("ts") or 0)
+    if qbit:
+        events = [e for e in events
+                  if e.get("qbit") == qbit]
+    if day:
+        events = [e for e in events
+                  if (e.get("device_time") or {})
+                  .get("date") == day]
+    by_day = {}
+    for e in events:
+        d = (e.get("device_time") or {}).get(
+            "date", "unknown")
+        by_day.setdefault(d, []).append(e)
+    return {"kind": "qbit_timeline",
+            "qbit": qbit, "day": day,
+            "events": len(events),
+            "days": {d: len(v) for d, v in by_day.items()},
+            "calendar_dir": str(CAL),
+            "timeline": events[-int(
+                _qcfg().get("packet_log_limit", 500)):],
+            "derived": True}
 
 
 def status() -> dict:

@@ -1523,6 +1523,10 @@ class Handler(BaseHTTPRequestHandler):
                 elif action == "traffic":
                     self._send(200, qbits.traffic(
                         qs.get("qbit", [""])[0] or None))
+                elif action == "timeline":
+                    self._send(200, qbits.timeline(
+                        qs.get("qbit", [""])[0] or None,
+                        qs.get("day", [""])[0] or None))
                 elif action == "config":
                     if qs.get("set"):
                         self._send(200, qbits.set_config(
@@ -1676,6 +1680,10 @@ class Handler(BaseHTTPRequestHandler):
                     variants.store()
                     import truename
                     self._send(200, truename.discover())
+                elif action == "timeline":
+                    self._send(200, qbits.timeline(
+                        qs.get("qbit", [""])[0] or None,
+                        qs.get("day", [""])[0] or None))
                 elif action == "config":
                     import variants as _v
                     self._send(200, _v.apply_config(
@@ -1890,6 +1898,10 @@ class Handler(BaseHTTPRequestHandler):
                 elif action == "traffic":
                     self._send(200, qbits.traffic(
                         qs.get("qbit", [""])[0] or None))
+                elif action == "timeline":
+                    self._send(200, qbits.timeline(
+                        qs.get("qbit", [""])[0] or None,
+                        qs.get("day", [""])[0] or None))
                 elif action == "config":
                     if qs.get("set"):
                         self._send(200, qbits.set_config(
@@ -2043,6 +2055,10 @@ class Handler(BaseHTTPRequestHandler):
                     variants.store()
                     import truename
                     self._send(200, truename.discover())
+                elif action == "timeline":
+                    self._send(200, qbits.timeline(
+                        qs.get("qbit", [""])[0] or None,
+                        qs.get("day", [""])[0] or None))
                 elif action == "config":
                     import variants as _v
                     self._send(200, _v.apply_config(
@@ -2694,6 +2710,10 @@ class Handler(BaseHTTPRequestHandler):
                     self._send(200, tax.compliance(node, since, until))
                 elif action == "file":
                     self._send(200, tax.file(node, since, until))
+                elif action == "timeline":
+                    self._send(200, qbits.timeline(
+                        qs.get("qbit", [""])[0] or None,
+                        qs.get("day", [""])[0] or None))
                 elif action == "config":
                     cfg = {k: v for k, v in body.items()
                            if k != "action"}
