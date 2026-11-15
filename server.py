@@ -1523,6 +1523,10 @@ class Handler(BaseHTTPRequestHandler):
                 elif action == "traffic":
                     self._send(200, qbits.traffic(
                         qs.get("qbit", [""])[0] or None))
+                elif action == "export":
+                    self._send(200, qbits.export(
+                        qs.get("day", [""])[0] or None,
+                        qs.get("qbit", [""])[0] or None))
                 elif action == "timeline":
                     self._send(200, qbits.timeline(
                         qs.get("qbit", [""])[0] or None,
@@ -1680,6 +1684,10 @@ class Handler(BaseHTTPRequestHandler):
                     variants.store()
                     import truename
                     self._send(200, truename.discover())
+                elif action == "export":
+                    self._send(200, qbits.export(
+                        qs.get("day", [""])[0] or None,
+                        qs.get("qbit", [""])[0] or None))
                 elif action == "timeline":
                     self._send(200, qbits.timeline(
                         qs.get("qbit", [""])[0] or None,
@@ -1898,6 +1906,10 @@ class Handler(BaseHTTPRequestHandler):
                 elif action == "traffic":
                     self._send(200, qbits.traffic(
                         qs.get("qbit", [""])[0] or None))
+                elif action == "export":
+                    self._send(200, qbits.export(
+                        qs.get("day", [""])[0] or None,
+                        qs.get("qbit", [""])[0] or None))
                 elif action == "timeline":
                     self._send(200, qbits.timeline(
                         qs.get("qbit", [""])[0] or None,
@@ -2055,6 +2067,10 @@ class Handler(BaseHTTPRequestHandler):
                     variants.store()
                     import truename
                     self._send(200, truename.discover())
+                elif action == "export":
+                    self._send(200, qbits.export(
+                        qs.get("day", [""])[0] or None,
+                        qs.get("qbit", [""])[0] or None))
                 elif action == "timeline":
                     self._send(200, qbits.timeline(
                         qs.get("qbit", [""])[0] or None,
@@ -2710,6 +2726,10 @@ class Handler(BaseHTTPRequestHandler):
                     self._send(200, tax.compliance(node, since, until))
                 elif action == "file":
                     self._send(200, tax.file(node, since, until))
+                elif action == "export":
+                    self._send(200, qbits.export(
+                        qs.get("day", [""])[0] or None,
+                        qs.get("qbit", [""])[0] or None))
                 elif action == "timeline":
                     self._send(200, qbits.timeline(
                         qs.get("qbit", [""])[0] or None,

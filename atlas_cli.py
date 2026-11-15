@@ -338,7 +338,8 @@ def main() -> None:
     qb = sub.add_parser("qbits")
     qb.add_argument("action", nargs="?",
                     choices=["status", "cross", "packet",
-                             "traffic", "timeline", "config"],
+                             "traffic", "timeline",
+                             "export", "config"],
                     default="status")
     qb.add_argument("node", nargs="?")
     qb.add_argument("--from", dest="frm")
@@ -1004,6 +1005,10 @@ def main() -> None:
             out(get("/api/qbits", action="timeline",
                     qbit=ns.qbit or "",
                     day=ns.reality or ""))
+        elif a == "export":
+            out(get("/api/qbits", action="export",
+                    day=ns.reality or "",
+                    qbit=ns.qbit or ""))
         elif a == "config":
             out(get("/api/qbits", action="config",
                     set=ns.key or "", section=ns.section

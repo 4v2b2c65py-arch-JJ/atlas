@@ -33,6 +33,7 @@ XINGS = OUT / "crossings.jsonl"
 PACKETS = OUT / "packets.jsonl"
 TAGS = OUT / "qbits.json"
 CAL = OUT / "calendar"
+EXPORTS = OUT / "exports"
 CONFIG = ROOT / "atlas.config.json"
 
 DEFAULT_QBIT_CFG = {
@@ -41,6 +42,7 @@ DEFAULT_QBIT_CFG = {
     "parallel_realties": [],
     "outside_domain_requires_qbit": True,
     "packet_log_limit": 500,
+    "packet_scrape_threshold": 25,
 }
 
 
@@ -315,6 +317,28 @@ def timeline(qbit: str | None = None,
             "timeline": events[-int(
                 _qcfg().get("packet_log_limit", 500)):],
             "derived": True}
+
+
+def export(day: str | None = None,
+           qbit: str | None = None) -> dict:
+    """Export a calendar day (or one qbit's whole history) as
+    a dataset file under data/qbits/exports/."""
+    tl = timeline(qbit=qbit, day=day)
+    stamp = day or (qbit or "all")
+    EXPORTS.mkdir(parents=True, exist_ok=True)
+    dest = EXPORTS / ("qbits_%s.json" %
+                      "".join(c if c.isalnum() or c in "-_"
+                             else "_" for c in stamp))
+    payload = {"kind": "qbit_export", "exported":
+               _device_time(), "filter_day": day,
+               "filter_qbit": qbit,
+               "events": tl["timeline"],
+               "days": tl["days"], "derived": True}
+    dest.write_text(json.dumps(payload, indent=1,
+                               ensure_ascii=False))
+    return {"kind": "qbit_export_result",
+            "path": str(dest), "events": tl["events"],
+            "days": tl["days"]}
 
 
 def status() -> dict:
