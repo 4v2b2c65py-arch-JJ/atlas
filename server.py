@@ -1685,6 +1685,14 @@ class Handler(BaseHTTPRequestHandler):
                 else:
                     self._send(200, boardctl.status())
                 return
+            if path == "/api/rope":
+                import rope
+                action = qs.get("action", ["status"])[0]
+                if action == "scan":
+                    self._send(200, rope.scan())
+                else:
+                    self._send(200, rope.status())
+                return
             if path == "/api/modelscan":
                 import modelscan
                 action = qs.get("action", ["status"])[0]
@@ -2234,6 +2242,14 @@ class Handler(BaseHTTPRequestHandler):
                         qs.get("msg", [""])[0] or None))
                 else:
                     self._send(200, boardctl.status())
+                return
+            if path == "/api/rope":
+                import rope
+                action = qs.get("action", ["status"])[0]
+                if action == "scan":
+                    self._send(200, rope.scan())
+                else:
+                    self._send(200, rope.status())
                 return
             if path == "/api/modelscan":
                 import modelscan
