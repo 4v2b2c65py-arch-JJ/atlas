@@ -125,6 +125,7 @@ _uptime_cache: dict[str, tuple[float, dict]] = {}
 UPTIME_TTL = 120
 
 import api_keys  # noqa: E402
+import eventbus  # noqa: E402
 import beacon  # noqa: E402
 import bittorrent  # noqa: E402
 import identity  # noqa: E402
@@ -188,12 +189,8 @@ def lan_ips() -> list[str]:
 
 
 def broadcast(kind: str, data):
-    msg = f"event: {kind}\ndata: {json.dumps(data)}\n\n"
-    for q in list(_subs):
-        try:
-            q.put_nowait(msg)
-        except queue.Full:
-            pass
+    import eventbus
+    eventbus.emit(kind, data)
 
 
 # ---------- media index ----------
@@ -897,7 +894,7 @@ def node_status() -> dict:
             "uptime_s": round(time.time() - _started, 1),
             "unique_clients": len(_clients),
             "requests": _requests,
-            "sse_subscribers": len(_subs),
+            "sse_subscribers": eventbus.subscriber_count(),
         },
         "processor": {
             "radio": beacon.wifi_info(),
@@ -1017,8 +1014,8 @@ class Handler(BaseHTTPRequestHandler):
         if ck:
             self.send_header("Set-Cookie", ck)
         self.end_headers()
-        q = queue.Queue(maxsize=200)
-        _subs.append(q)
+        import eventbus
+        q = eventbus.subscribe()
         try:
             # hello event so clients know they're live
             q.put_nowait("event: hello\ndata: {}\n\n")
@@ -1036,8 +1033,7 @@ class Handler(BaseHTTPRequestHandler):
         except (BrokenPipeError, ConnectionResetError):
             pass
         finally:
-            if q in _subs:
-                _subs.remove(q)
+            eventbus.unsubscribe(q)
 
     def do_GET(self):
         global _requests
@@ -1685,6 +1681,22 @@ class Handler(BaseHTTPRequestHandler):
                 else:
                     self._send(200, boardctl.status())
                 return
+            if path == "/api/schedule":
+                import scheduler
+                action = qs.get("action", ["status"])[0]
+                if action == "tick":
+                    self._send(200, scheduler.tick())
+                elif action == "set":
+                    self._send(200, scheduler.set_schedule(
+                        interval_s=int(qs["interval"][0])
+                        if "interval" in qs else None,
+                        enabled=(qs["enabled"][0] == "1")
+                        if "enabled" in qs else None))
+                elif action == "install":
+                    self._send(200, scheduler.install())
+                else:
+                    self._send(200, scheduler.status())
+                return
             if path == "/api/rope":
                 import rope
                 action = qs.get("action", ["status"])[0]
@@ -2242,6 +2254,22 @@ class Handler(BaseHTTPRequestHandler):
                         qs.get("msg", [""])[0] or None))
                 else:
                     self._send(200, boardctl.status())
+                return
+            if path == "/api/schedule":
+                import scheduler
+                action = qs.get("action", ["status"])[0]
+                if action == "tick":
+                    self._send(200, scheduler.tick())
+                elif action == "set":
+                    self._send(200, scheduler.set_schedule(
+                        interval_s=int(qs["interval"][0])
+                        if "interval" in qs else None,
+                        enabled=(qs["enabled"][0] == "1")
+                        if "enabled" in qs else None))
+                elif action == "install":
+                    self._send(200, scheduler.install())
+                else:
+                    self._send(200, scheduler.status())
                 return
             if path == "/api/rope":
                 import rope

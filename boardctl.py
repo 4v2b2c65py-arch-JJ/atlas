@@ -139,6 +139,11 @@ def set_reg(addr: int, num, val, note: str = "") -> dict:
            "num": num, "val": val, "note": note,
            "prev": prev, "derived": True}
     _append(WRITES, rec)
+    try:
+        import eventbus
+        eventbus.emit("board_write", rec)
+    except Exception:
+        pass
     if AUTO_GIT:
         git_sync()
     return rec
@@ -161,6 +166,11 @@ def eeprom_write(bank: str, addr: int, val,
            "addr": addr, "val": val, "size": size,
            "prev": prev, "derived": True}
     _append(WRITES, rec)
+    try:
+        import eventbus
+        eventbus.emit("eeprom_write", rec)
+    except Exception:
+        pass
     if AUTO_GIT:
         git_sync()
     return rec

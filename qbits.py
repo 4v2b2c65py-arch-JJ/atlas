@@ -211,6 +211,11 @@ def cross(node: str, from_domain: str, to_domain: str,
            "outside_domain": needs_qbit,
            "derived": True}
     _append(XINGS, rec)
+    try:
+        import eventbus
+        eventbus.emit("qbit_crossing", rec)
+    except Exception:
+        pass
     return rec
 
 
@@ -245,6 +250,11 @@ def packet(qbit: str, direction: str, kind: str = "data",
            "guided_seq": _guided_seq(qbit),
            "derived": True}
     _append(PACKETS, rec)
+    try:
+        import eventbus
+        eventbus.emit("qbit_packet", rec)
+    except Exception:
+        pass
     return rec
 
 

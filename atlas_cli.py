@@ -414,6 +414,13 @@ def main() -> None:
                                            type=int)
     bd.add_argument("msg")
 
+    sc = sub.add_parser("schedule")
+    sc.add_argument("action", nargs="?",
+                    choices=["status", "tick", "install",
+                             "set"], default="status")
+    sc.add_argument("--interval", type=int)
+    sc.add_argument("--disable", action="store_true")
+
     rp = sub.add_parser("rope")
     rp.add_argument("action", nargs="?",
                     choices=["status", "scan"],
@@ -1166,6 +1173,14 @@ def main() -> None:
             if v is not None:
                 q[k] = v
         out(get("/api/boardctl", **q))
+    elif ns.cmd == "schedule":
+        a = ns.action or "status"
+        if a == "set":
+            out(get("/api/schedule", action="set",
+                    interval=ns.interval or 0,
+                    enabled=0 if ns.disable else 1))
+        else:
+            out(get("/api/schedule", action=a))
     elif ns.cmd == "rope":
         out(get("/api/rope",
                 action=ns.action or "status"))

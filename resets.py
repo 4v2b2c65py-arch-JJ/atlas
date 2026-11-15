@@ -264,6 +264,11 @@ def record_reset(node: str, to_reality: str,
     with day.open("a") as f:
         f.write(json.dumps(rec, ensure_ascii=False) + "\n")
     _update_state()
+    try:
+        import eventbus
+        eventbus.emit("reset", rec)
+    except Exception:
+        pass
     return rec
 
 

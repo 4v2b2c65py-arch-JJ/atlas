@@ -113,6 +113,11 @@ def _emit(source: str, target: str, entity: str,
     with RIPPLES.open("a") as f:
         f.write(json.dumps(rec, ensure_ascii=False) + "\n")
     _update_state()
+    try:
+        import eventbus
+        eventbus.emit("ripple", rec)
+    except Exception:
+        pass
     return rec
 
 
