@@ -410,6 +410,8 @@ GAME_SHELL_COMMANDS = {
     "file_text_write_real": "write number to open file",
     "file_text_read_string": "read string from open file",
     "file_text_read_real": "read number from open file",
+    "file_text_readln": "read line from open file",
+    "file_text_eof": "end-of-file check — read loop guard",
     "file_text_close": "close open file handle",
     "file_exists": "file existence check — overwrite condition",
     "ini_write_string": "overwrite INI string value",
@@ -427,6 +429,40 @@ GAME_SHELL_COMMANDS = {
     "debug": "debug channel output",
     "debuggo": "debug execution trigger",
     "working_directory": "game working dir — write root",
+}
+
+# Conduit records — the named paths the commands flow through.
+# Read conduit: testlines.txt dev reader (fileid loop, eof guard).
+# Write conduits: save system scripts + dogcheck gate.
+GAME_SHELL_CONDUITS = {
+    "testlines_conduit": {
+        "file": "testlines.txt",
+        "calls": ["file_text_open_read", "file_text_eof",
+                  "file_text_read_string", "file_text_readln",
+                  "file_text_close"],
+        "vars": ["fileid", "argument1..7",
+                 "date_current_datetime"],
+        "note": "dev leftover — line reader embedded beside "
+                "scr_papcall/scr_torcall phone scripts",
+    },
+    "save_write_conduit": {
+        "scripts": ["scr_save", "scr_tempsave",
+                    "scr_saveprocess", "scr_itemrewrite",
+                    "scr_binfowrite", "scr_floweybodysave"],
+        "calls": ["file_text_open_write", "file_text_write_string",
+                  "file_text_writeln", "file_text_write_real",
+                  "ini_write_string", "ini_write_real",
+                  "steam_file_write_file"],
+        "note": "save-game overwrite path — open_write truncates; "
+                "append mode absent from runtime (0 'append' bytes "
+                "in 57MB data.win)",
+    },
+    "dogcheck_gate": {
+        "scripts": ["scr_dogcheck", "scr_dogcheck_old",
+                    "scr_deaddog"],
+        "note": "anti-piracy check — same dogcheck that gates the "
+                "official download; scr_deaddog = kill path",
+    },
 }
 
 
@@ -479,7 +515,28 @@ def pull_shell_commands() -> dict:
         if not exists:
             with RECORDS.open("a") as f:
                 f.write(json.dumps(rec, ensure_ascii=False) + "\n")
-    _metric("pull_shell_commands", found=len(found))
+    # conduit records — named paths the commands flow through
+    for cname, cinfo in GAME_SHELL_CONDUITS.items():
+        body = json.dumps({"conduit": cname, **cinfo},
+                          sort_keys=True)
+        import hashlib
+        h = hashlib.sha256(body.encode()).hexdigest()[:16]
+        exists = False
+        if RECORDS.exists():
+            for line in RECORDS.read_text().splitlines():
+                try:
+                    if json.loads(line).get("rec_hash") == h:
+                        exists = True
+                        break
+                except Exception:
+                    pass
+        if not exists:
+            rec = {"kind": "game_shell_conduit", "rec_hash": h,
+                   "ts": _now(), "name": cname, **cinfo}
+            with RECORDS.open("a") as f:
+                f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+    _metric("pull_shell_commands", found=len(found),
+            conduits=len(GAME_SHELL_CONDUITS))
     return {"commands_found": len(found),
             "missing": sorted(set(GAME_SHELL_COMMANDS) - set(found)),
             "commands": {k: v["line"] for k, v in found.items()}}
