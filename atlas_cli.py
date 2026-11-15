@@ -280,6 +280,17 @@ def main() -> None:
                     default="status")
     sc.add_argument("name", nargs="?")
 
+    me = sub.add_parser("mesh")
+    me.add_argument("action", nargs="?",
+                    choices=["status", "register",
+                             "heartbeat", "read",
+                             "continuity"],
+                    default="status")
+    me.add_argument("node", nargs="?")
+    me.add_argument("url", nargs="?")
+    me.add_argument("ip", nargs="?")
+    me.add_argument("--kind")
+
     gn = sub.add_parser("genesis")
     gn.add_argument("action", nargs="?",
                     choices=["status", "observe", "set"],
@@ -865,6 +876,22 @@ def main() -> None:
                     name=ns.name or "scaffold_block"))
         else:
             out(get("/api/scaffold"))
+    elif ns.cmd == "mesh":
+        a = ns.action or "status"
+        if a == "register":
+            out(get("/api/mesh", action="register",
+                    node=ns.node or "", url=ns.url or "",
+                    ip=ns.ip or "", kind=ns.kind or "peer"))
+        elif a == "heartbeat":
+            out(get("/api/mesh", action="heartbeat",
+                    node=ns.node or "self"))
+        elif a == "read":
+            out(get("/api/mesh", action="read",
+                    node=ns.node or ""))
+        elif a == "continuity":
+            out(get("/api/mesh", action="continuity"))
+        else:
+            out(get("/api/mesh"))
     elif ns.cmd == "genesis":
         a = ns.action or "status"
         if a == "observe":

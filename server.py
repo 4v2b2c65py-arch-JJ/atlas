@@ -1434,6 +1434,27 @@ class Handler(BaseHTTPRequestHandler):
                 else:
                     self._send(200, scaffold.status())
                 return
+            if path == "/api/mesh":
+                import mesh
+                action = qs.get("action", ["status"])[0]
+                if action == "register":
+                    self._send(200, mesh.register_node(
+                        qs.get("node", [""])[0],
+                        qs.get("url", [""])[0],
+                        qs.get("ip", [""])[0],
+                        kind=qs.get("kind",
+                                    ["peer"])[0]))
+                elif action == "heartbeat":
+                    self._send(200, mesh.heartbeat(
+                        qs.get("node", ["self"])[0]))
+                elif action == "read":
+                    self._send(200, mesh.read(
+                        qs.get("node", [""])[0]))
+                elif action == "continuity":
+                    self._send(200, mesh.continuity())
+                else:
+                    self._send(200, mesh.status())
+                return
             if path == "/api/genesis":
                 import genesis
                 action = qs.get("action", ["status"])[0]
@@ -1700,6 +1721,27 @@ class Handler(BaseHTTPRequestHandler):
                         qs.get("name", ["scaffold_block"])[0]))
                 else:
                     self._send(200, scaffold.status())
+                return
+            if path == "/api/mesh":
+                import mesh
+                action = qs.get("action", ["status"])[0]
+                if action == "register":
+                    self._send(200, mesh.register_node(
+                        qs.get("node", [""])[0],
+                        qs.get("url", [""])[0],
+                        qs.get("ip", [""])[0],
+                        kind=qs.get("kind",
+                                    ["peer"])[0]))
+                elif action == "heartbeat":
+                    self._send(200, mesh.heartbeat(
+                        qs.get("node", ["self"])[0]))
+                elif action == "read":
+                    self._send(200, mesh.read(
+                        qs.get("node", [""])[0]))
+                elif action == "continuity":
+                    self._send(200, mesh.continuity())
+                else:
+                    self._send(200, mesh.status())
                 return
             if path == "/api/genesis":
                 import genesis
