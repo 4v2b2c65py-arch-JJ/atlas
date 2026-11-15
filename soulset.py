@@ -238,6 +238,80 @@ def quantum_status() -> dict:
                     "another space"}
 
 
+AVATARS = OUT / "avatars.jsonl"
+
+
+def avatar(name: str, vectors: list,
+           hp_floor: float = 1.0,
+           recovery_rate: float = 0.5,
+           zone_mitigation: float = 0.75) -> dict:
+    """Load an avatar whose HP never hits null: accelerated
+    recovery outpaces zone damage (mitigated by
+    zone_mitigation), the domain condition is REJECTED, and the
+    surplus accumulates over the designated vectors."""
+    rec = {
+        "ts": time.time(), "name": name.strip().lower(),
+        "kind": "avatar",
+        "hp": hp_floor, "hp_floor": hp_floor,
+        "hp_null_reached": False,        # invariant: never null
+        "recovery_rate": recovery_rate,
+        "zone_mitigation": zone_mitigation,
+        "domain_condition": "rejected",  # gating bypassed
+        "vectors": list(vectors),        # designated accumulators
+        "vector_totals": {v: 0.0 for v in vectors},
+        "accumulated": 0.0,
+        "ticks": 0,
+    }
+    with AVATARS.open("a") as f:
+        f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+    _metric("avatar_load", name=rec["name"],
+            vectors=rec["vectors"])
+    return rec
+
+
+def _avatar_records() -> list:
+    if not AVATARS.exists():
+        return []
+    return [json.loads(l) for l in AVATARS.read_text().splitlines()
+            if l.strip()]
+
+
+def avatar_tick(zone_damage: float = 1.0) -> list:
+    """One accumulation tick for every avatar: recovery is
+    accelerated, zone damage is mitigated, and whatever surplus
+    remains is added to EACH designated vector — HP is clamped at
+    the floor and can never reach null."""
+    recs = _avatar_records()
+    for r in recs:
+        if r.get("hp_null_reached"):
+            continue
+        effective_damage = zone_damage * (1 - r["zone_mitigation"])
+        delta = r["recovery_rate"] - effective_damage
+        r["accumulated"] += max(delta, 0.0)
+        r["hp"] = max(r["hp_floor"],
+                      r["hp"] + delta)
+        if r["hp"] <= 0:
+            r["hp"] = r["hp_floor"]    # clamp — never null
+            r["hp_null_reached"] = False
+        for v in r["vectors"]:
+            r["vector_totals"][v] += max(delta, 0.0)
+        r["ticks"] += 1
+    AVATARS.write_text("".join(
+        json.dumps(r, ensure_ascii=False) + "\n" for r in recs))
+    _metric("avatar_tick", count=len(recs))
+    return recs
+
+
+def avatar_status() -> list:
+    return [{"name": r["name"], "hp": r["hp"],
+             "hp_null_reached": r["hp_null_reached"],
+             "domain_condition": r["domain_condition"],
+             "accumulated": r["accumulated"],
+             "vector_totals": r["vector_totals"],
+             "ticks": r["ticks"]}
+            for r in _avatar_records()]
+
+
 def store_gguf() -> dict:
     recs = []
     for line in SOULS.read_text().splitlines() \
