@@ -394,6 +394,97 @@ def pull_records() -> dict:
             "out": str(RECORDS)}
 
 
+# GML game-shell command set — file overwrite / ini / steam /
+# conditional-exec functions recovered from the data.win string
+# table. These are the "gamefile overwrite condition commands":
+# file_text_open_write truncates/overwrites, ini_write_* patches
+# config, steam_file_* hits the Steam API, script_execute runs
+# conditional code, debug/debuggo are the dev shell.
+GAME_SHELL_COMMANDS = {
+    "file_text_open_write": "open file for writing — OVERWRITES "
+                            "existing contents",
+    "file_text_open_read": "open file for reading",
+    "file_text_open_append": "open file for appending",
+    "file_text_write_string": "write string to open file",
+    "file_text_writeln": "write string + newline",
+    "file_text_write_real": "write number to open file",
+    "file_text_read_string": "read string from open file",
+    "file_text_read_real": "read number from open file",
+    "file_text_close": "close open file handle",
+    "file_exists": "file existence check — overwrite condition",
+    "ini_write_string": "overwrite INI string value",
+    "ini_write_real": "overwrite INI real value",
+    "ini_read_string": "read INI string",
+    "ini_read_real": "read INI real",
+    "ini_open": "open INI for read/write",
+    "ini_close": "close INI",
+    "iniwrite": "legacy INI write",
+    "steam_file_write_file": "Steam-cloud file write",
+    "steam_file_delete": "Steam-cloud file delete",
+    "steam_file_exists": "Steam-cloud existence check",
+    "script_execute": "execute script asset — conditional code "
+                      "path",
+    "debug": "debug channel output",
+    "debuggo": "debug execution trigger",
+    "working_directory": "game working dir — write root",
+}
+
+
+def pull_shell_commands() -> dict:
+    """Recover the game-shell command set from strings.txt and
+    store each as a game_shell_command record — which functions
+    exist, their overwrite semantics, and where they sit in the
+    save/debug call clusters."""
+    found = {}
+    if STRINGS_TXT.exists():
+        lines = STRINGS_TXT.read_text(
+            encoding="utf-8", errors="replace").splitlines()
+        line_set = set(lines)
+        for name, desc in GAME_SHELL_COMMANDS.items():
+            if name in line_set:
+                found[name] = {"present": True, "desc": desc,
+                               "line": lines.index(name) + 1}
+    # neighbors of the file-write cluster = the save-file call
+    # context (filechoice*, lastsaved*, scr_dogcheck)
+    context = []
+    if STRINGS_TXT.exists():
+        lines = STRINGS_TXT.read_text(
+            encoding="utf-8", errors="replace").splitlines()
+        for i, l in enumerate(lines):
+            if l == "file_text_open_write":
+                context = lines[max(0, i - 30):i + 30]
+                break
+    for name, info in found.items():
+        add_kind = "game_shell_command"
+        body = json.dumps({"name": name, **info},
+                          sort_keys=True)
+        import hashlib
+        h = hashlib.sha256(body.encode()).hexdigest()[:16]
+        rec = {"kind": add_kind, "rec_hash": h, "ts": _now(),
+               "name": name, **info,
+               "cluster": "save_system" if any(
+                   c in context for c in
+                   ("filechoice", "lastsaved", "scr_dogcheck"))
+               else "general"}
+        # dedupe append
+        exists = False
+        if RECORDS.exists():
+            for line in RECORDS.read_text().splitlines():
+                try:
+                    if json.loads(line).get("rec_hash") == h:
+                        exists = True
+                        break
+                except Exception:
+                    pass
+        if not exists:
+            with RECORDS.open("a") as f:
+                f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+    _metric("pull_shell_commands", found=len(found))
+    return {"commands_found": len(found),
+            "missing": sorted(set(GAME_SHELL_COMMANDS) - set(found)),
+            "commands": {k: v["line"] for k, v in found.items()}}
+
+
 def encounter_status() -> dict:
     """What's missing to complete the encounter — honest gap list."""
     s = status()
