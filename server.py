@@ -1325,6 +1325,36 @@ class Handler(BaseHTTPRequestHandler):
                 else:
                     self._send(200, spectrum.status())
                 return
+            if path == "/api/mechanics":
+                import mechanics
+                action = qs.get("action", ["status"])[0]
+                if action == "combos":
+                    self._send(200, {"combos":
+                                     mechanics.combos2()})
+                elif action == "expand":
+                    self._send(200, mechanics.expand(
+                        qs.get("profile", ["default"])[0],
+                        limit_combos=int(
+                            qs.get("limit", ["0"])[0])))
+                elif action == "assign":
+                    self._send(200, mechanics.assign(
+                        qs.get("node", [""])[0],
+                        qs.get("combo", [""])[0],
+                        qs.get("trigger", [""])[0],
+                        qs.get("profile", ["default"])[0]))
+                elif action == "fire":
+                    env = {}
+                    try:
+                        env = json.loads(qs.get("env", ["{}"])[0])
+                    except Exception:
+                        pass
+                    self._send(200, mechanics.fire(
+                        qs.get("trigger", [""])[0], env,
+                        qs.get("profile", ["default"])[0]))
+                else:
+                    self._send(200, mechanics.status(
+                        qs.get("profile", ["default"])[0]))
+                return
             if path == "/api/timelinecombos":
                 import timelinecombos
                 action = qs.get("action", ["status"])[0]
@@ -1390,6 +1420,36 @@ class Handler(BaseHTTPRequestHandler):
                         qs.get("center", [""])[0] or None))
                 else:
                     self._send(200, branches.status())
+                return
+            if path == "/api/mechanics":
+                import mechanics
+                action = qs.get("action", ["status"])[0]
+                if action == "combos":
+                    self._send(200, {"combos":
+                                     mechanics.combos2()})
+                elif action == "expand":
+                    self._send(200, mechanics.expand(
+                        qs.get("profile", ["default"])[0],
+                        limit_combos=int(
+                            qs.get("limit", ["0"])[0])))
+                elif action == "assign":
+                    self._send(200, mechanics.assign(
+                        qs.get("node", [""])[0],
+                        qs.get("combo", [""])[0],
+                        qs.get("trigger", [""])[0],
+                        qs.get("profile", ["default"])[0]))
+                elif action == "fire":
+                    env = {}
+                    try:
+                        env = json.loads(qs.get("env", ["{}"])[0])
+                    except Exception:
+                        pass
+                    self._send(200, mechanics.fire(
+                        qs.get("trigger", [""])[0], env,
+                        qs.get("profile", ["default"])[0]))
+                else:
+                    self._send(200, mechanics.status(
+                        qs.get("profile", ["default"])[0]))
                 return
             if path == "/api/timelinecombos":
                 import timelinecombos

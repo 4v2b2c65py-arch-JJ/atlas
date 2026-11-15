@@ -225,6 +225,18 @@ def main() -> None:
     sp.add_argument("--interval", type=float, default=60)
     sp.add_argument("--cycles", type=int, default=1)
 
+    mc = sub.add_parser("mechanics")
+    mc.add_argument("action", nargs="?",
+                    choices=["status", "combos", "expand",
+                             "assign", "fire"],
+                    default="status")
+    mc.add_argument("profile", nargs="?")
+    mc.add_argument("node", nargs="?")
+    mc.add_argument("--combo", default="")
+    mc.add_argument("--trigger", default="")
+    mc.add_argument("--env", default="{}")
+    mc.add_argument("--limit", type=int, default=0)
+
     tc = sub.add_parser("timelinecombos")
     tc.add_argument("action", nargs="?",
                     choices=["status", "combos", "expand"],
@@ -691,6 +703,27 @@ def main() -> None:
             out(get("/api/spectrum", action="gguf"))
         else:
             out(get("/api/spectrum"))
+    elif ns.cmd == "mechanics":
+        a = ns.action or "status"
+        if a == "combos":
+            out(get("/api/mechanics", action="combos"))
+        elif a == "expand":
+            out(get("/api/mechanics", action="expand",
+                    profile=ns.profile or "default",
+                    limit=ns.limit))
+        elif a == "assign":
+            out(get("/api/mechanics", action="assign",
+                    node=ns.node or "", combo=ns.combo,
+                    trigger=ns.trigger,
+                    profile=ns.profile or "default"))
+        elif a == "fire":
+            out(get("/api/mechanics", action="fire",
+                    trigger=ns.trigger or "",
+                    env=ns.env,
+                    profile=ns.profile or "default"))
+        else:
+            out(get("/api/mechanics",
+                    profile=ns.profile or "default"))
     elif ns.cmd == "timelinecombos":
         a = ns.action or "status"
         if a == "combos":
