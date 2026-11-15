@@ -147,6 +147,7 @@ import vision  # noqa: E402
 import cardinal  # noqa: E402
 import namescrape  # noqa: E402
 import nameconsensus  # noqa: E402
+import caster  # noqa: E402
 
 # GML/SML-1 spec engine (AUTO-01 add-1 rule, CF-01 requirements)
 GML_DIR = ROOT / "gml" / "SML-1"
@@ -1229,6 +1230,9 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/api/consensus":
                 self._send(200, nameconsensus.status())
                 return
+            if path == "/api/cast":
+                self._send(200, caster.status())
+                return
             if path == "/api/prime":
                 action = qs.get("action", ["status"])[0]
                 if action == "wallets":
@@ -1898,6 +1902,28 @@ class Handler(BaseHTTPRequestHandler):
                     self._send(200, nameconsensus.update_weights())
                 else:
                     self._send(200, nameconsensus.status())
+            elif u.path == "/api/cast":
+                action = body.get("action", "status")
+                if action == "cast":
+                    self._send(200, caster.cast(
+                        body.get("name", ""), body.get("src", ""),
+                        float(body.get("at", 0)),
+                        body.get("lens", "character"),
+                        int(body.get("repeats", 1)),
+                        float(body.get("seconds", 8)),
+                        body.get("instruction", "")))
+                elif action == "mirror":
+                    self._send(200, caster.mirror(body))
+                elif action == "queue":
+                    self._send(200, caster.run_queue(
+                        body.get("triggers", []),
+                        body.get("caps")))
+                elif action == "gguf":
+                    self._send(200, caster.store_gguf())
+                elif action == "tiers":
+                    self._send(200, caster.tier_list())
+                else:
+                    self._send(200, caster.status())
             elif u.path == "/api/book":
                 action = body.get("action", "status")
                 if action == "open":

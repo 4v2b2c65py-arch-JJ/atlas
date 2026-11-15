@@ -175,6 +175,13 @@ def main() -> None:
     bk.add_argument("a1", nargs="?"); bk.add_argument("a2", nargs="?")
     bk.add_argument("a3", nargs="?"); bk.add_argument("a4", nargs="?")
 
+    cs = sub.add_parser("cast")
+    cs.add_argument("action",
+                    choices=["status", "cast", "mirror", "queue",
+                             "gguf", "tiers"])
+    cs.add_argument("a1", nargs="?"); cs.add_argument("a2", nargs="?")
+    cs.add_argument("a3", nargs="?"); cs.add_argument("a4", nargs="?")
+
     nm = sub.add_parser("names")
     nm.add_argument("query", nargs="*",
                     help="name to look up; empty = dataset status")
@@ -468,6 +475,31 @@ def main() -> None:
                                    "at": float(ns.a2 or 0),
                                    "instruction": ns.a3 or "",
                                    "seconds": float(ns.a4 or 8)}))
+    elif ns.cmd == "cast":
+        a = ns.action
+        if a == "status":
+            out(get("/api/cast"))
+        elif a == "tiers":
+            out(get("/api/cast"))
+        elif a == "cast":
+            # atlas cast cast <name> <src> [at] [repeats]
+            out(post("/api/cast", {"action": "cast",
+                                   "name": ns.a1 or "",
+                                   "src": ns.a2 or "",
+                                   "at": float(ns.a3 or 0),
+                                   "repeats": int(ns.a4 or 1)}))
+        elif a == "queue":
+            out(post("/api/cast", {"action": "queue",
+                                   "triggers": [{"name": ns.a1 or "",
+                                                 "src": ns.a2 or "",
+                                                 "at": float(ns.a3 or 0)}]}))
+        elif a == "gguf":
+            out(post("/api/cast", {"action": "gguf"}))
+        else:
+            out(post("/api/cast", {"action": "mirror",
+                                   "name": ns.a1 or "",
+                                   "src": ns.a2 or "",
+                                   "at": float(ns.a3 or 0)}))
     elif ns.cmd == "names":
         q = " ".join(ns.query or [])
         if ns.query and ns.query[0] in (

@@ -15,6 +15,7 @@ import numpy as np
 
 sys.path.insert(0, str(Path(__file__).parent))
 import atlas  # noqa: E402
+import caster  # noqa: E402
 import identity  # noqa: E402
 import llm  # noqa: E402
 import resonance  # noqa: E402
@@ -388,6 +389,30 @@ def atlas_enhance_fidelity(
         "spec": spec,
         "storage": gate,
     }
+
+
+@mcp.tool()
+def atlas_tier_list() -> dict:
+    """ATLAS caster tier list — names ranked S/A/B/C/D by
+    consensus strength (mirror votes + est. global bearers)."""
+    return caster.tier_list()
+
+
+@mcp.tool()
+def atlas_cast_mirror(trigger: dict) -> dict:
+    """Triggerable caster mirror — feed it a websearch/discovery
+    result {name, src, at, repeats, seconds, instruction} and it
+    casts a character-lens clip with repeater view, engraving the
+    instruction into the original video layers. Metrics (incl.
+    downtime) are logged; results persist to casts.gguf."""
+    return caster.mirror(trigger)
+
+
+@mcp.tool()
+def atlas_caster_status() -> dict:
+    """Caster status: compute caps, downtime metrics, tier list,
+    cast count, GGUF store."""
+    return caster.status()
 
 
 if __name__ == "__main__":
