@@ -175,6 +175,10 @@ def main() -> None:
     bk.add_argument("a1", nargs="?"); bk.add_argument("a2", nargs="?")
     bk.add_argument("a3", nargs="?"); bk.add_argument("a4", nargs="?")
 
+    nm = sub.add_parser("names")
+    nm.add_argument("query", nargs="*",
+                    help="name to look up; empty = dataset status")
+
     au = sub.add_parser("auth")
     au.add_argument("action", choices=["signup", "login", "status"])
     au.add_argument("user", nargs="?"); au.add_argument("password", nargs="?")
@@ -464,6 +468,9 @@ def main() -> None:
                                    "at": float(ns.a2 or 0),
                                    "instruction": ns.a3 or "",
                                    "seconds": float(ns.a4 or 8)}))
+    elif ns.cmd == "names":
+        q = " ".join(ns.query or [])
+        out(get("/api/names", q=q) if q else get("/api/names"))
     elif ns.cmd == "auth":
         if ns.action == "status":
             out(get("/api/auth/status"))

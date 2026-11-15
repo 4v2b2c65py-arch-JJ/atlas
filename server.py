@@ -145,6 +145,7 @@ import tax  # noqa: E402
 import catalogue  # noqa: E402
 import vision  # noqa: E402
 import cardinal  # noqa: E402
+import namescrape  # noqa: E402
 
 # GML/SML-1 spec engine (AUTO-01 add-1 rule, CF-01 requirements)
 GML_DIR = ROOT / "gml" / "SML-1"
@@ -1216,6 +1217,13 @@ class Handler(BaseHTTPRequestHandler):
                 return
             if path == "/api/book":
                 self._send(200, cardinal.status())
+                return
+            if path == "/api/names":
+                q = qs.get("q", [""])[0]
+                if q:
+                    self._send(200, namescrape.lookup(q))
+                else:
+                    self._send(200, namescrape.status())
                 return
             if path == "/api/prime":
                 action = qs.get("action", ["status"])[0]
