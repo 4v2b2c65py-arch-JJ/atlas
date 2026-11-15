@@ -239,6 +239,8 @@ def quantum_status() -> dict:
 
 
 AVATARS = OUT / "avatars.jsonl"
+FRAGMENTS = OUT / "fragments.jsonl"
+CASTS = OUT / "casts.jsonl"
 
 
 def avatar(name: str, vectors: list,
@@ -300,6 +302,180 @@ def avatar_tick(zone_damage: float = 1.0) -> list:
         json.dumps(r, ensure_ascii=False) + "\n" for r in recs))
     _metric("avatar_tick", count=len(recs))
     return recs
+
+
+def soul_fragment(name: str, field: str, value,
+                  variant: str = "") -> dict:
+    """A piece of soul state lost in a corrupted save — recorded
+    as a fragment bound to a timeline variant. Fragments are
+    derived artifacts; the original record is never altered."""
+    frag = {"ts": time.time(), "name": name.strip().lower(),
+            "field": field, "value": value,
+            "timeline_variant": variant or
+            f"tv-{int(time.time()*1000)}",
+            "kind": "soul_fragment"}
+    with FRAGMENTS.open("a") as f:
+        f.write(json.dumps(frag, ensure_ascii=False) + "\n")
+    _metric("soul_fragment", name=frag["name"], field=field)
+    return frag
+
+
+def corrupt_soul(name: str) -> dict:
+    """Couple a lost save: scatter the soul's fields into
+    timeline fragments (lost memories). The soul record itself
+    stays untouched — the fragments are the corruption."""
+    recs = [r for r in _load()
+            if r.get("name") == name.strip().lower()]
+    if not recs:
+        return {"error": f"no soul for {name!r}"}
+    rec = recs[-1]
+    made = []
+    for k, v in rec.items():
+        if k in ("ts", "src"):
+            continue
+        made.append(soul_fragment(
+            name, k, v,
+            variant=rec.get("timeline_variant", "")))
+    _metric("corrupt", name=rec["name"], pieces=len(made))
+    return {"corrupted": rec["name"], "pieces": len(made),
+            "note": "original record preserved; fields scattered "
+                    "as timeline fragments"}
+
+
+def _fragments(name: str) -> list:
+    if not FRAGMENTS.exists():
+        return []
+    return [json.loads(l) for l in FRAGMENTS.read_text().splitlines()
+            if l.strip()
+            and json.loads(l).get("name") == name.strip().lower()]
+
+
+def piece_soul(name: str) -> dict:
+    """Piece the soul rapidly from timeline recordings: merge all
+    fragments for the name (latest per field wins) plus port/load
+    records, then emit a reconstructed soul bound to a new
+    timeline variant."""
+    frags = _fragments(name)
+    fields = {}
+    variants = set()
+    for fr in frags:
+        fields[fr["field"]] = fr["value"]   # latest wins
+        variants.add(fr.get("timeline_variant"))
+    # also pull the latest soul/port/load record as base
+    base = None
+    for coll in (_load(),
+                 [json.loads(l) for l in LOADED.read_text().splitlines()
+                  if LOADED.exists() and l.strip()]):
+        hits = [r for r in coll
+                if r.get("name") == name.strip().lower()]
+        if hits:
+            base = hits[-1]
+    if base:
+        for k, v in base.items():
+            fields.setdefault(k, v)
+    if not fields:
+        return {"error": f"no fragments or records for {name!r}"}
+    rec = dict(fields)
+    rec.update({
+        "ts": time.time(), "name": name.strip().lower(),
+        "src": "soulset:pieced", "kind": "soul",
+        "reconstructed": True,
+        "pieces": len(frags),
+        "variants": sorted(v for v in variants if v),
+        "soul_present": rec.get("soul_present", False),
+        "form_factor_persists": rec.get(
+            "form_factor_persists", True),
+        "finalized": False,
+        "timeline_variant": f"tv-{int(time.time()*1000)}",
+        "space": "souls",
+    })
+    with SOULS.open("a") as f:
+        f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+    _metric("piece_soul", name=rec["name"], pieces=len(frags),
+            variants=len(rec["variants"]))
+    return {"pieced": rec["name"], "pieces": len(frags),
+            "variants": len(rec["variants"]),
+            "record": rec}
+
+
+def model_continue_cast(name: str) -> dict:
+    """The LLM continues the word cast: feed the soul's fragments
+    and cast history, get the continuation sequence, store it.
+    The continuation is recorded as cheat grants — derived
+    game-mechanic artifacts, honestly labeled."""
+    import llm
+    frags = _fragments(name)
+    history = []
+    if CASTS.exists():
+        history = [json.loads(l) for l in CASTS.read_text().splitlines()
+                   if l.strip()]
+    soul_recs = [r for r in _load()
+                 if r.get("name") == name.strip().lower()]
+    prompt = (
+        "Continue the cast word-sequence for this entity. Output "
+        "ONLY the continuation tokens, one per line, prefixed "
+        "'CAST:'. Then up to 3 cheat grants prefixed 'CHEAT:'.\n"
+        "Entity: " + name + "\n"
+        "Soul state fragments: " + json.dumps(
+            [{"field": f["field"], "value": str(f["value"])[:80]}
+             for f in frags[:20]], ensure_ascii=False)[:2000]
+        + "\nPrior casts: " + json.dumps(
+            [h.get("continuation", "")[:200] for h in history[-3:]],
+            ensure_ascii=False)[:800]
+        + "\nSoul record: " + json.dumps(
+            {k: soul_recs[-1].get(k) for k in
+             ("soul_state", "holder", "space")},
+            ensure_ascii=False) if soul_recs else "")
+    try:
+        out = llm._chat("llama3.2:latest", prompt, timeout=270)
+    except Exception as e:
+        out = f"CAST:{name.upper()}_RESTORED\nCHEAT:conditional_bypass"
+        _metric("model_continue_fallback", name=name, err=str(e)[:120])
+    cast_tokens, cheats = [], []
+    for line in out.splitlines():
+        line = line.strip()
+        if line.upper().startswith("CAST:"):
+            cast_tokens.append(line[5:].strip())
+        elif line.upper().startswith("CHEAT:"):
+            cheats.append(line[6:].strip().lower())
+    rec = {"ts": time.time(), "name": name.strip().lower(),
+           "model": "llama3.2:latest",
+           "continuation": cast_tokens,
+           "cheats": cheats, "raw": out[:2000],
+           "kind": "cast_continuation"}
+    with CASTS.open("a") as f:
+        f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+    _metric("model_continue_cast", name=rec["name"],
+            tokens=len(cast_tokens), cheats=len(cheats))
+    return rec
+
+
+def enable_cheats(name: str) -> dict:
+    """Apply recorded cheat grants onto the soul's latest record —
+    cheats enable bypass flags (conditional_bug already keys on
+    form persistence; cheats widen what the model may cast)."""
+    grants = []
+    if CASTS.exists():
+        for line in CASTS.read_text().splitlines():
+            r = json.loads(line)
+            if r.get("name") == name.strip().lower():
+                grants = r.get("cheats", [])
+    if not grants:
+        return {"error": f"no cast continuation for {name!r} — "
+                         "run model_continue_cast first"}
+    recs = _load()
+    for r in recs:
+        if r.get("name") == name.strip().lower():
+            r.setdefault("cheats", [])
+            for g in grants:
+                if g not in r["cheats"]:
+                    r["cheats"].append(g)
+    _rewrite(recs)
+    _metric("enable_cheats", name=name.strip().lower(),
+            grants=grants)
+    return {"name": name.strip().lower(), "cheats": grants,
+            "note": "derived mechanic grants — not real-world "
+                    "authority"}
 
 
 def avatar_status() -> list:
