@@ -225,6 +225,12 @@ def main() -> None:
     sp.add_argument("--interval", type=float, default=60)
     sp.add_argument("--cycles", type=int, default=1)
 
+    px = sub.add_parser("proximity")
+    px.add_argument("action", nargs="?",
+                    choices=["status", "encounter"],
+                    default="status")
+    px.add_argument("center", nargs="?")
+
     ft = sub.add_parser("familytree")
     ft.add_argument("action", nargs="?",
                     choices=["status", "render", "summon"],
@@ -652,6 +658,13 @@ def main() -> None:
             out(get("/api/spectrum", action="gguf"))
         else:
             out(get("/api/spectrum"))
+    elif ns.cmd == "proximity":
+        a = ns.action or "status"
+        if a == "encounter":
+            out(get("/api/proximity", action="encounter",
+                    center=ns.center or "reaper_sans"))
+        else:
+            out(get("/api/proximity"))
     elif ns.cmd == "familytree":
         a = ns.action or "status"
         if a == "render":

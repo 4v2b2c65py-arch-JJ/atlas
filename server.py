@@ -1325,6 +1325,15 @@ class Handler(BaseHTTPRequestHandler):
                 else:
                     self._send(200, spectrum.status())
                 return
+            if path == "/api/proximity":
+                import proximity
+                action = qs.get("action", ["status"])[0]
+                if action == "encounter":
+                    self._send(200, proximity.encounter(
+                        qs.get("center", ["reaper_sans"])[0]))
+                else:
+                    self._send(200, proximity.status())
+                return
             if path == "/api/familytree":
                 import familytree
                 action = qs.get("action", ["status"])[0]
