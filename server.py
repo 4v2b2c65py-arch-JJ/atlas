@@ -1357,6 +1357,27 @@ class Handler(BaseHTTPRequestHandler):
                         qs.get("char", [""])[0]))
                 elif action == "pack":
                     self._send(200, charpack.emoji_pack())
+                elif action == "icons":
+                    self._send(200, charpack.icon_pack())
+                elif action == "icon":
+                    ch = qs.get("char", [""])[0]
+                    p = charpack.icon_path(ch)
+                    if qs.get("emoji", ["0"])[0] in ("1", "true"):
+                        ep = charpack.ICONS / f"{ch}.emoji.png"
+                        if ep.exists():
+                            p = ep
+                    if not p or not p.exists():
+                        self._send(404, {"error": "no icon"})
+                        return
+                    data = p.read_bytes()
+                    ctype = mimetypes.guess_type(
+                        str(p))[0] or "application/octet-stream"
+                    self.send_response(200)
+                    self.send_header("Content-Type", ctype)
+                    self.send_header("Content-Length",
+                                     str(len(data)))
+                    self.end_headers()
+                    self.wfile.write(data)
                 elif action == "gguf":
                     self._send(200, charpack.pack_gguf())
                 else:
@@ -1553,6 +1574,20 @@ class Handler(BaseHTTPRequestHandler):
                         "text": msg["text"][:200]})
                     broadcast("comms", msg)
                     self._send(200, {"ok": True, "id": msg["id"]})
+            elif u.path == "/api/charpack":
+                import charpack, base64
+                if body.get("action") == "install_icon":
+                    data = base64.b64decode(
+                        body.get("data_b64", ""))
+                    res = charpack.install_icon_bytes(
+                        body.get("char", ""),
+                        body.get("filename", "icon.png"), data)
+                    log_event("charpack", {"char": res.get(
+                        "character"), "installed": res.get(
+                        "installed")})
+                    self._send(200, res)
+                else:
+                    self._send(400, {"error": "action required"})
             elif u.path == "/api/peers":
                 node = body.get("node", "anon")
                 if body.get("hub", "").startswith("http"):

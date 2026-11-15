@@ -18,6 +18,15 @@ ROOT = Path(__file__).parent
 OUT = ROOT / "data" / "charpack"
 UNLOCKS = OUT / "unlocks.jsonl"
 GGUF = OUT / "charpack.gguf"
+ICONS = OUT / "icons"
+MANIFEST = OUT / "icons.json"
+
+# accepted icon formats — original kept verbatim, PNG emoji
+# preview rendered via PIL when available
+ICON_FORMATS = {".png", ".jpg", ".jpeg", ".webp", ".gif",
+                ".svg", ".ico", ".bmp", ".avif", ".tif",
+                ".tiff"}
+EMOJI_SIZE = 128
 
 # winding word pack — original subtitle lines per character.
 # grimware = the ToA/Vanitas token the line maps to (decoded, not
@@ -198,6 +207,121 @@ def generate_emoji(character: str) -> dict:
             "emoji": c["emoji"], "tier": c["tier"],
             "origin": c["origin"], "grimware": c["grimware"],
             "phrases": c["phrases"]}
+
+
+def _load_manifest() -> dict:
+    if MANIFEST.exists():
+        try:
+            return json.loads(MANIFEST.read_text())
+        except json.JSONDecodeError:
+            pass
+    return {}
+
+
+def _save_manifest(m: dict) -> None:
+    OUT.mkdir(parents=True, exist_ok=True)
+    MANIFEST.write_text(json.dumps(m, indent=1))
+
+
+def _render_emoji_png(src: Path, dst: Path) -> bool:
+    """Normalize any icon to a square RGBA PNG (emoji-style)."""
+    try:
+        from PIL import Image
+    except ImportError:
+        return False
+    try:
+        im = Image.open(src).convert("RGBA")
+        im.thumbnail((EMOJI_SIZE, EMOJI_SIZE),
+                     Image.LANCZOS)
+        canvas = Image.new("RGBA", (EMOJI_SIZE, EMOJI_SIZE),
+                           (0, 0, 0, 0))
+        canvas.paste(im, ((EMOJI_SIZE - im.width) // 2,
+                          (EMOJI_SIZE - im.height) // 2), im)
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        canvas.save(dst, "PNG")
+        return True
+    except Exception:
+        return False
+
+
+def install_icon(character: str, src: Path | str,
+                 emoji_png: bool = True) -> dict:
+    """Install a custom icon for a character. Accepts png/jpg/
+    jpeg/webp/gif/svg/ico/bmp/avif/tif — original stored verbatim
+    under data/charpack/icons/, emoji PNG preview rendered."""
+    character = character.lower()
+    if character not in CHAR_PACK:
+        return {"character": character, "installed": False,
+                "error": "unknown character"}
+    src = Path(src)
+    ext = src.suffix.lower()
+    if ext not in ICON_FORMATS:
+        return {"character": character, "installed": False,
+                "error": f"unsupported format {ext or '(none)'}",
+                "accepted": sorted(ICON_FORMATS)}
+    ICONS.mkdir(parents=True, exist_ok=True)
+    dest = ICONS / f"{character}{ext}"
+    dest.write_bytes(src.read_bytes())
+    preview = ICONS / f"{character}.emoji.png"
+    rendered = _render_emoji_png(dest, preview) if emoji_png \
+        else False
+    man = _load_manifest()
+    man[character] = {"file": dest.name, "format": ext,
+                      "bytes": dest.stat().st_size,
+                      "installed_ts": time.time(),
+                      "emoji_png": preview.name if rendered
+                      else None,
+                      "source": str(src)}
+    _save_manifest(man)
+    return {"character": character, "installed": True,
+            "icon": str(dest), "emoji_png": str(preview)
+            if rendered else None,
+            "format": ext, "bytes": dest.stat().st_size}
+
+
+def icon_path(character: str) -> Path | None:
+    """Resolve installed icon file for a character."""
+    man = _load_manifest()
+    rec = man.get(character.lower())
+    if not rec:
+        # fall back to scanning icons dir by prefix
+        hits = sorted(ICONS.glob(f"{character.lower()}.*")) \
+            if ICONS.exists() else []
+        hits = [h for h in hits
+                if h.suffix.lower() in ICON_FORMATS]
+        return hits[0] if hits else None
+    p = ICONS / rec["file"]
+    return p if p.exists() else None
+
+
+def icon_pack() -> dict:
+    """Emoji pack view: unicode emoji + installed icon status."""
+    man = _load_manifest()
+    out = {}
+    for name, c in CHAR_PACK.items():
+        rec = man.get(name, {})
+        icon = icon_path(name)
+        out[name] = {"emoji": c["emoji"], "tier": c["tier"],
+                     "origin": c["origin"],
+                     "icon": rec.get("file") or
+                     (icon.name if icon else None),
+                     "format": rec.get("format"),
+                     "emoji_png": rec.get("emoji_png"),
+                     "installed": bool(icon)}
+    return out
+
+
+def install_icon_bytes(character: str, filename: str,
+                       data: bytes) -> dict:
+    """Install icon from raw bytes (API upload path)."""
+    ext = Path(filename).suffix.lower()
+    tmp = OUT / f".upload_{character}{ext}"
+    OUT.mkdir(parents=True, exist_ok=True)
+    tmp.write_bytes(data)
+    try:
+        return install_icon(character, tmp)
+    finally:
+        tmp.unlink(missing_ok=True)
 
 
 def pack_gguf() -> dict:

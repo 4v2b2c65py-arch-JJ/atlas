@@ -30,6 +30,7 @@ import json
 import sys
 import urllib.parse
 import urllib.request
+from pathlib import Path
 
 API = "http://localhost:8917"
 
@@ -234,9 +235,12 @@ def main() -> None:
     cp = sub.add_parser("charpack")
     cp.add_argument("action", nargs="?",
                     choices=["status", "unlock", "emoji", "pack",
-                             "gguf"], default="status")
+                             "icons", "icon", "gguf"],
+                    default="status")
     cp.add_argument("target", nargs="?",
                     help="phrase to unlock or character name")
+    cp.add_argument("icon_src", nargs="?",
+                    help="image file to install as character icon")
     gr.add_argument("--limit", type=int, default=25)
 
     au = sub.add_parser("auth")
@@ -663,6 +667,15 @@ def main() -> None:
                     char=ns.target or ""))
         elif a == "pack":
             out(get("/api/charpack", action="pack"))
+        elif a == "icons":
+            out(get("/api/charpack", action="icons"))
+        elif a == "icon":
+            import base64
+            data = Path(ns.icon_src).read_bytes()
+            out(post("/api/charpack", {
+                "action": "install_icon", "char": ns.target or "",
+                "filename": Path(ns.icon_src).name,
+                "data_b64": base64.b64encode(data).decode()}))
         elif a == "gguf":
             out(get("/api/charpack", action="gguf"))
         else:
