@@ -225,6 +225,15 @@ def main() -> None:
     sp.add_argument("--interval", type=float, default=60)
     sp.add_argument("--cycles", type=int, default=1)
 
+    rs = sub.add_parser("resets")
+    rs.add_argument("action", nargs="?",
+                    choices=["status", "record"],
+                    default="status")
+    rs.add_argument("node", nargs="?")
+    rs.add_argument("to", nargs="?")
+    rs.add_argument("frm", nargs="?")
+    rs.add_argument("profile", nargs="?")
+
     gn = sub.add_parser("genesis")
     gn.add_argument("action", nargs="?",
                     choices=["status", "observe", "set"],
@@ -729,6 +738,15 @@ def main() -> None:
             out(get("/api/spectrum", action="gguf"))
         else:
             out(get("/api/spectrum"))
+    elif ns.cmd == "resets":
+        a = ns.action or "status"
+        if a == "record":
+            out(get("/api/resets", action="record",
+                    node=ns.node or "", to=ns.to or "",
+                    **{"from": ns.frm or ""},
+                    profile=ns.profile or "default"))
+        else:
+            out(get("/api/resets"))
     elif ns.cmd == "genesis":
         a = ns.action or "status"
         if a == "observe":

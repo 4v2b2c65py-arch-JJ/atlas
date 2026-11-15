@@ -1325,6 +1325,19 @@ class Handler(BaseHTTPRequestHandler):
                 else:
                     self._send(200, spectrum.status())
                 return
+            if path == "/api/resets":
+                import resets
+                action = qs.get("action", ["status"])[0]
+                if action == "record":
+                    self._send(200, resets.record_reset(
+                        qs.get("node", [""])[0],
+                        qs.get("to", [""])[0],
+                        qs.get("from", [""])[0] or None,
+                        qs.get("profile", ["default"])[0],
+                        qs.get("cause", ["player_reset"])[0]))
+                else:
+                    self._send(200, resets.status())
+                return
             if path == "/api/genesis":
                 import genesis
                 action = qs.get("action", ["status"])[0]
@@ -1482,6 +1495,19 @@ class Handler(BaseHTTPRequestHandler):
                         qs.get("center", [""])[0] or None))
                 else:
                     self._send(200, branches.status())
+                return
+            if path == "/api/resets":
+                import resets
+                action = qs.get("action", ["status"])[0]
+                if action == "record":
+                    self._send(200, resets.record_reset(
+                        qs.get("node", [""])[0],
+                        qs.get("to", [""])[0],
+                        qs.get("from", [""])[0] or None,
+                        qs.get("profile", ["default"])[0],
+                        qs.get("cause", ["player_reset"])[0]))
+                else:
+                    self._send(200, resets.status())
                 return
             if path == "/api/genesis":
                 import genesis
