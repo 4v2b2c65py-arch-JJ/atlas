@@ -490,22 +490,20 @@ def avatar_status() -> list:
 
 def store_gguf() -> dict:
     recs = []
-    for line in SOULS.read_text().splitlines() \
-            if SOULS.exists() else []:
-        try:
-            r = json.loads(line)
-            r["kind"] = "soul"
-            recs.append(r)
-        except Exception:
-            pass
-    for line in METRICS.read_text().splitlines() \
-            if METRICS.exists() else []:
-        try:
-            r = json.loads(line)
-            r["kind"] = "soul_metric"
-            recs.append(r)
-        except Exception:
-            pass
+    stores = [(SOULS, "soul"), (METRICS, "soul_metric"),
+              (FRAGMENTS, "soul_fragment"), (AVATARS, "avatar"),
+              (CASTS, "cast_continuation"), (PORTS, "port_save"),
+              (LOADED, "loaded_soul")]
+    for path, kind in stores:
+        if not path.exists():
+            continue
+        for line in path.read_text().splitlines():
+            try:
+                r = json.loads(line)
+                r["kind"] = kind
+                recs.append(r)
+            except Exception:
+                pass
     res = namescrape.write_gguf(recs, path=GGUF_PATH)
     res["verify"] = namescrape.read_gguf_count(GGUF_PATH)
     return res
