@@ -1328,7 +1328,9 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/api/resets":
                 import resets
                 action = qs.get("action", ["status"])[0]
-                if action == "record":
+                if action == "calendar":
+                    self._send(200, resets.calendar())
+                elif action == "record":
                     self._send(200, resets.record_reset(
                         qs.get("node", [""])[0],
                         qs.get("to", [""])[0],
@@ -1499,7 +1501,9 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/api/resets":
                 import resets
                 action = qs.get("action", ["status"])[0]
-                if action == "record":
+                if action == "calendar":
+                    self._send(200, resets.calendar())
+                elif action == "record":
                     self._send(200, resets.record_reset(
                         qs.get("node", [""])[0],
                         qs.get("to", [""])[0],

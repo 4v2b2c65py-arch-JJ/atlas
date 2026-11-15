@@ -227,7 +227,7 @@ def main() -> None:
 
     rs = sub.add_parser("resets")
     rs.add_argument("action", nargs="?",
-                    choices=["status", "record"],
+                    choices=["status", "record", "calendar"],
                     default="status")
     rs.add_argument("node", nargs="?")
     rs.add_argument("to", nargs="?")
@@ -740,7 +740,9 @@ def main() -> None:
             out(get("/api/spectrum"))
     elif ns.cmd == "resets":
         a = ns.action or "status"
-        if a == "record":
+        if a == "calendar":
+            out(get("/api/resets", action="calendar"))
+        elif a == "record":
             out(get("/api/resets", action="record",
                     node=ns.node or "", to=ns.to or "",
                     **{"from": ns.frm or ""},

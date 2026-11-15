@@ -14,6 +14,7 @@ Store: data/resets/resets.jsonl + reset_state.json
 
 import json
 import time
+from datetime import datetime
 from pathlib import Path
 
 ROOT = Path(__file__).parent
@@ -21,6 +22,7 @@ DATA = ROOT / "data"
 OUT = DATA / "resets"
 RESETS = OUT / "resets.jsonl"
 STATE = OUT / "reset_state.json"
+CAL = OUT / "calendar"  # per-day partitions for future datasets
 
 MIN_EPS = 1e-6
 TINY_BRANCH_EPS = 0.5  # |delta| below this = minimal branch
@@ -111,6 +113,78 @@ def _node_values(node: str, profile: str = "default") -> dict:
             "reality_value": rv if rv is not None else 0.0}
 
 
+def _device_time() -> dict:
+    """Real device clock — local timezone-aware time used to
+    tell exactly when a reset/rewind/loop occurred and to
+    partition records into calendar days for future datasets."""
+    now = datetime.now().astimezone()
+    off = now.utcoffset()
+    return {
+        "ts": now.timestamp(),
+        "iso": now.isoformat(timespec="milliseconds"),
+        "timezone": now.tzname() or "local",
+        "utc_offset_s": int(off.total_seconds()) if off else 0,
+        "date": now.date().isoformat(),       # calendar day
+        "weekday": now.strftime("%A"),
+        "hour": now.hour,
+    }
+
+
+def _loop_streak(node: str, to_reality: str,
+                 from_reality: str) -> int:
+    """How many CONSECUTIVE resets ended at the same
+    node+destination — a rising count means the player is
+    stuck looping, not progressing."""
+    streak = 0
+    if not RESETS.exists():
+        return 0
+    lines = RESETS.read_text().splitlines()
+    for line in reversed(lines):
+        try:
+            r = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if r.get("node") == node and \
+                r.get("to_reality") == to_reality and \
+                r.get("from_reality") == from_reality:
+            streak += 1
+        else:
+            break
+    return streak
+
+
+def _classify(d_min: float, d_max: float,
+              d_rv: float) -> str:
+    """0 presenting on every sum = the player is LOOPING —
+    time rewound and nothing changed. Sub-epsilon diffs =
+    tiny branch; anything larger = a real reset/rewind."""
+    if abs(d_min) < MIN_EPS and abs(d_max) < MIN_EPS and \
+            abs(d_rv) < MIN_EPS:
+        return "looping"
+    if abs(d_max) < TINY_BRANCH_EPS and \
+            abs(d_rv) < TINY_BRANCH_EPS:
+        return "tiny_branch"
+    return "reset"
+
+
+def _occupancy() -> dict:
+    """How many tiny branches are OCCUPYING realities right
+    now — distinct (node, to_reality) pairs whose last reset
+    was a tiny branch. Later real resets vacate the slot."""
+    last = {}
+    if RESETS.exists():
+        for line in RESETS.open():
+            try:
+                r = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            key = (r.get("node"), r.get("to_reality"))
+            last[key] = bool(r.get("tiny_branch"))
+    occ = sorted(k[0] + "->" + str(k[1])
+                 for k, v in last.items() if v)
+    return {"tiny_occupied": len(occ), "slots": occ}
+
+
 def record_reset(node: str, to_reality: str,
                  from_reality: str | None = None,
                  profile: str = "default",
@@ -133,10 +207,21 @@ def record_reset(node: str, to_reality: str,
     min_constant = abs(d_min) < MIN_EPS
     tiny = abs(d_max) < TINY_BRANCH_EPS and \
         abs(d_rv) < TINY_BRANCH_EPS
-    rec = {"ts": time.time(), "kind": "reset",
+    dev = _device_time()
+    frm = from_reality or profile  # profile IS the from-reality
+    # hop = landing in a DIFFERENT reality; rewind = same
+    # reality re-entered (the loop case shows up here too)
+    transition = "hop" if to_reality != frm else "rewind"
+    label = _classify(d_min, d_max, d_rv)
+    streak = _loop_streak(node, to_reality, frm) + 1
+    rec = {"ts": dev["ts"], "device_time": dev,
+           "kind": "reset",
            "node": node, "profile": profile,
-           "from_reality": from_reality or "current",
+           "from_reality": frm,
            "to_reality": to_reality, "cause": cause,
+           "transition": transition,
+           "event": label,
+           "loop_streak": streak if label == "looping" else 0,
            "distribution": {
                "min_output": {"delta": d_min,
                               "constant": min_constant,
@@ -158,6 +243,12 @@ def record_reset(node: str, to_reality: str,
     OUT.mkdir(parents=True, exist_ok=True)
     with RESETS.open("a") as f:
         f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+    # calendar partition — one jsonl per device-local day so
+    # future datasets can query "resets on 2025-..-.." directly
+    day = CAL / (dev["date"] + ".jsonl")
+    day.parent.mkdir(parents=True, exist_ok=True)
+    with day.open("a") as f:
+        f.write(json.dumps(rec, ensure_ascii=False) + "\n")
     _update_state()
     return rec
 
@@ -171,6 +262,8 @@ def _update_state() -> dict:
             except json.JSONDecodeError:
                 continue
     tiny = sum(1 for r in recs if r.get("tiny_branch"))
+    looping = sum(1 for r in recs
+                  if r.get("event") == "looping")
     added = sum(1 for r in recs
                 if (r.get("distribution", {})
                     .get("max_output", {})
@@ -182,14 +275,19 @@ def _update_state() -> dict:
     mins_constant = all(
         (r.get("distribution", {}).get("min_output", {})
          .get("constant")) for r in recs) if recs else True
+    occ = _occupancy()
     state = {"ts": time.time(), "kind": "reset_state",
              "resets": len(recs), "tiny_branches": tiny,
+             "looping": looping,
+             "tiny_occupied": occ["tiny_occupied"],
+             "occupied_slots": occ["slots"],
              "added": added, "subtracted": subtracted,
              "neutral": len(recs) - added - subtracted,
              "min_output_constant": mins_constant,
              "note": ("mins are constant — stalemate of "
-                      "death and rewinds; minimal diffs = "
-                      "tiny branches forming")}
+                      "death and rewinds; 0 on all sums = "
+                      "looping; occupied slots = tiny branches "
+                      "currently holding a reality")}
     STATE.write_text(json.dumps(state, indent=1))
     return state
 
@@ -197,3 +295,13 @@ def _update_state() -> dict:
 def status() -> dict:
     return _update_state() if STATE.exists() else {
         "resets": 0, "tiny_branches": 0}
+
+
+def calendar() -> dict:
+    """Index of calendar-day partitions — the dataset view
+    for querying resets by real device date."""
+    days = {}
+    if CAL.exists():
+        for p in sorted(CAL.glob("*.jsonl")):
+            days[p.stem] = sum(1 for _ in p.open())
+    return {"kind": "reset_calendar", "days": days}
