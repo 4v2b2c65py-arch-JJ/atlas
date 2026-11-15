@@ -1685,6 +1685,20 @@ class Handler(BaseHTTPRequestHandler):
                 else:
                     self._send(200, boardctl.status())
                 return
+            if path == "/api/modelscan":
+                import modelscan
+                action = qs.get("action", ["status"])[0]
+                if action == "scan":
+                    self._send(200, modelscan.scan())
+                elif action == "ports":
+                    self._send(200, {"kind": "ports",
+                                     "listeners":
+                                     modelscan.ports()})
+                elif action == "detect":
+                    self._send(200, modelscan.detect())
+                else:
+                    self._send(200, modelscan.status())
+                return
             if path == "/api/circuit":
                 import circuit
                 action = qs.get("action", ["status"])[0]
@@ -2220,6 +2234,20 @@ class Handler(BaseHTTPRequestHandler):
                         qs.get("msg", [""])[0] or None))
                 else:
                     self._send(200, boardctl.status())
+                return
+            if path == "/api/modelscan":
+                import modelscan
+                action = qs.get("action", ["status"])[0]
+                if action == "scan":
+                    self._send(200, modelscan.scan())
+                elif action == "ports":
+                    self._send(200, {"kind": "ports",
+                                     "listeners":
+                                     modelscan.ports()})
+                elif action == "detect":
+                    self._send(200, modelscan.detect())
+                else:
+                    self._send(200, modelscan.status())
                 return
             if path == "/api/circuit":
                 import circuit

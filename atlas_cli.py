@@ -414,6 +414,11 @@ def main() -> None:
                                            type=int)
     bd.add_argument("msg")
 
+    ms = sub.add_parser("modelscan")
+    ms.add_argument("action", nargs="?",
+                    choices=["status", "scan", "ports",
+                             "detect"], default="status")
+
     ci = sub.add_parser("circuit")
     ci.add_argument("action", nargs="?",
                     choices=["status", "scan", "test"],
@@ -1156,6 +1161,12 @@ def main() -> None:
             if v is not None:
                 q[k] = v
         out(get("/api/boardctl", **q))
+    elif ns.cmd == "modelscan":
+        a = ns.action or "status"
+        if a == "ports":
+            out(get("/api/modelscan", action="ports"))
+        else:
+            out(get("/api/modelscan", action=a))
     elif ns.cmd == "circuit":
         a = ns.action or "status"
         out(get("/api/circuit", action=a))
