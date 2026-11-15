@@ -213,6 +213,16 @@ def main() -> None:
     gr.add_argument("title", nargs="?")
     gr.add_argument("--batch", action="store_true")
     gr.add_argument("--nexus", action="store_true")
+
+    sp = sub.add_parser("spectrum")
+    sp.add_argument("action", nargs="?",
+                    choices=["status", "analyze", "run", "repeat",
+                             "gguf"], default="status")
+    sp.add_argument("target", nargs="?",
+                    help="text to analyze or dataset path")
+    sp.add_argument("--label", default="")
+    sp.add_argument("--interval", type=float, default=60)
+    sp.add_argument("--cycles", type=int, default=1)
     gr.add_argument("--limit", type=int, default=25)
 
     au = sub.add_parser("auth")
@@ -602,6 +612,22 @@ def main() -> None:
             out(get("/api/gamerefs", title=ns.title))
         else:
             out(get("/api/gamerefs"))
+    elif ns.cmd == "spectrum":
+        a = ns.action or "status"
+        if a == "analyze":
+            out(get("/api/spectrum", action="analyze",
+                    text=ns.target or ""))
+        elif a == "run":
+            out(get("/api/spectrum", action="run",
+                    dataset=ns.target or "",
+                    label=ns.label or None))
+        elif a == "repeat":
+            out(get("/api/spectrum", action="repeat",
+                    interval=ns.interval, cycles=ns.cycles))
+        elif a == "gguf":
+            out(get("/api/spectrum", action="gguf"))
+        else:
+            out(get("/api/spectrum"))
     elif ns.cmd == "auth":
         if ns.action == "status":
             out(get("/api/auth/status"))

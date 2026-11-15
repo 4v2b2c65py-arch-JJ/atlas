@@ -1304,6 +1304,27 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/api/cast":
                 self._send(200, caster.status())
                 return
+            if path == "/api/spectrum":
+                import spectrum
+                action = qs.get("action", ["status"])[0]
+                if action == "analyze":
+                    self._send(200, spectrum.composite_analysis(
+                        qs.get("text", [""])[0]))
+                elif action == "run":
+                    ds = qs.get("dataset", [""])[0]
+                    self._send(200, spectrum.run_dataset(
+                        Path(ds) if ds else
+                        ROOT / "data" / "spatial" / "predictions.jsonl",
+                        label=qs.get("label", [""])[0]))
+                elif action == "repeat":
+                    self._send(200, spectrum.repeater(
+                        interval_s=float(qs.get("interval", ["60"])[0]),
+                        cycles=int(qs.get("cycles", ["1"])[0])))
+                elif action == "gguf":
+                    self._send(200, spectrum.pack_gguf())
+                else:
+                    self._send(200, spectrum.status())
+                return
             if path == "/api/gaster":
                 self._send(200, gaster.status())
                 return
