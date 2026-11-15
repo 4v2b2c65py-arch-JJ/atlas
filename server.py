@@ -1434,6 +1434,28 @@ class Handler(BaseHTTPRequestHandler):
                 else:
                     self._send(200, scaffold.status())
                 return
+            if path == "/api/seedgate":
+                action = qs.get("action", ["status"])[0]
+                if action == "inbox":
+                    import mesh as _m
+                    recs = []
+                    if _m.INBOX.exists():
+                        for line in _m.INBOX.open():
+                            try:
+                                recs.append(json.loads(line))
+                            except json.JSONDecodeError:
+                                continue
+                    self._send(200, {"kind": "seedgate_inbox",
+                                     "count": len(recs),
+                                     "records": recs[-50:]})
+                else:
+                    self._send(200, {"kind": "seedgate_state",
+                        "integrated": True,
+                        "root": "seedgate/",
+                        "network_transport": "real",
+                        "route": "POST /api/seedgate/route",
+                        "inbox": "/api/seedgate?action=inbox"})
+                return
             if path == "/api/mesh":
                 import mesh
                 action = qs.get("action", ["status"])[0]
@@ -1721,6 +1743,28 @@ class Handler(BaseHTTPRequestHandler):
                         qs.get("name", ["scaffold_block"])[0]))
                 else:
                     self._send(200, scaffold.status())
+                return
+            if path == "/api/seedgate":
+                action = qs.get("action", ["status"])[0]
+                if action == "inbox":
+                    import mesh as _m
+                    recs = []
+                    if _m.INBOX.exists():
+                        for line in _m.INBOX.open():
+                            try:
+                                recs.append(json.loads(line))
+                            except json.JSONDecodeError:
+                                continue
+                    self._send(200, {"kind": "seedgate_inbox",
+                                     "count": len(recs),
+                                     "records": recs[-50:]})
+                else:
+                    self._send(200, {"kind": "seedgate_state",
+                        "integrated": True,
+                        "root": "seedgate/",
+                        "network_transport": "real",
+                        "route": "POST /api/seedgate/route",
+                        "inbox": "/api/seedgate?action=inbox"})
                 return
             if path == "/api/mesh":
                 import mesh
@@ -2131,7 +2175,8 @@ class Handler(BaseHTTPRequestHandler):
             body = self._json_body()
             if self._auth_required() and u.path not in (
                     "/api/auth/login", "/api/auth/signup",
-                    "/api/auth/status"):
+                    "/api/auth/status",
+                    "/api/mesh/ingest"):
                 if not self._key_meta():
                     self._send(401, {"error": "valid X-ATLAS-Key required",
                                      "hint": "POST /api/auth/signup"})
@@ -2195,6 +2240,33 @@ class Handler(BaseHTTPRequestHandler):
                     self._send(200, res)
                 else:
                     self._send(400, {"error": "action required"})
+            elif u.path == "/api/seedgate/route":
+                import asyncio as _aio
+                import sys as _sys
+                _sys.path.insert(0, str(ROOT / "seedgate" /
+                                       "internal"))
+                from seed_sampler_integration.dispatcher                     import (TransportDispatcher,
+                            ConnectionSpec)
+                spec = ConnectionSpec(
+                    mac=body.get("mac"),
+                    port=body.get("port"),
+                    established=bool(body.get("established",
+                                              True)))
+                res = _aio.run(TransportDispatcher().route(
+                    transport=body.get("transport",
+                                       "network"),
+                    snapshot_id=body.get("snapshotId",
+                                         body.get("snapshot_id",
+                                                  "")),
+                    payload=body.get("payload") or {},
+                    connection_spec=spec))
+                self._send(200, res)
+            elif u.path == "/api/mesh/ingest":
+                import mesh as _mesh
+                self._send(200, _mesh.ingest(
+                    body.get("snapshotId", ""),
+                    body.get("payload") or {},
+                    body.get("transport", "network")))
             elif u.path == "/api/peers":
                 node = body.get("node", "anon")
                 if body.get("hub", "").startswith("http"):

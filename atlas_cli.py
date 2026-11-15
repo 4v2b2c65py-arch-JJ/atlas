@@ -291,6 +291,16 @@ def main() -> None:
     me.add_argument("ip", nargs="?")
     me.add_argument("--kind")
 
+    sg = sub.add_parser("seedgate")
+    sg.add_argument("action", nargs="?",
+                    choices=["status", "inbox", "route"],
+                    default="status")
+    sg.add_argument("snapshot", nargs="?")
+    sg.add_argument("payload", nargs="?")
+    sg.add_argument("--transport")
+    sg.add_argument("--mac")
+    sg.add_argument("--port", type=int)
+
     gn = sub.add_parser("genesis")
     gn.add_argument("action", nargs="?",
                     choices=["status", "observe", "set"],
@@ -892,6 +902,21 @@ def main() -> None:
             out(get("/api/mesh", action="continuity"))
         else:
             out(get("/api/mesh"))
+    elif ns.cmd == "seedgate":
+        a = ns.action or "status"
+        if a == "inbox":
+            out(get("/api/seedgate", action="inbox"))
+        elif a == "route":
+            import json as _j
+            out(post("/api/seedgate/route", {
+                "transport": ns.transport or "network",
+                "snapshotId": ns.snapshot or "cli",
+                "payload": _j.loads(ns.payload)
+                if ns.payload else {},
+                "mac": ns.mac or "", "port": ns.port,
+                "established": True}))
+        else:
+            out(get("/api/seedgate"))
     elif ns.cmd == "genesis":
         a = ns.action or "status"
         if a == "observe":

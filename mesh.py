@@ -307,6 +307,34 @@ def read(node_id: str) -> dict:
             "readable": False, "reason": "unknown_node"}
 
 
+INBOX = OUT / "ingest_inbox.jsonl"
+
+
+def ingest(snapshot_id: str, payload: dict,
+           transport: str = "network") -> dict:
+    """Receive a routed payload (SeedGate network transport
+    and friends) — append to the mesh inbox, heartbeat the
+    implied source if present."""
+    rec = {"ts": _device_time()["ts"],
+           "device_time": _device_time(),
+           "kind": "mesh_ingest",
+           "snapshotId": snapshot_id,
+           "transport": transport,
+           "payload": payload,
+           "derived": True}
+    OUT.mkdir(parents=True, exist_ok=True)
+    with INBOX.open("a") as f:
+        f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+    src = (payload or {}).get("node") or \
+        (payload or {}).get("source")
+    if src:
+        heartbeat(str(src))
+    return {"kind": "mesh_ingest_result",
+            "snapshotId": snapshot_id,
+            "stored": True,
+            "inbox": str(INBOX)}
+
+
 def status() -> dict:
     c = continuity()
     STATE.write_text(json.dumps(
