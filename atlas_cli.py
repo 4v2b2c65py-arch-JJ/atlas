@@ -253,6 +253,20 @@ def main() -> None:
     rp.add_argument("--via")
     rp.add_argument("--kind")
 
+    mu = sub.add_parser("multi")
+    mu.add_argument("action", nargs="?",
+                    choices=["status", "join", "say", "leave",
+                             "roster", "chat", "instance"],
+                    default="status")
+    mu.add_argument("session", nargs="?")
+    mu.add_argument("char", nargs="?")
+    mu.add_argument("instance", nargs="?")
+    mu.add_argument("text", nargs="?")
+    mu.add_argument("--profile")
+    mu.add_argument("--phrase")
+    mu.add_argument("--label")
+    mu.add_argument("--limit", type=int)
+
     gn = sub.add_parser("genesis")
     gn.add_argument("action", nargs="?",
                     choices=["status", "observe", "set"],
@@ -794,6 +808,35 @@ def main() -> None:
                     kind=ns.kind or ""))
         else:
             out(get("/api/ripples"))
+    elif ns.cmd == "multi":
+        a = ns.action or "status"
+        if a == "join":
+            out(get("/api/multi", action="join",
+                    session=ns.session or "lobby",
+                    char=ns.char or "", profile=ns.profile
+                    or "default", phrase=ns.phrase or "",
+                    label=ns.label or ""))
+        elif a == "say":
+            out(get("/api/multi", action="say",
+                    session=ns.session or "lobby",
+                    instance=ns.instance or "",
+                    text=ns.text or ""))
+        elif a == "leave":
+            out(get("/api/multi", action="leave",
+                    session=ns.session or "lobby",
+                    instance=ns.instance or ""))
+        elif a == "roster":
+            out(get("/api/multi", action="roster",
+                    session=ns.session or ""))
+        elif a == "chat":
+            out(get("/api/multi", action="chat",
+                    session=ns.session or "lobby",
+                    limit=ns.limit or 100))
+        elif a == "instance":
+            out(get("/api/multi", action="instance",
+                    id=ns.instance or ""))
+        else:
+            out(get("/api/multi"))
     elif ns.cmd == "genesis":
         a = ns.action or "status"
         if a == "observe":

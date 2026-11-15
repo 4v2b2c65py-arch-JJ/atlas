@@ -1383,6 +1383,38 @@ class Handler(BaseHTTPRequestHandler):
                 else:
                     self._send(200, ripples.status())
                 return
+            if path == "/api/multi":
+                import multiplayer as mp
+                action = qs.get("action", ["status"])[0]
+                if action == "join":
+                    self._send(200, mp.join(
+                        qs.get("session", ["lobby"])[0],
+                        qs.get("char", [""])[0],
+                        qs.get("profile", ["default"])[0],
+                        qs.get("phrase", [""])[0] or None,
+                        qs.get("label", [""])[0] or None))
+                elif action == "say":
+                    self._send(200, mp.say(
+                        qs.get("session", ["lobby"])[0],
+                        qs.get("instance", [""])[0],
+                        qs.get("text", [""])[0]))
+                elif action == "leave":
+                    self._send(200, mp.leave(
+                        qs.get("session", ["lobby"])[0],
+                        qs.get("instance", [""])[0]))
+                elif action == "roster":
+                    self._send(200, mp.roster(
+                        qs.get("session", [""])[0] or None))
+                elif action == "chat":
+                    self._send(200, mp.chatlog(
+                        qs.get("session", ["lobby"])[0],
+                        int(qs.get("limit", ["100"])[0])))
+                elif action == "instance":
+                    self._send(200, mp.instance(
+                        qs.get("id", [""])[0]))
+                else:
+                    self._send(200, mp.status())
+                return
             if path == "/api/genesis":
                 import genesis
                 action = qs.get("action", ["status"])[0]
@@ -1598,6 +1630,38 @@ class Handler(BaseHTTPRequestHandler):
                     self._send(200, ripples.scan())
                 else:
                     self._send(200, ripples.status())
+                return
+            if path == "/api/multi":
+                import multiplayer as mp
+                action = qs.get("action", ["status"])[0]
+                if action == "join":
+                    self._send(200, mp.join(
+                        qs.get("session", ["lobby"])[0],
+                        qs.get("char", [""])[0],
+                        qs.get("profile", ["default"])[0],
+                        qs.get("phrase", [""])[0] or None,
+                        qs.get("label", [""])[0] or None))
+                elif action == "say":
+                    self._send(200, mp.say(
+                        qs.get("session", ["lobby"])[0],
+                        qs.get("instance", [""])[0],
+                        qs.get("text", [""])[0]))
+                elif action == "leave":
+                    self._send(200, mp.leave(
+                        qs.get("session", ["lobby"])[0],
+                        qs.get("instance", [""])[0]))
+                elif action == "roster":
+                    self._send(200, mp.roster(
+                        qs.get("session", [""])[0] or None))
+                elif action == "chat":
+                    self._send(200, mp.chatlog(
+                        qs.get("session", ["lobby"])[0],
+                        int(qs.get("limit", ["100"])[0])))
+                elif action == "instance":
+                    self._send(200, mp.instance(
+                        qs.get("id", [""])[0]))
+                else:
+                    self._send(200, mp.status())
                 return
             if path == "/api/genesis":
                 import genesis
