@@ -59,9 +59,7 @@ def steam_app(appid: int) -> dict:
     try:
         d = json.loads(_get(
             "https://store.steampowered.com/api/appdetails/"
-            f"?appids={appid}&cc=us&l=en&filters=name,"
-            "release_date,genres,platforms,is_free,header_image,"
-            "type,dlc"))
+            f"?appids={appid}&cc=us&l=en"))
         app = d.get(str(appid), {}).get("data", {})
         return {"appid": appid, "name": app.get("name"),
                 "release_date": app.get("release_date", {})
@@ -73,7 +71,10 @@ def steam_app(appid: int) -> dict:
                 "platforms": app.get("platforms"),
                 "is_free": app.get("is_free"),
                 "header": app.get("header_image"),
-                "dlc_count_hint": len(app.get("dlc", []) or []),
+                "dlc": [x.get("name") for x in
+                        (app.get("dlc") or [])],
+                "developers": app.get("developers"),
+                "publishers": app.get("publishers"),
                 "type": app.get("type")}
     except Exception as e:
         return {"appid": appid, "error": str(e)[:120]}
@@ -129,6 +130,7 @@ def match_title(title: str) -> dict:
         "genres": (best or {}).get("genres"),
         "repack_refs": [f["title"] for f in fg
                         if "title" in f],
+        "dlc_expansions": (best or {}).get("dlc") or [],
         "expansions_hint": "see steam app page dlc/ost "
                            "listings + repack post updates",
         "nexus": nexus["status"],
