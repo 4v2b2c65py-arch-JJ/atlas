@@ -1325,6 +1325,43 @@ class Handler(BaseHTTPRequestHandler):
                 else:
                     self._send(200, spectrum.status())
                 return
+            if path == "/api/dna":
+                import dna
+                action = qs.get("action", ["status"])[0]
+                if action == "fetch":
+                    acc = qs.get("id", [""])[0]
+                    if not acc:
+                        self._send(400, {"error": "id required"})
+                        return
+                    self._send(200, dna.analyze(acc))
+                elif action == "expand":
+                    ids = [x for x in qs.get("ids", [""])[0]
+                           .split(",") if x]
+                    self._send(200, dna.expand_datasets(ids))
+                elif action == "gguf":
+                    self._send(200, dna.pack_gguf())
+                else:
+                    self._send(200, dna.status())
+                return
+            if path == "/api/charpack":
+                import charpack
+                action = qs.get("action", ["status"])[0]
+                if action == "unlock":
+                    ph = qs.get("phrase", [""])[0]
+                    if not ph:
+                        self._send(400, {"error": "phrase required"})
+                        return
+                    self._send(200, charpack.unlock_status(ph))
+                elif action == "emoji":
+                    self._send(200, charpack.generate_emoji(
+                        qs.get("char", [""])[0]))
+                elif action == "pack":
+                    self._send(200, charpack.emoji_pack())
+                elif action == "gguf":
+                    self._send(200, charpack.pack_gguf())
+                else:
+                    self._send(200, charpack.status())
+                return
             if path == "/api/gaster":
                 self._send(200, gaster.status())
                 return

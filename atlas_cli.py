@@ -223,6 +223,20 @@ def main() -> None:
     sp.add_argument("--label", default="")
     sp.add_argument("--interval", type=float, default=60)
     sp.add_argument("--cycles", type=int, default=1)
+
+    dn = sub.add_parser("dna")
+    dn.add_argument("action", nargs="?",
+                    choices=["status", "fetch", "expand", "gguf"],
+                    default="status")
+    dn.add_argument("target", nargs="?",
+                    help="accession id or comma list")
+
+    cp = sub.add_parser("charpack")
+    cp.add_argument("action", nargs="?",
+                    choices=["status", "unlock", "emoji", "pack",
+                             "gguf"], default="status")
+    cp.add_argument("target", nargs="?",
+                    help="phrase to unlock or character name")
     gr.add_argument("--limit", type=int, default=25)
 
     au = sub.add_parser("auth")
@@ -628,6 +642,31 @@ def main() -> None:
             out(get("/api/spectrum", action="gguf"))
         else:
             out(get("/api/spectrum"))
+    elif ns.cmd == "dna":
+        a = ns.action or "status"
+        if a == "fetch":
+            out(get("/api/dna", action="fetch", id=ns.target or ""))
+        elif a == "expand":
+            out(get("/api/dna", action="expand",
+                    ids=ns.target or ""))
+        elif a == "gguf":
+            out(get("/api/dna", action="gguf"))
+        else:
+            out(get("/api/dna"))
+    elif ns.cmd == "charpack":
+        a = ns.action or "status"
+        if a == "unlock":
+            out(get("/api/charpack", action="unlock",
+                    phrase=ns.target or ""))
+        elif a == "emoji":
+            out(get("/api/charpack", action="emoji",
+                    char=ns.target or ""))
+        elif a == "pack":
+            out(get("/api/charpack", action="pack"))
+        elif a == "gguf":
+            out(get("/api/charpack", action="gguf"))
+        else:
+            out(get("/api/charpack"))
     elif ns.cmd == "auth":
         if ns.action == "status":
             out(get("/api/auth/status"))
