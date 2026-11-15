@@ -148,6 +148,7 @@ import cardinal  # noqa: E402
 import namescrape  # noqa: E402
 import nameconsensus  # noqa: E402
 import caster  # noqa: E402
+import gaster  # noqa: E402
 
 # GML/SML-1 spec engine (AUTO-01 add-1 rule, CF-01 requirements)
 GML_DIR = ROOT / "gml" / "SML-1"
@@ -1233,6 +1234,9 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/api/cast":
                 self._send(200, caster.status())
                 return
+            if path == "/api/gaster":
+                self._send(200, gaster.status())
+                return
             if path == "/api/prime":
                 action = qs.get("action", ["status"])[0]
                 if action == "wallets":
@@ -1924,6 +1928,35 @@ class Handler(BaseHTTPRequestHandler):
                     self._send(200, caster.tier_list())
                 else:
                     self._send(200, caster.status())
+            elif u.path == "/api/gaster":
+                action = body.get("action", "status")
+                if action == "enter":
+                    self._send(200, gaster.enter_door(
+                        body.get("id", ""), sandbox=bool(
+                            body.get("sandbox", True))))
+                elif action == "repeater":
+                    self._send(200, gaster.repeater(
+                        body.get("trigger", ""),
+                        int(body.get("cycles", 3))))
+                elif action == "probe":
+                    p = Path(body.get("win", ""))
+                    if not p.is_absolute():
+                        p = (ROOT / p).resolve()
+                    self._send(200, gaster.game_probe(p)
+                               if p.exists() else
+                               {"error": "not found"})
+                elif action == "strings":
+                    win = Path(body.get("win", ""))
+                    if not win.is_absolute():
+                        win = (ROOT / win).resolve()
+                    out = ROOT / "data" / "undertale" / "strings.txt"
+                    self._send(200, gaster.extract_strings(win, out)
+                               if win.exists() else
+                               {"error": "not found"})
+                elif action == "gguf":
+                    self._send(200, gaster.store_gguf())
+                else:
+                    self._send(200, gaster.status())
             elif u.path == "/api/book":
                 action = body.get("action", "status")
                 if action == "open":

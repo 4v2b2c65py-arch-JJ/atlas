@@ -182,6 +182,12 @@ def main() -> None:
     cs.add_argument("a1", nargs="?"); cs.add_argument("a2", nargs="?")
     cs.add_argument("a3", nargs="?"); cs.add_argument("a4", nargs="?")
 
+    gs = sub.add_parser("gaster")
+    gs.add_argument("action",
+                    choices=["status", "enter", "repeater", "probe",
+                             "strings", "gguf"])
+    gs.add_argument("a1", nargs="?"); gs.add_argument("a2", nargs="?")
+
     nm = sub.add_parser("names")
     nm.add_argument("query", nargs="*",
                     help="name to look up; empty = dataset status")
@@ -500,6 +506,26 @@ def main() -> None:
                                    "name": ns.a1 or "",
                                    "src": ns.a2 or "",
                                    "at": float(ns.a3 or 0)}))
+    elif ns.cmd == "gaster":
+        a = ns.action
+        win = "data/undertale/extracted/Undertale v1.001/data.win"
+        if a == "status":
+            out(get("/api/gaster"))
+        elif a == "enter":
+            out(post("/api/gaster", {"action": "enter",
+                                     "id": ns.a1 or ""}))
+        elif a == "repeater":
+            out(post("/api/gaster", {"action": "repeater",
+                                     "trigger": ns.a1 or "",
+                                     "cycles": int(ns.a2 or 3)}))
+        elif a == "probe":
+            out(post("/api/gaster", {"action": "probe",
+                                     "win": ns.a1 or win}))
+        elif a == "strings":
+            out(post("/api/gaster", {"action": "strings",
+                                     "win": ns.a1 or win}))
+        else:
+            out(post("/api/gaster", {"action": "gguf"}))
     elif ns.cmd == "names":
         q = " ".join(ns.query or [])
         if ns.query and ns.query[0] in (
