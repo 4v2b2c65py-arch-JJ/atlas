@@ -212,6 +212,7 @@ def main() -> None:
     gr = sub.add_parser("gamerefs")
     gr.add_argument("title", nargs="?")
     gr.add_argument("--batch", action="store_true")
+    gr.add_argument("--nexus", action="store_true")
     gr.add_argument("--limit", type=int, default=25)
 
     au = sub.add_parser("auth")
@@ -593,7 +594,9 @@ def main() -> None:
         else:
             out(get("/api/mods"))
     elif ns.cmd == "gamerefs":
-        if ns.batch:
+        if ns.nexus:
+            out(get("/api/gamerefs", nexus="1", limit=ns.limit))
+        elif ns.batch:
             out(get("/api/gamerefs", batch="1", limit=ns.limit))
         elif ns.title:
             out(get("/api/gamerefs", title=ns.title))

@@ -203,6 +203,61 @@ def match_dlps(limit: int = 25) -> dict:
     return batch_match(titles)
 
 
+def nexus_top_games(count: int = 15) -> list[dict]:
+    """Top Nexus games by mod count — the titles nexus queries
+    surface for application."""
+    import nexus
+    r = nexus.gql(
+        '{games(count:%d,sort:{mods:{direction:DESC}})'
+        '{nodes{name domainName modCount downloadCount}}}'
+        % count)
+    return (((r.get("data") or {}).get("games") or {})
+            .get("nodes") or [])
+
+
+def apply_nexus_titles(count: int = 15,
+                       delay: float = 2.0) -> dict:
+    """Apply the full match pipeline to the titles Nexus queries
+    surface — top games by mods plus every title already in the
+    nexus refs store."""
+    games = nexus_top_games(count)
+    titles = []
+    seen = set()
+    for g in games:
+        if g["name"] not in seen:
+            seen.add(g["name"])
+            titles.append(g["name"])
+    # plus titles already referenced
+    try:
+        import nexus as nx
+        if nx.REFS.exists():
+            for line in nx.REFS.read_text().splitlines():
+                r = json.loads(line)
+                t = (r.get("game") or {}).get("name") or \
+                    r.get("title")
+                if t and t not in seen:
+                    seen.add(t)
+                    titles.append(t)
+    except Exception:
+        pass
+    done = []
+    for t in titles:
+        try:
+            done.append(match_title(t))
+        except Exception as e:
+            done.append({"title": t, "error": str(e)[:120]})
+        time.sleep(delay)
+    return {"applied": len(done),
+            "with_steam": sum(1 for d in done
+                              if (d.get("steam") or {})
+                              .get("name")),
+            "with_nexus_mods": sum(
+                1 for d in done
+                if len((d.get("nexus") or {}).get("mods") or [])
+                > 0),
+            "titles": [d.get("title") for d in done]}
+
+
 def status() -> dict:
     rows = []
     if MATCHES.exists():
