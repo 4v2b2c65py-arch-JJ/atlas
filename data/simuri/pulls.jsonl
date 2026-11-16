@@ -1,0 +1,4 @@
+{"kind": "sim_pull_log", "uri": "sim://sea/gilgamesh_coligraph", "resolved": "sea_block", "device_time": {"ts": 1794854657.951546, "iso": "2026-11-16T14:44:17.951-04:00", "timezone": "AST", "date": "2026-11-16"}}
+{"kind": "sim_pull_log", "uri": "sim://voice/gilgamesh_decode", "resolved": "voice_run", "device_time": {"ts": 1794854658.201252, "iso": "2026-11-16T14:44:18.201-04:00", "timezone": "AST", "date": "2026-11-16"}}
+{"kind": "sim_pull_log", "uri": "sim://exp/gilgamesh_decode", "resolved": "voice_experience", "device_time": {"ts": 1794854658.466871, "iso": "2026-11-16T14:44:18.466-04:00", "timezone": "AST", "date": "2026-11-16"}}
+{"kind": "sim_pull_log", "uri": "sim://event/voice_experience", "resolved": "event_tag", "device_time": {"ts": 1794854659.047886, "iso": "2026-11-16T14:44:19.047-04:00", "timezone": "AST", "date": "2026-11-16"}}

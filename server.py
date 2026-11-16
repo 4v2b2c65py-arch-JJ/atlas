@@ -1681,6 +1681,15 @@ class Handler(BaseHTTPRequestHandler):
                 else:
                     self._send(200, boardctl.status())
                 return
+            if path == "/api/sim":
+                import simuri
+                action = qs.get("action", ["status"])[0]
+                if action == "pull":
+                    self._send(200, simuri.pull(
+                        qs.get("uri", [""])[0]))
+                else:
+                    self._send(200, simuri.status())
+                return
             if path == "/api/voice":
                 import voice
                 action = qs.get("action", ["status"])[0]
@@ -2284,6 +2293,15 @@ class Handler(BaseHTTPRequestHandler):
                         qs.get("msg", [""])[0] or None))
                 else:
                     self._send(200, boardctl.status())
+                return
+            if path == "/api/sim":
+                import simuri
+                action = qs.get("action", ["status"])[0]
+                if action == "pull":
+                    self._send(200, simuri.pull(
+                        qs.get("uri", [""])[0]))
+                else:
+                    self._send(200, simuri.status())
                 return
             if path == "/api/voice":
                 import voice
