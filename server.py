@@ -1681,6 +1681,19 @@ class Handler(BaseHTTPRequestHandler):
                 else:
                     self._send(200, boardctl.status())
                 return
+            if path == "/api/voice":
+                import voice
+                action = qs.get("action", ["status"])[0]
+                if action == "script":
+                    self._send(200, voice.script_for(
+                        qs.get("name", [""])[0]))
+                elif action == "speak":
+                    self._send(200, voice.speak(
+                        qs.get("name", [""])[0],
+                        voice=qs.get("voice", ["Samantha"])[0]))
+                else:
+                    self._send(200, voice.status())
+                return
             if path == "/api/sea":
                 import sea
                 action = qs.get("action", ["status"])[0]
@@ -2268,6 +2281,19 @@ class Handler(BaseHTTPRequestHandler):
                         qs.get("msg", [""])[0] or None))
                 else:
                     self._send(200, boardctl.status())
+                return
+            if path == "/api/voice":
+                import voice
+                action = qs.get("action", ["status"])[0]
+                if action == "script":
+                    self._send(200, voice.script_for(
+                        qs.get("name", [""])[0]))
+                elif action == "speak":
+                    self._send(200, voice.speak(
+                        qs.get("name", [""])[0],
+                        voice=qs.get("voice", ["Samantha"])[0]))
+                else:
+                    self._send(200, voice.status())
                 return
             if path == "/api/sea":
                 import sea

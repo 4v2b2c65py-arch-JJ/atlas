@@ -414,6 +414,13 @@ def main() -> None:
                                            type=int)
     bd.add_argument("msg")
 
+    vo = sub.add_parser("voice")
+    vo.add_argument("action", nargs="?",
+                    choices=["status", "script", "speak"],
+                    default="status")
+    vo.add_argument("name", nargs="?")
+    vo.add_argument("--voice", default="Samantha")
+
     se = sub.add_parser("sea")
     se.add_argument("action", nargs="?",
                     choices=["status", "add", "get"],
@@ -1181,6 +1188,17 @@ def main() -> None:
             if v is not None:
                 q[k] = v
         out(get("/api/boardctl", **q))
+    elif ns.cmd == "voice":
+        a = ns.action or "status"
+        if a == "script":
+            out(get("/api/voice", action="script",
+                    name=ns.name or ""))
+        elif a == "speak":
+            out(get("/api/voice", action="speak",
+                    name=ns.name or "",
+                    voice=ns.voice))
+        else:
+            out(get("/api/voice", action="status"))
     elif ns.cmd == "sea":
         a = ns.action or "status"
         if a == "add":
