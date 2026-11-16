@@ -414,6 +414,12 @@ def main() -> None:
                                            type=int)
     bd.add_argument("msg")
 
+    vl = sub.add_parser("voicelib")
+    vl.add_argument("action", nargs="?",
+                    choices=["status", "scan", "list"],
+                    default="status")
+    vl.add_argument("--character")
+
     su = sub.add_parser("sim")
     su.add_argument("action", nargs="?",
                     choices=["status", "pull"],
@@ -1194,6 +1200,15 @@ def main() -> None:
             if v is not None:
                 q[k] = v
         out(get("/api/boardctl", **q))
+    elif ns.cmd == "voicelib":
+        a = ns.action or "status"
+        if a == "scan":
+            out(get("/api/voicelib", action="scan"))
+        elif a == "list":
+            out(get("/api/voicelib", action="list",
+                    character=ns.character or ""))
+        else:
+            out(get("/api/voicelib", action="status"))
     elif ns.cmd == "sim":
         a = ns.action or "status"
         if a == "pull":
