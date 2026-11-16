@@ -1,0 +1,27 @@
+{
+  "kind": "sea_block",
+  "name": "tide_test",
+  "slug": "tide_test",
+  "raw": "first wave second wave third wave undertow riptide",
+  "tokens": [
+    "first",
+    "wave",
+    "second",
+    "wave",
+    "third",
+    "wave",
+    "undertow",
+    "riptide"
+  ],
+  "token_count": 8,
+  "unique_count": 6,
+  "families": {},
+  "note": "smoke test",
+  "added": {
+    "ts": 1794853790.250539,
+    "iso": "2026-11-16T14:29:50.250-04:00",
+    "timezone": "AST",
+    "date": "2026-11-16"
+  },
+  "preserved": true
+}
