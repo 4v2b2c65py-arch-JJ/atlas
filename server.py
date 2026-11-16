@@ -1681,6 +1681,20 @@ class Handler(BaseHTTPRequestHandler):
                 else:
                     self._send(200, boardctl.status())
                 return
+            if path == "/api/sea":
+                import sea
+                action = qs.get("action", ["status"])[0]
+                if action == "add":
+                    self._send(200, sea.add(
+                        qs.get("name", ["block"])[0],
+                        qs.get("raw", [""])[0],
+                        note=qs.get("note", [""])[0]))
+                elif action == "get":
+                    self._send(200, sea.get(
+                        qs.get("name", [""])[0]))
+                else:
+                    self._send(200, sea.status())
+                return
             if path == "/api/schedule":
                 import scheduler
                 action = qs.get("action", ["status"])[0]
@@ -2254,6 +2268,20 @@ class Handler(BaseHTTPRequestHandler):
                         qs.get("msg", [""])[0] or None))
                 else:
                     self._send(200, boardctl.status())
+                return
+            if path == "/api/sea":
+                import sea
+                action = qs.get("action", ["status"])[0]
+                if action == "add":
+                    self._send(200, sea.add(
+                        qs.get("name", ["block"])[0],
+                        qs.get("raw", [""])[0],
+                        note=qs.get("note", [""])[0]))
+                elif action == "get":
+                    self._send(200, sea.get(
+                        qs.get("name", [""])[0]))
+                else:
+                    self._send(200, sea.status())
                 return
             if path == "/api/schedule":
                 import scheduler

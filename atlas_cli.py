@@ -414,6 +414,14 @@ def main() -> None:
                                            type=int)
     bd.add_argument("msg")
 
+    se = sub.add_parser("sea")
+    se.add_argument("action", nargs="?",
+                    choices=["status", "add", "get"],
+                    default="status")
+    se.add_argument("name", nargs="?")
+    se.add_argument("raw", nargs="?")
+    se.add_argument("--note", default="")
+
     sc = sub.add_parser("schedule")
     sc.add_argument("action", nargs="?",
                     choices=["status", "tick", "install",
@@ -1173,6 +1181,18 @@ def main() -> None:
             if v is not None:
                 q[k] = v
         out(get("/api/boardctl", **q))
+    elif ns.cmd == "sea":
+        a = ns.action or "status"
+        if a == "add":
+            out(get("/api/sea", action="add",
+                    name=ns.name or "block",
+                    raw=ns.raw or "",
+                    note=ns.note))
+        elif a == "get":
+            out(get("/api/sea", action="get",
+                    name=ns.name or ""))
+        else:
+            out(get("/api/sea", action="status"))
     elif ns.cmd == "schedule":
         a = ns.action or "status"
         if a == "set":
