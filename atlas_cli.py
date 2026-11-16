@@ -414,6 +414,14 @@ def main() -> None:
                                            type=int)
     bd.add_argument("msg")
 
+    xt = sub.add_parser("xtts")
+    xt.add_argument("action", nargs="?",
+                    choices=["status", "clone"],
+                    default="status")
+    xt.add_argument("text", nargs="?")
+    xt.add_argument("--character", default="sans")
+    xt.add_argument("--name")
+
     vl = sub.add_parser("voicelib")
     vl.add_argument("action", nargs="?",
                     choices=["status", "scan", "list"],
@@ -1200,6 +1208,15 @@ def main() -> None:
             if v is not None:
                 q[k] = v
         out(get("/api/boardctl", **q))
+    elif ns.cmd == "xtts":
+        a = ns.action or "status"
+        if a == "clone":
+            out(get("/api/xtts", action="clone",
+                    text=ns.text or "",
+                    character=ns.character,
+                    name=ns.name or ""))
+        else:
+            out(get("/api/xtts", action="status"))
     elif ns.cmd == "voicelib":
         a = ns.action or "status"
         if a == "scan":

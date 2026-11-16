@@ -1681,6 +1681,18 @@ class Handler(BaseHTTPRequestHandler):
                 else:
                     self._send(200, boardctl.status())
                 return
+            if path == "/api/xtts":
+                import xtts
+                action = qs.get("action", ["status"])[0]
+                if action == "clone":
+                    self._send(200, xtts.clone(
+                        qs.get("text", [""])[0],
+                        qs.get("character", ["sans"])[0],
+                        out_name=qs.get("name",
+                                        [None])[0]))
+                else:
+                    self._send(200, xtts.available())
+                return
             if path == "/api/voicelib":
                 import voicelib
                 action = qs.get("action", ["status"])[0]
@@ -2305,6 +2317,18 @@ class Handler(BaseHTTPRequestHandler):
                         qs.get("msg", [""])[0] or None))
                 else:
                     self._send(200, boardctl.status())
+                return
+            if path == "/api/xtts":
+                import xtts
+                action = qs.get("action", ["status"])[0]
+                if action == "clone":
+                    self._send(200, xtts.clone(
+                        qs.get("text", [""])[0],
+                        qs.get("character", ["sans"])[0],
+                        out_name=qs.get("name",
+                                        [None])[0]))
+                else:
+                    self._send(200, xtts.available())
                 return
             if path == "/api/voicelib":
                 import voicelib
