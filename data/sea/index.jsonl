@@ -5,3 +5,4 @@
 {"kind": "sea_index", "name": "gilgamesh_decode", "slug": "gilgamesh_decode", "tokens": 276, "device_time": {"ts": 1794853984.434819, "iso": "2026-11-16T14:33:04.434-04:00", "timezone": "AST", "date": "2026-11-16"}}
 {"kind": "sea_index", "name": "tablet_ocr_formations", "slug": "tablet_ocr_formations", "tokens": 200, "device_time": {"ts": 1794854280.055142, "iso": "2026-11-16T14:38:00.055-04:00", "timezone": "AST", "date": "2026-11-16"}}
 {"kind": "sea_index", "name": "voice_datasets_catalog", "slug": "voice_datasets_catalog", "tokens": 128, "device_time": {"ts": 1794855449.924602, "iso": "2026-11-16T14:57:29.924-04:00", "timezone": "AST", "date": "2026-11-16"}}
+{"kind": "sea_index", "name": "tablet_sonification", "slug": "tablet_sonification", "tokens": 78, "device_time": {"ts": 1794871197.792391, "iso": "2026-11-16T19:19:57.792-04:00", "timezone": "AST", "date": "2026-11-16"}}

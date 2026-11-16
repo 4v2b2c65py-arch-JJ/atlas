@@ -1,0 +1,185 @@
+{
+  "kind": "sonification",
+  "device_time": {
+    "ts": 1794871187.793945,
+    "iso": "2026-11-16T19:19:47.793-04:00",
+    "timezone": "AST",
+    "date": "2026-11-16"
+  },
+  "source": "ocr_tablet.json",
+  "audio": "data/sea/voice/tablet_sonification.wav",
+  "sample_rate": 22050,
+  "duration_s": 72.32,
+  "columns": 31,
+  "cells": 682,
+  "mapping": {
+    "wedge_class_freqs": [
+      220.0,
+      277.18,
+      329.63,
+      392.0
+    ],
+    "fifth_harmonic": 1.5,
+    "depth_to_amp": "0.15+0.55*norm",
+    "order": "right-to-left"
+  },
+  "column_notes": [
+    {
+      "column": 30,
+      "cells": 22,
+      "duration_s": 1.98
+    },
+    {
+      "column": 29,
+      "cells": 22,
+      "duration_s": 1.98
+    },
+    {
+      "column": 28,
+      "cells": 22,
+      "duration_s": 1.98
+    },
+    {
+      "column": 27,
+      "cells": 22,
+      "duration_s": 1.98
+    },
+    {
+      "column": 26,
+      "cells": 22,
+      "duration_s": 1.98
+    },
+    {
+      "column": 25,
+      "cells": 22,
+      "duration_s": 1.98
+    },
+    {
+      "column": 24,
+      "cells": 22,
+      "duration_s": 1.98
+    },
+    {
+      "column": 23,
+      "cells": 22,
+      "duration_s": 1.98
+    },
+    {
+      "column": 22,
+      "cells": 22,
+      "duration_s": 1.98
+    },
+    {
+      "column": 21,
+      "cells": 22,
+      "duration_s": 1.98
+    },
+    {
+      "column": 20,
+      "cells": 22,
+      "duration_s": 1.98
+    },
+    {
+      "column": 19,
+      "cells": 22,
+      "duration_s": 1.98
+    },
+    {
+      "column": 18,
+      "cells": 22,
+      "duration_s": 1.98
+    },
+    {
+      "column": 17,
+      "cells": 22,
+      "duration_s": 1.98
+    },
+    {
+      "column": 16,
+      "cells": 22,
+      "duration_s": 1.98
+    },
+    {
+      "column": 15,
+      "cells": 22,
+      "duration_s": 1.98
+    },
+    {
+      "column": 14,
+      "cells": 22,
+      "duration_s": 1.98
+    },
+    {
+      "column": 13,
+      "cells": 22,
+      "duration_s": 1.98
+    },
+    {
+      "column": 12,
+      "cells": 22,
+      "duration_s": 1.98
+    },
+    {
+      "column": 11,
+      "cells": 22,
+      "duration_s": 1.98
+    },
+    {
+      "column": 10,
+      "cells": 22,
+      "duration_s": 1.98
+    },
+    {
+      "column": 9,
+      "cells": 22,
+      "duration_s": 1.98
+    },
+    {
+      "column": 8,
+      "cells": 22,
+      "duration_s": 1.98
+    },
+    {
+      "column": 7,
+      "cells": 22,
+      "duration_s": 1.98
+    },
+    {
+      "column": 6,
+      "cells": 22,
+      "duration_s": 1.98
+    },
+    {
+      "column": 5,
+      "cells": 22,
+      "duration_s": 1.98
+    },
+    {
+      "column": 4,
+      "cells": 22,
+      "duration_s": 1.98
+    },
+    {
+      "column": 3,
+      "cells": 22,
+      "duration_s": 1.98
+    },
+    {
+      "column": 2,
+      "cells": 22,
+      "duration_s": 1.98
+    },
+    {
+      "column": 1,
+      "cells": 22,
+      "duration_s": 1.98
+    },
+    {
+      "column": 0,
+      "cells": 22,
+      "duration_s": 1.98
+    }
+  ],
+  "derived": true,
+  "note": "formations sonified — wedge class -> pitch, depth -> amplitude; not speech, the inscription as waveform"
+}
