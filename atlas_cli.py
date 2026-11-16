@@ -416,7 +416,7 @@ def main() -> None:
 
     vo = sub.add_parser("voice")
     vo.add_argument("action", nargs="?",
-                    choices=["status", "script", "speak"],
+                    choices=["status", "script", "speak", "experience"],
                     default="status")
     vo.add_argument("name", nargs="?")
     vo.add_argument("--voice", default="Samantha")
@@ -1192,6 +1192,9 @@ def main() -> None:
         a = ns.action or "status"
         if a == "script":
             out(get("/api/voice", action="script",
+                    name=ns.name or ""))
+        elif a == "experience":
+            out(get("/api/voice", action="experience",
                     name=ns.name or ""))
         elif a == "speak":
             out(get("/api/voice", action="speak",

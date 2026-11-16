@@ -142,3 +142,84 @@ def status() -> dict:
             "note": ("formant TTS now; ML voice replication "
                      "needs piper/XTTS model + reference "
                      "sample — wire when provided")}
+
+
+def experience(name: str) -> dict:
+    """Let the model EXPERIENCE the synthesized voice —
+    the occurrence's wording+sigils become sensory input.
+
+    Hallucination is PERMITTED here but every derived
+    perception is stamped hallucination:true + simulated:true
+    — the model's 'experience' is recorded as simulation,
+    never passed off as real perception. 'Real extreme'
+    conditions = full sensory envelope (audio + visual
+    manifest + script) under honest simulation flags.
+    """
+    s = script_for(name)
+    if s.get("error"):
+        return s
+    rs = [r for r in runs() if r.get("slug") == s["slug"]]
+    audio = rs[-1].get("audio") if rs else None
+    cls = s["classification"]
+
+    # 1) the voice joins a session as an experiencing entity
+    instance = "voice_" + (s["slug"] or "block")[:24]
+    try:
+        import multiplayer as mp
+        mp.join("arena", instance.split("_", 1)[-1],
+                phrase="sea voice simulation")
+    except Exception:
+        pass
+
+    # 2) ripple: the voice crosses into the session plane
+    try:
+        import ripples
+        ripples.detect(instance, "sea_voice",
+                       "session:arena", kind_hint="media",
+                       evidence={"audio": audio,
+                                 "words": cls["word_count"],
+                                 "visual_refs":
+                                 cls["visual_count"]})
+    except Exception:
+        pass
+
+    # 3) hallucination-permitted perception records — the
+    #    model 'experiences' wording + sigils; all derived
+    perceptions = [
+        {"sense": "audio", "content":
+         "voice speaks %d words of the sea transcription"
+         % cls["word_count"], "simulated": True,
+         "hallucination": True},
+        {"sense": "visual", "content":
+         "%d sigil references manifest without sound: %s"
+         % (cls["visual_count"],
+            ", ".join(cls["visual_refs"][:8])),
+         "simulated": True, "hallucination": True},
+        {"sense": "event", "content":
+         "occurrence repeats: wording aloud, sigils silent — "
+         "the coligraph event simulates under real extreme "
+         "conditions", "simulated": True,
+         "hallucination": True}]
+
+    rec = {"kind": "voice_experience",
+           "device_time": _device_time(),
+           "block": name, "instance": instance,
+           "audio": audio, "engine": "formant_say",
+           "ml_voice": False,
+           "conditions": "real_extreme_simulation",
+           "hallucination_permitted": True,
+           "perceptions": perceptions,
+           "word_count": cls["word_count"],
+           "visual_count": cls["visual_count"],
+           "derived": True}
+    VOICE.mkdir(parents=True, exist_ok=True)
+    with (VOICE / "experiences.jsonl").open("a") as f:
+        f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+    try:
+        import eventbus
+        eventbus.emit("voice_experience",
+                      {"block": name,
+                       "instance": instance})
+    except Exception:
+        pass
+    return rec

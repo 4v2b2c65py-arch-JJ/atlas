@@ -1687,6 +1687,9 @@ class Handler(BaseHTTPRequestHandler):
                 if action == "script":
                     self._send(200, voice.script_for(
                         qs.get("name", [""])[0]))
+                elif action == "experience":
+                    self._send(200, voice.experience(
+                        qs.get("name", [""])[0]))
                 elif action == "speak":
                     self._send(200, voice.speak(
                         qs.get("name", [""])[0],
@@ -2287,6 +2290,9 @@ class Handler(BaseHTTPRequestHandler):
                 action = qs.get("action", ["status"])[0]
                 if action == "script":
                     self._send(200, voice.script_for(
+                        qs.get("name", [""])[0]))
+                elif action == "experience":
+                    self._send(200, voice.experience(
                         qs.get("name", [""])[0]))
                 elif action == "speak":
                     self._send(200, voice.speak(
