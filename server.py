@@ -1681,6 +1681,20 @@ class Handler(BaseHTTPRequestHandler):
                 else:
                     self._send(200, boardctl.status())
                 return
+            if path == "/api/svm":
+                import smallvoice
+                action = qs.get("action", ["status"])[0]
+                if action == "convert":
+                    self._send(200, smallvoice.convert(
+                        qs.get("text", [""])[0],
+                        qs.get("reference", ["osr_000_0010"])[0],
+                        out_name=qs.get("name",
+                                        [None])[0],
+                        voice=qs.get("voice",
+                                     ["ryan"])[0]))
+                else:
+                    self._send(200, smallvoice.status())
+                return
             if path == "/api/ggufload":
                 import ggufload
                 self._send(200, ggufload.load(
@@ -2327,6 +2341,20 @@ class Handler(BaseHTTPRequestHandler):
                         qs.get("msg", [""])[0] or None))
                 else:
                     self._send(200, boardctl.status())
+                return
+            if path == "/api/svm":
+                import smallvoice
+                action = qs.get("action", ["status"])[0]
+                if action == "convert":
+                    self._send(200, smallvoice.convert(
+                        qs.get("text", [""])[0],
+                        qs.get("reference", ["osr_000_0010"])[0],
+                        out_name=qs.get("name",
+                                        [None])[0],
+                        voice=qs.get("voice",
+                                     ["ryan"])[0]))
+                else:
+                    self._send(200, smallvoice.status())
                 return
             if path == "/api/ggufload":
                 import ggufload

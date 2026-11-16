@@ -414,6 +414,15 @@ def main() -> None:
                                            type=int)
     bd.add_argument("msg")
 
+    sv = sub.add_parser("svm")
+    sv.add_argument("action", nargs="?",
+                    choices=["status", "convert"],
+                    default="status")
+    sv.add_argument("text", nargs="?")
+    sv.add_argument("--reference", default="osr_000_0010")
+    sv.add_argument("--voice", default="ryan")
+    sv.add_argument("--name")
+
     pm = sub.add_parser("pitchmap")
     pm.add_argument("action", nargs="?",
                     choices=["analyze"], default="analyze")
@@ -1215,6 +1224,16 @@ def main() -> None:
             if v is not None:
                 q[k] = v
         out(get("/api/boardctl", **q))
+    elif ns.cmd == "svm":
+        a = ns.action or "status"
+        if a == "convert":
+            import smallvoice
+            out(smallvoice.convert(
+                ns.text or "", ns.reference,
+                out_name=ns.name, voice=ns.voice))
+        else:
+            import smallvoice
+            out(smallvoice.status())
     elif ns.cmd == "pitchmap":
         import pitchmap
         out(pitchmap.analyze())
