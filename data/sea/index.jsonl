@@ -2,3 +2,4 @@
 {"kind": "sea_index", "name": "gilgamesh_coligraph", "slug": "gilgamesh_coligraph", "tokens": 79, "device_time": {"ts": 1794853801.657753, "iso": "2026-11-16T14:30:01.657-04:00", "timezone": "AST", "date": "2026-11-16"}}
 {"kind": "sea_index", "name": "myth_epic_of_gilgamesh", "slug": "myth_epic_of_gilgamesh", "tokens": 3323, "device_time": {"ts": 1794853875.396838, "iso": "2026-11-16T14:31:15.396-04:00", "timezone": "AST", "date": "2026-11-16"}}
 {"kind": "sea_index", "name": "myth_gilgamesh_flood_myth", "slug": "myth_gilgamesh_flood_myth", "tokens": 3247, "device_time": {"ts": 1794853876.119499, "iso": "2026-11-16T14:31:16.119-04:00", "timezone": "AST", "date": "2026-11-16"}}
+{"kind": "sea_index", "name": "gilgamesh_decode", "slug": "gilgamesh_decode", "tokens": 276, "device_time": {"ts": 1794853984.434819, "iso": "2026-11-16T14:33:04.434-04:00", "timezone": "AST", "date": "2026-11-16"}}

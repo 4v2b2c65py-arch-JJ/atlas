@@ -1,0 +1,48 @@
+{
+  "kind": "sea_decode",
+  "name": "gilgamesh_coligraph",
+  "device_time": {
+    "ts": 1794853984.433359,
+    "iso": "2026-11-16T14:33:04.433-04:00",
+    "timezone": "AST",
+    "date": "2026-11-16"
+  },
+  "image": {
+    "file": "data/sea/media/gilgamesh_flood_tablet.jpg",
+    "sha256_16": "e52838edb4dd790c",
+    "format": "JPEG baseline",
+    "dims": "800x886",
+    "bytes": 230557,
+    "source": "arthistoryproject.com via google imgres",
+    "original_format": "fired-clay cuneiform tablet (Neo-Assyrian, Obelisk artifact) — wedge impressions in columns; photo is a 2D projection of a 3D inscription"
+  },
+  "fragments": [
+    {
+      "fragment": "JL<>#C<>FH",
+      "slots": 2,
+      "structure": "JLSSSCSSFH",
+      "reading": "slot-joined token; <> marks connection points between glyph cells"
+    },
+    {
+      "fragment": "Jvrf <>you",
+      "slots": 1,
+      "structure": "Jvrf SSyou",
+      "reading": "slot-joined token; <> marks connection points between glyph cells"
+    },
+    {
+      "fragment": "Lo <> box",
+      "slots": 1,
+      "structure": "Lo SS box",
+      "reading": "slot-joined token; <> marks connection points between glyph cells"
+    },
+    {
+      "fragment": "L=<",
+      "slots": 0,
+      "structure": "L=S",
+      "reading": "slot-joined token; <> marks connection points between glyph cells"
+    }
+  ],
+  "translation": "SEA-ALGO DECODE — gilgamesh_coligraph spec\n==========================================\n\nGlyph cells: Mu, Nu, Null  ->  null-state glyphs (Mu/Nu\n  pair = dual-null markers; Null = the empty cell).\n\nArtifact legend -> the relic register:\n  Diamon(d) / Star / Pyramid / Temple gate /\n  Wraith look star / Sumit(mit) shooting star III\n  -> six graded relics, star-shooting as the apex tier.\n\nDepiction schema (Wordpress dipiction):\n  Acronym + Engraving + QR  ->  each artifact gets three\n  renderings: short-form mark, engraved surface, scannable\n  code. (dipiction kept as typed — 'depiction' reading)\n\nWordplay bindings:\n  'Bab lons or lones'   -> Babylon or lone cells?\n  'Grith for glyph'     -> grith/faith bound to glyph form\n  'From Roman num left right is depiction plus'\n                        -> roman-numeral anchors read\n                           left-to-right as depiction marks\n\nDirections:\n  Sli der / Syl dir / Win dir  -> slider / sly / window\n  direction triad — three traversal axes.\n\nCipher fragments (<> = slot operator):\n  JL<>#C<>FH   -> J-L [slot] #C [slot] F-H  (hash-joined ends)\n  Jvrf <>you   -> Jvrf [slot] you            (agent->patient)\n  Lo <> box    -> Lo [slot] box              (container open)\n  L=<          -> L equals-open              (assignment glyph)\n\nGeometry notes:\n  'Round is flat or floor or tile' -> round glyphs collapse\n    to plane cells (floor/tile semantics)\n  'Tuff-stone = expression is su'  -> tuff-stone surfaces\n    carry 'su' expressions\n\nTerminology: 'coligraph not calligraphy' — the marks are\n  IMAGE-writing (coligraph), not pen strokes.\n\nHONEST LIMIT: no cuneiform OCR engine on this machine\n  (no tesseract/PIL); the clay tablet itself is NOT\n  machine-decoded here. What IS decoded: the spec block's\n  own notation -> this English reading. The tablet's\n  scholarly content is anchored in the stored myth\n  extracts (Ea leaks plan -> boat -> storm -> sacrifice\n  -> immortality arc, Atrahasis/Utnapishtim lineage).\n",
+  "derived": true,
+  "confidence": "structural — spec notation decoded; clay tablet not OCR'd (no tooling)"
+}
