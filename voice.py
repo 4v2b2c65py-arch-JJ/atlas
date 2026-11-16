@@ -76,30 +76,86 @@ def script_for(name: str) -> dict:
             "engine_plan": "formant"}
 
 
+PIPER = ROOT / ".venv-voice" / "bin" / "piper"
+MODELS = ROOT / "data" / "voice_models"
+# character -> piper voice model (neural TTS, not cloning)
+VOICE_MAP = {"ryan": "en_US-ryan-high",
+             "amy": "en_US-amy-medium",
+             "sans": "en_US-ryan-high",
+             "reaper_sans": "en_US-ryan-high",
+             "gaster": "en_US-ryan-high",
+             "papyrus": "en_US-ryan-high",
+             "flowey": "en_US-ryan-high",
+             "toriel": "en_US-amy-medium",
+             "alphys": "en_US-amy-medium",
+             "vanitas": "en_US-amy-medium",
+             "muffet": "en_US-amy-medium",
+             "undyne": "en_US-amy-medium",
+             "asgore": "en_US-ryan-high",
+             "senketsu": "en_US-ryan-high",
+             "chara": "en_US-amy-medium",
+             "frisk": "en_US-amy-medium"}
+
+
+def _piper_model(voice: str) -> Path | None:
+    """Resolve voice name/character to a piper onnx."""
+    key = VOICE_MAP.get(voice.lower(), voice.lower())
+    for cand in (key, "en_US-" + key,
+                 "en_US-" + key + "-high",
+                 "en_US-" + key + "-medium"):
+        p = MODELS / (cand + ".onnx")
+        if p.exists():
+            return p
+    return None
+
+
 def speak(name: str, voice: str = "Samantha",
           rate: int = 175) -> dict:
-    """Synthesize the speakable layer to audio."""
+    """Synthesize the speakable layer — piper neural TTS
+    when a model resolves, macOS say fallback."""
     s = script_for(name)
     if s.get("error"):
         return s
     VOICE.mkdir(parents=True, exist_ok=True)
     slug = s["slug"] or re.sub(r"[^a-z0-9]+", "_",
                                name.lower())
-    aiff = VOICE / (slug + ".aiff")
     m4a = VOICE / (slug + ".m4a")
     script = s["script"] or name
-    subprocess.run(["say", "-v", voice, "-r", str(rate),
-                    "-o", str(aiff), script],
-                   check=True, timeout=120)
-    subprocess.run(["afconvert", "-f", "m4af",
-                    "-d", "aac", str(aiff), str(m4a)],
-                   check=True, timeout=60)
-    aiff.unlink(missing_ok=True)
+    engine = "formant_say"
+    model_path = _piper_model(voice)
+    if PIPER.exists() and model_path:
+        wav = VOICE / (slug + ".wav")
+        txt = VOICE / (slug + ".txt")
+        txt.write_text(script)
+        subprocess.run(
+            [str(PIPER), "-m", str(model_path),
+             "-f", str(wav), "-i", str(txt)],
+            check=True, timeout=300,
+            cwd=str(ROOT))
+        subprocess.run(["afconvert", "-f", "m4af",
+                        "-d", "aac", str(wav), str(m4a)],
+                       check=True, timeout=60)
+        wav.unlink(missing_ok=True)
+        txt.unlink(missing_ok=True)
+        engine = "piper_neural"
+    else:
+        aiff = VOICE / (slug + ".aiff")
+        subprocess.run(["say", "-v", voice, "-r",
+                        str(rate), "-o", str(aiff),
+                        script],
+                       check=True, timeout=120)
+        subprocess.run(["afconvert", "-f", "m4af",
+                        "-d", "aac", str(aiff),
+                        str(m4a)],
+                       check=True, timeout=60)
+        aiff.unlink(missing_ok=True)
     rec = {"kind": "voice_run",
            "device_time": _device_time(),
            "block": name, "slug": slug,
-           "engine": "formant_say",
+           "engine": engine,
            "ml_voice": False,
+           "voice_model": model_path.name
+           if model_path else None,
            "voice": voice, "rate": rate,
            "audio": str(m4a.relative_to(ROOT)),
            "bytes": m4a.stat().st_size,
@@ -204,8 +260,10 @@ def experience(name: str) -> dict:
     rec = {"kind": "voice_experience",
            "device_time": _device_time(),
            "block": name, "instance": instance,
-           "audio": audio, "engine": "formant_say",
+           "audio": audio, "engine": engine,
            "ml_voice": False,
+           "voice_model": model_path.name
+           if model_path else None,
            "conditions": "real_extreme_simulation",
            "hallucination_permitted": True,
            "perceptions": perceptions,
