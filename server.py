@@ -1681,6 +1681,16 @@ class Handler(BaseHTTPRequestHandler):
                 else:
                     self._send(200, boardctl.status())
                 return
+            if path == "/api/ggufload":
+                import ggufload
+                self._send(200, ggufload.load(
+                    qs.get("path", ["data/sea/"
+                                     "tablet_key.gguf"])[0]))
+                return
+            if path == "/api/pitchmap":
+                import pitchmap
+                self._send(200, pitchmap.analyze())
+                return
             if path == "/api/xtts":
                 import xtts
                 action = qs.get("action", ["status"])[0]
@@ -2317,6 +2327,16 @@ class Handler(BaseHTTPRequestHandler):
                         qs.get("msg", [""])[0] or None))
                 else:
                     self._send(200, boardctl.status())
+                return
+            if path == "/api/ggufload":
+                import ggufload
+                self._send(200, ggufload.load(
+                    qs.get("path", ["data/sea/"
+                                     "tablet_key.gguf"])[0]))
+                return
+            if path == "/api/pitchmap":
+                import pitchmap
+                self._send(200, pitchmap.analyze())
                 return
             if path == "/api/xtts":
                 import xtts

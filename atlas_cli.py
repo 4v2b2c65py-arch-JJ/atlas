@@ -414,6 +414,13 @@ def main() -> None:
                                            type=int)
     bd.add_argument("msg")
 
+    pm = sub.add_parser("pitchmap")
+    pm.add_argument("action", nargs="?",
+                    choices=["analyze"], default="analyze")
+    gl = sub.add_parser("ggufload")
+    gl.add_argument("path", nargs="?",
+                    default="data/sea/tablet_key.gguf")
+
     xt = sub.add_parser("xtts")
     xt.add_argument("action", nargs="?",
                     choices=["status", "clone"],
@@ -1208,6 +1215,12 @@ def main() -> None:
             if v is not None:
                 q[k] = v
         out(get("/api/boardctl", **q))
+    elif ns.cmd == "pitchmap":
+        import pitchmap
+        out(pitchmap.analyze())
+    elif ns.cmd == "ggufload":
+        import ggufload
+        out(ggufload.load(ns.path))
     elif ns.cmd == "xtts":
         a = ns.action or "status"
         if a == "clone":
