@@ -129,15 +129,18 @@ def _harvest() -> dict[str, set]:
         for k in ("name", "true_name", "key"):
             add(r.get(k), "truename")
     # celestial sweep: queries + hit titles/domains
-    for r in _jsonl(DATA / "celestial" /
-                    "sweep.jsonl") or []:
-        add(r.get("query"), "celestial_sweep")
-        for h in r.get("results", []):
-            add(h.get("title"), "celestial_sweep")
-            u = h.get("url") or ""
-            m = re.match(r"https?://([^/]+)", u)
-            if m:
-                add(m.group(1), "celestial_sweep")
+    for fn in ("sweep.jsonl", "wiki.jsonl"):
+        for r in _jsonl(DATA / "celestial" / fn) or []:
+            add(r.get("query"), "celestial_" +
+                fn.split(".")[0])
+            for h in r.get("results", []):
+                add(h.get("title"), "celestial_" +
+                    fn.split(".")[0])
+                u = h.get("url") or ""
+                m = re.match(r"https?://([^/]+)", u)
+                if m:
+                    add(m.group(1), "celestial_" +
+                        fn.split(".")[0])
     return hall
 
 

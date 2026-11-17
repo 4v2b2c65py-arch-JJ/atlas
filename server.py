@@ -1724,10 +1724,20 @@ class Handler(BaseHTTPRequestHandler):
                 action = qs.get("action", ["status"])[0]
                 if action == "run":
                     self._send(200, celestial.run())
+                elif action == "wiki":
+                    self._send(200, celestial.wiki_sweep())
                 elif action == "feed":
                     self._send(200, celestial.feed())
                 else:
                     self._send(200, celestial.status())
+                return
+            if path == "/api/parsecdocs":
+                import parsecdocs
+                action = qs.get("action", ["status"])[0]
+                if action == "ingest":
+                    self._send(200, parsecdocs.ingest())
+                else:
+                    self._send(200, parsecdocs.status())
                 return
             if path == "/api/svm":
                 import smallvoice
@@ -2433,10 +2443,20 @@ class Handler(BaseHTTPRequestHandler):
                 action = qs.get("action", ["status"])[0]
                 if action == "run":
                     self._send(200, celestial.run())
+                elif action == "wiki":
+                    self._send(200, celestial.wiki_sweep())
                 elif action == "feed":
                     self._send(200, celestial.feed())
                 else:
                     self._send(200, celestial.status())
+                return
+            if path == "/api/parsecdocs":
+                import parsecdocs
+                action = qs.get("action", ["status"])[0]
+                if action == "ingest":
+                    self._send(200, parsecdocs.ingest())
+                else:
+                    self._send(200, parsecdocs.status())
                 return
             if path == "/api/svm":
                 import smallvoice

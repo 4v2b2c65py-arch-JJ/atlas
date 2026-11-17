@@ -443,6 +443,17 @@ def main() -> None:
                               "coords", "audio", "sounds"],
                     default="run")
 
+    ce = sub.add_parser("celestial")
+    ce.add_argument("action", nargs="?",
+                    choices=["status", "run", "wiki",
+                             "feed"],
+                    default="status")
+
+    pd = sub.add_parser("parsecdocs")
+    pd.add_argument("action", nargs="?",
+                    choices=["status", "ingest"],
+                    default="status")
+
     sv = sub.add_parser("svm")
     sv.add_argument("action", nargs="?",
                     choices=["status", "convert"],
@@ -1303,6 +1314,18 @@ def main() -> None:
                  "records": recs[-50:]})
         else:
             out(decompile.run())
+    elif ns.cmd == "celestial":
+        import celestial
+        a = ns.action or "status"
+        if a == "run": out(celestial.run())
+        elif a == "wiki": out(celestial.wiki_sweep())
+        elif a == "feed": out(celestial.feed())
+        else: out(celestial.status())
+    elif ns.cmd == "parsecdocs":
+        import parsecdocs
+        a = ns.action or "status"
+        if a == "ingest": out(parsecdocs.ingest())
+        else: out(parsecdocs.status())
     elif ns.cmd == "svm":
         a = ns.action or "status"
         if a == "convert":

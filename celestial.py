@@ -117,6 +117,87 @@ def _ddg(query: str, limit: int = 5) -> list[dict]:
     return out
 
 
+WIKI = OUT / "wiki.jsonl"
+
+
+def _wiki(query: str, limit: int = 5) -> list[dict]:
+    """Wikipedia API recall — second-chance backend for
+    terms Bing couldn't resolve. Public API, no key."""
+    u = ("https://en.wikipedia.org/w/api.php"
+         "?action=query&list=search&format=json"
+         "&srlimit=" + str(limit) + "&srsearch=" +
+         urllib.parse.quote(query))
+    try:
+        req = urllib.request.Request(
+            u, headers={"User-Agent": UA["User-Agent"]})
+        with urllib.request.urlopen(req, timeout=20) \
+                as r:
+            d = json.loads(r.read().decode("utf-8",
+                                           "replace"))
+    except Exception as e:
+        return [{"error": str(e)[:120]}]
+    out = []
+    for s in d.get("query", {}).get("search", []):
+        title = s.get("title", "")
+        out.append({
+            "title": title,
+            "url": ("https://en.wikipedia.org/wiki/" +
+                    urllib.parse.quote(
+                        title.replace(" ", "_"))),
+            "snippet": re.sub(r"<[^>]+>", "",
+                              s.get("snippet", ""))[:300]})
+    return out
+
+
+def wiki_sweep() -> dict:
+    """Recall pass: every sweep query that Bing left
+    empty gets a Wikipedia portal query. Results land in
+    wiki.jsonl — separate provenance from Bing hits."""
+    done = set()
+    if WIKI.exists():
+        for l in WIKI.open():
+            try:
+                done.add(json.loads(l)["query"])
+            except Exception:
+                pass
+    # queries Bing couldn't resolve
+    bing_empty = set()
+    if SWEEP.exists():
+        for l in SWEEP.open():
+            try:
+                r = json.loads(l)
+                if not r.get("hits"):
+                    bing_empty.add(r["query"])
+            except Exception:
+                pass
+    todo = sorted(q for q in bing_empty if q not in done)
+    n_new = 0
+    WIKI.parent.mkdir(parents=True, exist_ok=True)
+    with WIKI.open("a") as f:
+        for q in todo:
+            res = _wiki(q)
+            hits = [r for r in res if "url" in r]
+            rec = {"kind": "wiki_result",
+                   "device_time": _now(),
+                   "query": q,
+                   "backend": "wikipedia",
+                   "hits": len(hits),
+                   "results": res,
+                   "recall_for": "bing_empty",
+                   "derived": True,
+                   "note": ("wiki portal recall — "
+                            "public API")}
+            f.write(json.dumps(rec,
+                               ensure_ascii=False) + "\n")
+            n_new += 1
+            time.sleep(0.3)
+    return {"kind": "wiki_sweep",
+            "device_time": _now(),
+            "bing_empty": len(bing_empty),
+            "new": n_new,
+            "out": str(WIKI.relative_to(ROOT))}
+
+
 def run(max_terms: int | None = None) -> dict:
     OUT.mkdir(parents=True, exist_ok=True)
     terms = candidates()
@@ -164,8 +245,10 @@ def feed() -> dict:
     Raw notes untouched — everything here is derived."""
     recs = [json.loads(l) for l in SWEEP.open()] \
         if SWEEP.exists() else []
+    wiki = [json.loads(l) for l in WIKI.open()] \
+        if WIKI.exists() else []
     domains = {}
-    for r in recs:
+    for r in recs + wiki:
         for h in r.get("results", []):
             m = re.match(r"https?://([^/]+)",
                          h.get("url") or "")
@@ -182,6 +265,9 @@ def feed() -> dict:
                          if r.get("hits")),
         "total_hits": sum(r.get("hits", 0)
                           for r in recs),
+        "wiki_queries": len(wiki),
+        "wiki_hits": sum(r.get("hits", 0)
+                         for r in wiki),
         "top_domains": dict(top),
         "source": "data/celestial/sweep.jsonl",
         "derived": True,
