@@ -1719,6 +1719,16 @@ class Handler(BaseHTTPRequestHandler):
                     self._send(200, {"kind": "decompile_index",
                                      "records": recs[-50:]})
                 return
+            if path == "/api/celestial":
+                import celestial
+                action = qs.get("action", ["status"])[0]
+                if action == "run":
+                    self._send(200, celestial.run())
+                elif action == "feed":
+                    self._send(200, celestial.feed())
+                else:
+                    self._send(200, celestial.status())
+                return
             if path == "/api/svm":
                 import smallvoice
                 action = qs.get("action", ["status"])[0]
@@ -2417,6 +2427,16 @@ class Handler(BaseHTTPRequestHandler):
                             except Exception: pass
                     self._send(200, {"kind": "decompile_index",
                                      "records": recs[-50:]})
+                return
+            if path == "/api/celestial":
+                import celestial
+                action = qs.get("action", ["status"])[0]
+                if action == "run":
+                    self._send(200, celestial.run())
+                elif action == "feed":
+                    self._send(200, celestial.feed())
+                else:
+                    self._send(200, celestial.status())
                 return
             if path == "/api/svm":
                 import smallvoice

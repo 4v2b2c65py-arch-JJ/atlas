@@ -128,6 +128,16 @@ def _harvest() -> dict[str, set]:
             or []:
         for k in ("name", "true_name", "key"):
             add(r.get(k), "truename")
+    # celestial sweep: queries + hit titles/domains
+    for r in _jsonl(DATA / "celestial" /
+                    "sweep.jsonl") or []:
+        add(r.get("query"), "celestial_sweep")
+        for h in r.get("results", []):
+            add(h.get("title"), "celestial_sweep")
+            u = h.get("url") or ""
+            m = re.match(r"https?://([^/]+)", u)
+            if m:
+                add(m.group(1), "celestial_sweep")
     return hall
 
 

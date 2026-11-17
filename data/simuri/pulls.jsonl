@@ -2,3 +2,9 @@
 {"kind": "sim_pull_log", "uri": "sim://voice/gilgamesh_decode", "resolved": "voice_run", "device_time": {"ts": 1794854658.201252, "iso": "2026-11-16T14:44:18.201-04:00", "timezone": "AST", "date": "2026-11-16"}}
 {"kind": "sim_pull_log", "uri": "sim://exp/gilgamesh_decode", "resolved": "voice_experience", "device_time": {"ts": 1794854658.466871, "iso": "2026-11-16T14:44:18.466-04:00", "timezone": "AST", "date": "2026-11-16"}}
 {"kind": "sim_pull_log", "uri": "sim://event/voice_experience", "resolved": "event_tag", "device_time": {"ts": 1794854659.047886, "iso": "2026-11-16T14:44:19.047-04:00", "timezone": "AST", "date": "2026-11-16"}}
+{"kind": "sim_pull_log", "uri": "sim://episode/chunk_map", "resolved": "episode", "device_time": {"ts": 1794875083.696414, "iso": "2026-11-16T20:24:43.696-04:00", "timezone": "AST", "date": "2026-11-16"}}
+{"kind": "sim_pull_log", "uri": "sim://episode/strings", "resolved": "episode", "device_time": {"ts": 1794875084.48968, "iso": "2026-11-16T20:24:44.489-04:00", "timezone": "AST", "date": "2026-11-16"}}
+{"kind": "sim_pull_log", "uri": "sim://episode/audio_census", "resolved": "episode", "device_time": {"ts": 1794875085.375688, "iso": "2026-11-16T20:24:45.375-04:00", "timezone": "AST", "date": "2026-11-16"}}
+{"kind": "sim_pull_log", "uri": "sim://episode/room_census", "resolved": "episode", "device_time": {"ts": 1794875086.049426, "iso": "2026-11-16T20:24:46.049-04:00", "timezone": "AST", "date": "2026-11-16"}}
+{"kind": "sim_pull_log", "uri": "sim://episode/gen8_fields", "resolved": "episode", "device_time": {"ts": 1794875086.799948, "iso": "2026-11-16T20:24:46.799-04:00", "timezone": "AST", "date": "2026-11-16"}}
+{"kind": "sim_pull_log", "uri": "sim://episode/room_room_ruins6", "resolved": "episode", "device_time": {"ts": 1794875343.255747, "iso": "2026-11-16T20:29:03.255-04:00", "timezone": "AST", "date": "2026-11-16"}}
