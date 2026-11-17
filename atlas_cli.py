@@ -427,7 +427,8 @@ def main() -> None:
 
     dc = sub.add_parser("decompile")
     dc.add_argument("action", nargs="?",
-                    choices=["run", "index", "stream"],
+                    choices=["run", "index", "stream",
+                              "coords", "audio", "sounds"],
                     default="run")
 
     sv = sub.add_parser("svm")
@@ -1254,7 +1255,13 @@ def main() -> None:
         else: out(privatepkg.status())
     elif ns.cmd == "decompile":
         import decompile
-        if ns.action == "stream":
+        if ns.action == "coords":
+            out(decompile.room_coords())
+        elif ns.action == "audio":
+            out(decompile.extract_audio())
+        elif ns.action == "sounds":
+            out(decompile.sound_map())
+        elif ns.action == "stream":
             out(decompile.stream())
         elif ns.action == "index":
             idx = decompile.OUT / "decompile_index.jsonl"

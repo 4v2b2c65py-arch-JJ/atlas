@@ -401,6 +401,78 @@ def extract_audio() -> dict:
             "entries": cnt, "wavs": len(written)}
 
 
+def sound_map() -> dict:
+    """SOND -> AUDO binding. Entry = 9 u32 (36B):
+    namePtr, flags, typePtr, filePtr, effects,
+    volume f32, pitch f32, preload, audioID.
+    Embedded sounds (flags&1) index AUDO entries;
+    audio_id -> data/decompile/audio/audo_%04d.wav.
+    Verified: 439 sounds, 223 embedded = 223 AUDO."""
+    if not WIN.exists():
+        return {"error": "no_data_win"}
+    data = WIN.read_bytes()
+    chunks = _chunks(data)
+    by_id = {c["id"]: c for c in chunks}
+    if "SOND" not in by_id:
+        return {"error": "no_SOND"}
+    snd = by_id["SOND"]
+    base = snd["offset"]
+    cnt = struct.unpack("<I", data[base:base + 4])[0]
+    out = OUT / "sound_map.jsonl"
+    n_emb = 0
+    with out.open("w") as f:
+        for i in range(min(cnt, 5000)):
+            o = struct.unpack(
+                "<I", data[base + 4 + 4 * i:
+                       base + 8 + 4 * i])[0]
+            if o + 36 > len(data):
+                continue
+            (np_, fl, tp, fp, fx, vol, pit,
+             pre, aud) = struct.unpack(
+                "<9I", data[o:o + 36])
+            rec = {"index": i,
+                   "name": _str_at(data, np_),
+                   "flags": fl,
+                   "type": _str_at(data, tp),
+                   "file": _str_at(data, fp),
+                   "volume": round(struct.unpack(
+                       "<f", struct.pack(
+                           "<I", vol))[0], 4),
+                   "pitch": round(struct.unpack(
+                       "<f", struct.pack(
+                           "<I", pit))[0], 4),
+                   "preload": pre,
+                   "audio_id": struct.unpack(
+                       "<i", struct.pack(
+                           "<I", aud))[0],
+                   "embedded": bool(fl & 1),
+                   "wav": ("data/decompile/audio/"
+                           "audo_%04d.wav" % aud
+                           if (fl & 1) and 0 <= aud
+                           < 5000 else None)}
+            if rec["embedded"]:
+                n_emb += 1
+            f.write(json.dumps(rec, ensure_ascii=False)
+                    + "\n")
+    idx = {"kind": "sound_map",
+           "device_time": _now(),
+           "sounds": cnt, "embedded": n_emb,
+           "out": str(out.relative_to(ROOT)),
+           "sim_uri": "sim://decompile/sound_map",
+           "derived": True}
+    with (OUT / "decompile_index.jsonl").open("a") as f:
+        f.write(json.dumps(idx) + "\n")
+    try:
+        import eventbus
+        eventbus.emit("decompile_sound_map",
+                      {"sounds": cnt,
+                       "embedded": n_emb})
+    except Exception:
+        pass
+    return {"kind": "sound_map", "sounds": cnt,
+            "embedded": n_emb}
+
+
 EPISODES = OUT / "episodes.jsonl"
 
 
