@@ -473,6 +473,244 @@ def sound_map() -> dict:
             "embedded": n_emb}
 
 
+def _chunk_entries(data: bytes, chunk: dict) -> list:
+    """GEN8 chunk layout: u32 count + count*u32 absolute
+    offsets to per-entry blobs (verified: SOND=439,
+    AUDO=223, SPRT=2472, TPAG=6390, TXTR=16)."""
+    base = chunk["offset"]
+    cnt = struct.unpack("<I", data[base:base + 4])[0]
+    return [struct.unpack(
+        "<I", data[base + 4 + 4 * i:base + 8 + 4 * i])[0]
+        for i in range(min(cnt, 100000))]
+
+
+def _png_end(data: bytes, start: int) -> int:
+    """PNG: 8B sig + chunks [len u32BE][type 4B][data][crc4]
+    until IEND. Returns offset just past IEND."""
+    p = start + 8
+    while p + 12 <= len(data):
+        ln = struct.unpack(">I", data[p:p + 4])[0]
+        typ = data[p + 4:p + 8]
+        p += 12 + ln
+        if typ == b"IEND":
+            return p
+        if ln > 0x7FFFFFFF:
+            break
+    return -1
+
+
+def extract_visuals() -> dict:
+    """SPRT/TPAG/TXTR -> sprites + real PNG textures.
+
+    Verified layouts (vs UndertaleModTool source):
+      TXTR: 16 embedded-texture entries {u32, u32 texPtr};
+            texPtr -> 0x80-aligned GMImage blob; Undertale
+            v1.001 blobs are plain PNG (sig 89 50 4E 47).
+            Entries 0-7 are scaled/alias refs that point
+            through a {0, ptr} pair to the same 8 PNGs.
+      TPAG: 6390 items x 22B: u32 unk + 8xu16 geometry +
+            i16 textureIndex (0-15 into TXTR entries).
+            First u32 does not resolve as a string ptr —
+            recorded raw, honestly unmapped.
+      SPRT: 2472 sprites: namePtr, W,H u32, margins i32x4,
+            3 bools u32, bboxMode u32, sepMasks u32,
+            origin i32x2, then i32 marker: -1 = special
+            type (recorded, not deep-parsed); else the
+            marker position IS a SimpleList<u32>: count +
+            count*u32 pointers to TPAG items. Collision
+            mask data follows — skipped (not needed for
+            the visual census)."""
+    if not WIN.exists():
+        return {"error": "no_data_win"}
+    data = WIN.read_bytes()
+    chunks = _chunks(data)
+    by_id = {c["id"]: c for c in chunks}
+    tdir = OUT / "textures"
+    tdir.mkdir(parents=True, exist_ok=True)
+
+    # ---- TXTR: entry table + PNG extraction ----
+    tex_entries = []
+    png_at = {}          # file offset -> png index
+    if "TXTR" in by_id:
+        tx = by_id["TXTR"]
+        offs = _chunk_entries(data, tx)
+        for i, o in enumerate(offs):
+            if o + 8 > len(data):
+                continue
+            a, b = struct.unpack("<II", data[o:o + 8])
+            # resolve blob: direct PNG, or one hop
+            # through a {0, ptr} pair (scaled aliases)
+            blob = b
+            if blob + 8 <= len(data) and not \
+                    data[blob:blob + 8].startswith(
+                        b"\x89PNG"):
+                z, b2 = struct.unpack(
+                    "<II", data[blob:blob + 8])
+                if z == 0 and b2 < len(data):
+                    blob = b2
+            end = _png_end(data, blob) \
+                if data[blob:blob + 8].startswith(
+                    b"\x89PNG") else -1
+            tex_entries.append({
+                "index": i, "entry_off": o,
+                "field_a": a, "blob_off": blob,
+                "png": end > 0})
+            if end > 0 and blob not in png_at:
+                png_at[blob] = len(png_at)
+        # write each unique PNG once
+        for off, idx in sorted(png_at.items()):
+            end = _png_end(data, off)
+            fp = tdir / ("txtr_%02d.png" % idx)
+            fp.write_bytes(data[off:end])
+        # annotate every entry with its resolved png idx
+        for e in tex_entries:
+            e["png_index"] = png_at.get(e["blob_off"])
+            e["png_file"] = ("txtr_%02d.png" % e["png_index"]
+                             if e["png_index"] is not None
+                             else None)
+
+    # ---- TPAG: item census ----
+    tpag_items = []
+    tpag_by_off = {}
+    if "TPAG" in by_id:
+        tp = by_id["TPAG"]
+        offs = _chunk_entries(data, tp)
+        for i, o in enumerate(offs):
+            if o + 22 > len(data):
+                continue
+            e = data[o:o + 22]
+            u32 = struct.unpack("<I", e[:4])[0]
+            g = struct.unpack("<8H", e[4:20])
+            tidx = struct.unpack("<h", e[20:22])[0]
+            rec = {"index": i, "off": o, "unk": u32,
+                   "g": list(g), "tex_index": tidx}
+            tpag_items.append(rec)
+            tpag_by_off[o] = i
+
+    # ---- SPRT: sprite census ----
+    sprites = []
+    n_special = 0
+    if "SPRT" in by_id:
+        sp = by_id["SPRT"]
+        offs = _chunk_entries(data, sp)
+        for i, o in enumerate(offs):
+            try:
+                p = o
+                nptr = struct.unpack("<I",
+                                     data[p:p + 4])[0]
+                name = _str_at(data, nptr)
+                p += 4
+                w, h = struct.unpack("<II",
+                                     data[p:p + 8]); p += 8
+                margins = struct.unpack(
+                    "<iiii", data[p:p + 16]); p += 16
+                tb, sb, pb = struct.unpack(
+                    "<III", data[p:p + 12]); p += 12
+                bbox, sep = struct.unpack(
+                    "<II", data[p:p + 8]); p += 8
+                ox, oy = struct.unpack(
+                    "<ii", data[p:p + 8]); p += 8
+                marker = struct.unpack(
+                    "<i", data[p:p + 4])[0]
+                rec = {"index": i, "name": name,
+                       "w": w, "h": h,
+                       "margins": list(margins),
+                       "transparent": bool(tb),
+                       "smooth": bool(sb),
+                       "preload": bool(pb),
+                       "bbox_mode": bbox,
+                       "sep_masks": sep,
+                       "origin": [ox, oy]}
+                if marker == -1:
+                    n_special += 1
+                    rec["kind"] = "special_sprite"
+                    rec["note"] = ("SVersion/SSpriteType "
+                                   "follow — not deep-"
+                                   "parsed")
+                    sprites.append(rec)
+                    continue
+                # normal: marker pos = SimpleList start
+                # (count u32 + count*u32 TPAG ptrs)
+                cnt = marker
+                texrefs = []
+                if 0 < cnt < 500:
+                    for j in range(cnt):
+                        q = p + 4 + 4 * j
+                        if q + 4 > len(data):
+                            break
+                        tp = struct.unpack(
+                            "<I", data[q:q + 4])[0]
+                        texrefs.append({
+                            "tpag_off": tp,
+                            "tpag_index":
+                                tpag_by_off.get(tp)})
+                rec["kind"] = "sprite"
+                rec["textures"] = texrefs
+                sprites.append(rec)
+            except Exception:
+                continue
+
+    # ---- write + emit ----
+    sp_out = OUT / "sprites.jsonl"
+    with sp_out.open("w") as f:
+        for s in sprites:
+            f.write(json.dumps(s, ensure_ascii=False)
+                    + "\n")
+    tp_out = OUT / "tpag_items.jsonl"
+    with tp_out.open("w") as f:
+        for t in tpag_items:
+            f.write(json.dumps(t, ensure_ascii=False)
+                    + "\n")
+
+    idx = OUT / "decompile_index.jsonl"
+    recs = [
+        {"kind": "texture_extract",
+         "device_time": _now(),
+         "txtr_entries": len(tex_entries),
+         "pngs": len(png_at),
+         "entries": tex_entries,
+         "out": "data/decompile/textures/",
+         "sim_uri":
+             "sim://decompile/texture_extract",
+         "derived": True},
+        {"kind": "tpag_census",
+         "device_time": _now(),
+         "items": len(tpag_items),
+         "out": str(tp_out.relative_to(ROOT)),
+         "sim_uri": "sim://decompile/tpag_census",
+         "note": ("22B items: u32 unk + 8xu16 geom + "
+                  "i16 texIndex(0-15); first u32 unmapped"),
+         "derived": True},
+        {"kind": "sprite_census",
+         "device_time": _now(),
+         "sprites": len(sprites),
+         "special": n_special,
+         "out": str(sp_out.relative_to(ROOT)),
+         "sim_uri": "sim://decompile/sprite_census",
+         "derived": True},
+    ]
+    with idx.open("a") as f:
+        for r in recs:
+            f.write(json.dumps(r, ensure_ascii=False)
+                    + "\n")
+    try:
+        import eventbus
+        eventbus.emit("decompile_visuals",
+                      {"sprites": len(sprites),
+                       "pngs": len(png_at),
+                       "tpag": len(tpag_items)})
+    except Exception:
+        pass
+    return {"kind": "visual_extract",
+            "device_time": _now(),
+            "txtr_entries": len(tex_entries),
+            "pngs": len(png_at),
+            "tpag_items": len(tpag_items),
+            "sprites": len(sprites),
+            "special": n_special,
+            "png_files": sorted(png_at.values())}
+
+
 EPISODES = OUT / "episodes.jsonl"
 
 

@@ -440,7 +440,8 @@ def main() -> None:
     dc = sub.add_parser("decompile")
     dc.add_argument("action", nargs="?",
                     choices=["run", "index", "stream",
-                              "coords", "audio", "sounds"],
+                              "coords", "audio", "sounds",
+                              "visuals"],
                     default="run")
 
     ce = sub.add_parser("celestial")
@@ -1306,6 +1307,8 @@ def main() -> None:
             out(decompile.extract_audio())
         elif ns.action == "sounds":
             out(decompile.sound_map())
+        elif ns.action == "visuals":
+            out(decompile.extract_visuals())
         elif ns.action == "stream":
             out(decompile.stream())
         elif ns.action == "index":

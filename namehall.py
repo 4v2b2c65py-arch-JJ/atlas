@@ -114,6 +114,14 @@ def _harvest() -> dict[str, set]:
         if r.get("kind") == "audio_census":
             for n in r.get("all_names", []):
                 add(n, "audio_census")
+    # sprite names + texture files (visual layer)
+    for r in _jsonl(DATA / "decompile" /
+                    "sprites.jsonl") or []:
+        add(r.get("name"), "sprite")
+    tdir = DATA / "decompile" / "textures"
+    if tdir.exists():
+        for p in tdir.glob("*.png"):
+            add(p.stem, "texture")
     # voice refs + wavs
     vr = DATA / "voice_refs"
     if vr.exists():

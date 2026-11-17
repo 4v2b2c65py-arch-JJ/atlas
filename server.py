@@ -1709,6 +1709,10 @@ class Handler(BaseHTTPRequestHandler):
                     self._send(200, decompile.run())
                 elif action == "stream":
                     self._send(200, decompile.stream())
+                elif action == "visuals":
+                    self._send(200, decompile.extract_visuals())
+                elif action == "sounds":
+                    self._send(200, decompile.sound_map())
                 else:
                     idx = decompile.OUT / "decompile_index.jsonl"
                     recs = []
@@ -2436,6 +2440,10 @@ class Handler(BaseHTTPRequestHandler):
                     self._send(200, decompile.run())
                 elif action == "stream":
                     self._send(200, decompile.stream())
+                elif action == "visuals":
+                    self._send(200, decompile.extract_visuals())
+                elif action == "sounds":
+                    self._send(200, decompile.sound_map())
                 else:
                     idx = decompile.OUT / "decompile_index.jsonl"
                     recs = []
