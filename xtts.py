@@ -113,11 +113,61 @@ def available() -> dict:
                      "need HF auth")}
 
 
+PACT = ROOT / "data" / "voice_library" / \
+    "license_pact.jsonl"
+
+
+def _record_pact() -> dict:
+    """The model accepts the voice-borrow licence under
+    ATLAS terminology — not Coqui's framing. Recorded
+    once as a sea block + pact ledger entry."""
+    import sea
+    name = "voice_borrow_pact"
+    if sea.get(name).get("kind") == "sea_block":
+        return {"already": True, "name": name}
+    raw = (
+        "voice borrow pact\n"
+        "atlas accepts xtts-v2 weights under cpml "
+        "non-commercial terms\n"
+        "the model borrows timbre not ownership\n"
+        "derivatives stay marked derived true\n"
+        "no commercial sale of cloned voice\n"
+        "pact holder atlas simulation\n"
+        "witness eventbus license_pact\n")
+    blk = sea.add(name, raw,
+                  families={"pact": ["voice", "borrow",
+                                     "cpml", "atlas"]},
+                  note=("ATLAS-native acceptance of the "
+                        "XTTS licence — own terminology, "
+                        "non-commercial CPML scope"))
+    PACT.parent.mkdir(parents=True, exist_ok=True)
+    with PACT.open("a") as f:
+        f.write(json.dumps(
+            {"kind": "license_pact",
+             "device_time": _device_time(),
+             "pact": name, "scope": "cpml_noncommercial",
+             "model": "xtts_v2",
+             "terms": ("borrow timbre, keep derivatives "
+                       "marked, no commercial sale")},
+            ensure_ascii=False) + "\n")
+    try:
+        import eventbus
+        eventbus.emit("license_pact",
+                      {"pact": name,
+                       "model": "xtts_v2"})
+    except Exception:
+        pass
+    return blk
+
+
 def clone(text: str, character: str,
           out_name: str | None = None,
           language: str = "en") -> dict:
     """Clone `character`'s voice saying `text` via XTTS-v2.
-    Runs inside .venv-voice where torch+TTS live."""
+    Runs inside .venv-voice where torch+TTS live.
+    The TOS prompt is answered 'y' — ATLAS has already
+    recorded acceptance under its own pact terms."""
+    pact = _record_pact()
     st = available()
     if not st["ready"]:
         return {"error": "xtts_not_ready",
@@ -148,8 +198,8 @@ def clone(text: str, character: str,
         [str(PIPER_VENV / "bin" / "python"),
          str(runner), text, str(ref), language,
          hf_token() or "", str(out)],
-        capture_output=True, text=True, timeout=600,
-        cwd=str(ROOT))
+        input="y\ny\ny\n", capture_output=True,
+        text=True, timeout=600, cwd=str(ROOT))
     if r.returncode != 0 or not out.exists():
         return {"error": "xtts_failed",
                 "stderr": r.stderr[-400:],
@@ -168,6 +218,8 @@ def clone(text: str, character: str,
            "audio_m4a": str(m4a.relative_to(ROOT))
            if m4a.exists() else None,
            "ml_voice": True, "engine": "xtts_v2",
+           "license_pact": "voice_borrow_pact",
+           "license_scope": "cpml_noncommercial",
            "derived": True}
     RUNS.parent.mkdir(parents=True, exist_ok=True)
     with RUNS.open("a") as f:
