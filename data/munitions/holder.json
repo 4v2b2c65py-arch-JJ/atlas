@@ -1,0 +1,23 @@
+{
+  "kind": "munitions_holder",
+  "capacity": 64,
+  "loaded": [
+    "adventure_prismo_spec",
+    "gilgamesh_coligraph",
+    "decompile_index",
+    "gilgamesh_decode",
+    "myth_epic_of_gilgamesh",
+    "myth_gilgamesh_flood_myth",
+    "tablet_ocr_formations",
+    "tablet_sonification",
+    "tide_test",
+    "voice_borrow_pact",
+    "voice_datasets_catalog"
+  ],
+  "device_time": {
+    "ts": 1794878346.383974,
+    "iso": "2026-11-16T21:19:06.383-04:00",
+    "timezone": "AST",
+    "date": "2026-11-16"
+  }
+}

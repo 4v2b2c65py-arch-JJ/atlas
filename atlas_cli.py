@@ -414,6 +414,12 @@ def main() -> None:
                                            type=int)
     bd.add_argument("msg")
 
+    mn = sub.add_parser("munitions")
+    mn.add_argument("action", nargs="?",
+                    choices=["status", "refill", "fire"],
+                    default="status")
+    mn.add_argument("n")
+
     nh = sub.add_parser("namehall")
     nh.add_argument("action", nargs="?",
                     choices=["status", "build", "query"],
@@ -1241,6 +1247,16 @@ def main() -> None:
             if v is not None:
                 q[k] = v
         out(get("/api/boardctl", **q))
+    elif ns.cmd == "munitions":
+        import munitions
+        a = ns.action or "status"
+        if a == "refill": out(munitions.refill())
+        elif a == "fire":
+            n = ns.n
+            try: n = int(n)
+            except Exception: pass
+            out(munitions.fire(n if n is not None else -1))
+        else: out(munitions.status())
     elif ns.cmd == "namehall":
         import namehall
         a = ns.action or "status"
