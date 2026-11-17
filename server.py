@@ -1681,6 +1681,27 @@ class Handler(BaseHTTPRequestHandler):
                 else:
                     self._send(200, boardctl.status())
                 return
+            if path == "/api/namehall":
+                import namehall
+                action = qs.get("action", ["status"])[0]
+                if action == "build":
+                    self._send(200, namehall.build())
+                elif action == "query":
+                    self._send(200, namehall.query(
+                        qs.get("name", [""])[0]))
+                else:
+                    self._send(200, namehall.status())
+                return
+            if path == "/api/privatepkg":
+                import privatepkg
+                action = qs.get("action", ["status"])[0]
+                if action == "build":
+                    self._send(200, privatepkg.build())
+                elif action == "restore":
+                    self._send(200, privatepkg.restore())
+                else:
+                    self._send(200, privatepkg.status())
+                return
             if path == "/api/decompile":
                 import decompile
                 action = qs.get("action", ["run"])[0]
@@ -2358,6 +2379,27 @@ class Handler(BaseHTTPRequestHandler):
                         qs.get("msg", [""])[0] or None))
                 else:
                     self._send(200, boardctl.status())
+                return
+            if path == "/api/namehall":
+                import namehall
+                action = qs.get("action", ["status"])[0]
+                if action == "build":
+                    self._send(200, namehall.build())
+                elif action == "query":
+                    self._send(200, namehall.query(
+                        qs.get("name", [""])[0]))
+                else:
+                    self._send(200, namehall.status())
+                return
+            if path == "/api/privatepkg":
+                import privatepkg
+                action = qs.get("action", ["status"])[0]
+                if action == "build":
+                    self._send(200, privatepkg.build())
+                elif action == "restore":
+                    self._send(200, privatepkg.restore())
+                else:
+                    self._send(200, privatepkg.status())
                 return
             if path == "/api/decompile":
                 import decompile

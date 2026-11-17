@@ -414,6 +414,17 @@ def main() -> None:
                                            type=int)
     bd.add_argument("msg")
 
+    nh = sub.add_parser("namehall")
+    nh.add_argument("action", nargs="?",
+                    choices=["status", "build", "query"],
+                    default="status")
+    nh.add_argument("name")
+
+    pp = sub.add_parser("privatepkg")
+    pp.add_argument("action", nargs="?",
+                    choices=["status", "build", "restore"],
+                    default="status")
+
     dc = sub.add_parser("decompile")
     dc.add_argument("action", nargs="?",
                     choices=["run", "index", "stream"],
@@ -1229,6 +1240,18 @@ def main() -> None:
             if v is not None:
                 q[k] = v
         out(get("/api/boardctl", **q))
+    elif ns.cmd == "namehall":
+        import namehall
+        a = ns.action or "status"
+        if a == "build": out(namehall.build())
+        elif a == "query": out(namehall.query(ns.name or ""))
+        else: out(namehall.status())
+    elif ns.cmd == "privatepkg":
+        import privatepkg
+        a = ns.action or "status"
+        if a == "build": out(privatepkg.build())
+        elif a == "restore": out(privatepkg.restore())
+        else: out(privatepkg.status())
     elif ns.cmd == "decompile":
         import decompile
         if ns.action == "stream":

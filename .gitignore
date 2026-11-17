@@ -9,3 +9,4 @@ bt/node_modules/
 bt/package-lock.json
 bin/
 .venv-voice/
+private/
