@@ -414,6 +414,10 @@ def main() -> None:
                                            type=int)
     bd.add_argument("msg")
 
+    dc = sub.add_parser("decompile")
+    dc.add_argument("action", nargs="?",
+                    choices=["run", "index"], default="run")
+
     sv = sub.add_parser("svm")
     sv.add_argument("action", nargs="?",
                     choices=["status", "convert"],
@@ -1224,6 +1228,19 @@ def main() -> None:
             if v is not None:
                 q[k] = v
         out(get("/api/boardctl", **q))
+    elif ns.cmd == "decompile":
+        import decompile
+        if ns.action == "index":
+            idx = decompile.OUT / "decompile_index.jsonl"
+            recs = []
+            if idx.exists():
+                for line in idx.open():
+                    try: recs.append(json.loads(line))
+                    except Exception: pass
+            out({"kind": "decompile_index",
+                 "records": recs[-50:]})
+        else:
+            out(decompile.run())
     elif ns.cmd == "svm":
         a = ns.action or "status"
         if a == "convert":

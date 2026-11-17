@@ -1681,6 +1681,21 @@ class Handler(BaseHTTPRequestHandler):
                 else:
                     self._send(200, boardctl.status())
                 return
+            if path == "/api/decompile":
+                import decompile
+                action = qs.get("action", ["run"])[0]
+                if action == "run":
+                    self._send(200, decompile.run())
+                else:
+                    idx = decompile.OUT / "decompile_index.jsonl"
+                    recs = []
+                    if idx.exists():
+                        for line in idx.open():
+                            try: recs.append(json.loads(line))
+                            except Exception: pass
+                    self._send(200, {"kind": "decompile_index",
+                                     "records": recs[-50:]})
+                return
             if path == "/api/svm":
                 import smallvoice
                 action = qs.get("action", ["status"])[0]
@@ -2341,6 +2356,21 @@ class Handler(BaseHTTPRequestHandler):
                         qs.get("msg", [""])[0] or None))
                 else:
                     self._send(200, boardctl.status())
+                return
+            if path == "/api/decompile":
+                import decompile
+                action = qs.get("action", ["run"])[0]
+                if action == "run":
+                    self._send(200, decompile.run())
+                else:
+                    idx = decompile.OUT / "decompile_index.jsonl"
+                    recs = []
+                    if idx.exists():
+                        for line in idx.open():
+                            try: recs.append(json.loads(line))
+                            except Exception: pass
+                    self._send(200, {"kind": "decompile_index",
+                                     "records": recs[-50:]})
                 return
             if path == "/api/svm":
                 import smallvoice
