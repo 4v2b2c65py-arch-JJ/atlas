@@ -64,13 +64,17 @@ def reference_for(character: str) -> Path | None:
         p = REFS / (character.lower() + ext)
         if p.exists():
             return p
-    # any file containing the character name
-    for p in REFS.iterdir():
-        if character.lower() in p.stem.lower() and \
-                p.suffix.lower() in (
-                    ".wav", ".mp3", ".flac", ".m4a",
-                    ".ogg"):
-            return p
+    # prefer consonant-lengthened (_ext) refs — they meet
+    # the ~6s clone minimum; fall back to any match
+    cands = [p for p in REFS.iterdir()
+             if character.lower() in p.stem.lower() and
+             p.suffix.lower() in
+             (".wav", ".mp3", ".flac", ".m4a", ".ogg")]
+    ext = [p for p in cands if p.stem.endswith("_ext")]
+    if ext:
+        return sorted(ext)[0]
+    if cands:
+        return sorted(cands)[0]
     return None
 
 
@@ -185,21 +189,31 @@ def clone(text: str, character: str,
         "import sys\n"
         "from TTS.api import TTS\n"
         "import os\n"
-        "os.environ['HF_TOKEN']=sys.argv[4]\n"
+        "os.environ['HF_TOKEN']=os.environ.get("
+        "'ATLAS_HF_TOKEN','')\n"
         "tts = TTS('tts_models/multilingual/"
         "multi-dataset/xtts_v2').to('cpu')\n"
         "tts.tts_to_file(text=sys.argv[1], "
         "speaker_wav=sys.argv[2], language=sys.argv[3],"
-        " file_path=sys.argv[5])\n")
+        " file_path=sys.argv[4])\n")
     runner = ROOT / "data" / "voice_library" / \
         "_xtts_run.py"
     runner.write_text(script)
-    r = subprocess.run(
-        [str(PIPER_VENV / "bin" / "python"),
-         str(runner), text, str(ref), language,
-         hf_token() or "", str(out)],
-        input="y\ny\ny\n", capture_output=True,
-        text=True, timeout=600, cwd=str(ROOT))
+    env = dict(os.environ)
+    env["ATLAS_HF_TOKEN"] = hf_token() or ""
+    try:
+        r = subprocess.run(
+            [str(PIPER_VENV / "bin" / "python"),
+             str(runner), text, str(ref), language,
+             str(out)],
+            input="y\ny\ny\n", capture_output=True,
+            text=True, timeout=1800, cwd=str(ROOT),
+            env=env)
+    except subprocess.TimeoutExpired:
+        return {"error": "xtts_timeout",
+                "note": ("cpu synthesis exceeded 30min — "
+                         "weights cached now, retry is "
+                         "faster; gpu/metal path pending")}
     if r.returncode != 0 or not out.exists():
         return {"error": "xtts_failed",
                 "stderr": r.stderr[-400:],

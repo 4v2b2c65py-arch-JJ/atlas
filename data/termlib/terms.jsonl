@@ -2454,3 +2454,10 @@
 {"ts": 1794874947.357505, "kind": "term", "term": "daemon", "seed": "adventure_prismo_spec", "category": "coined_golb", "derived": true, "source_pack": "adventure_prismo_spec"}
 {"ts": 1794874947.3575208, "kind": "term", "term": "book", "seed": "adventure_prismo_spec", "category": "coined_golb", "derived": true, "source_pack": "adventure_prismo_spec"}
 {"ts": 1794874947.357536, "kind": "term", "term": "py", "seed": "adventure_prismo_spec", "category": "coined_golb", "derived": true, "source_pack": "adventure_prismo_spec"}
+{"ts": 1794875755.8162491, "kind": "term", "term": "cosonant", "seed": "audiostretch", "category": "coined_audio", "derived": true, "source_pack": "cosonant_lengh"}
+{"ts": 1794875755.8163142, "kind": "term", "term": "consonant", "seed": "audiostretch", "category": "coined_audio", "derived": true, "source_pack": "cosonant_lengh"}
+{"ts": 1794875755.816341, "kind": "term", "term": "duration", "seed": "audiostretch", "category": "coined_audio", "derived": true, "source_pack": "cosonant_lengh"}
+{"ts": 1794875755.8163562, "kind": "term", "term": "stretch", "seed": "audiostretch", "category": "coined_audio", "derived": true, "source_pack": "cosonant_lengh"}
+{"ts": 1794875755.816368, "kind": "term", "term": "tiled", "seed": "audiostretch", "category": "coined_audio", "derived": true, "source_pack": "cosonant_lengh"}
+{"ts": 1794875755.816381, "kind": "term", "term": "blip", "seed": "audiostretch", "category": "coined_audio", "derived": true, "source_pack": "cosonant_lengh"}
+{"ts": 1794875755.816392, "kind": "term", "term": "phraselong", "seed": "audiostretch", "category": "coined_audio", "derived": true, "source_pack": "cosonant_lengh"}
