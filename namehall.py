@@ -136,6 +136,10 @@ def _harvest() -> dict[str, set]:
             or []:
         for k in ("name", "true_name", "key"):
             add(r.get(k), "truename")
+    # handle stubs (@interstellar etc)
+    for r in _jsonl(DATA / "handles" / "stubs.jsonl")             or []:
+        add(r.get("handle"), "handle_stub")
+        add(r.get("slug"), "handle_stub")
     # celestial sweep: queries + hit titles/domains
     for fn in ("sweep.jsonl", "wiki.jsonl"):
         for r in _jsonl(DATA / "celestial" / fn) or []:
