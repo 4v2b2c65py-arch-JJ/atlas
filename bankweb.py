@@ -172,6 +172,38 @@ def _text(html: str, limit: int = 3000) -> str:
     return re.sub(r"\s+", " ", txt).strip()[:limit]
 
 
+def _fetch_jina(src: dict) -> dict:
+    """Fallback backend: r.jina.ai reader proxy fetches
+    the page server-side and returns markdown. Used when
+    the direct fetch hits a bot-wall (403). Provenance
+    records backend=jina_reader."""
+    u = ("https://r.jina.ai/" + src["url"])
+    try:
+        req = urllib.request.Request(u, headers={
+            "User-Agent": UA["User-Agent"],
+            "Accept": "text/plain"})
+        with urllib.request.urlopen(req, timeout=45)                 as r:
+            raw = r.read()
+            text = raw.decode("utf-8", "replace")
+            if len(text) < 200:
+                return {"ok": False,
+                        "error": "jina_empty",
+                        "backend": "jina_reader"}
+            return {"status": 200, "ok": True,
+                    "final_url": src["url"],
+                    "sha256": hashlib.sha256(raw)
+                    .hexdigest()[:16],
+                    "bytes": len(raw),
+                    "title": text.split("\n")[0]
+                    .replace("Title:", "").strip()[:200],
+                    "text": text[:6000],
+                    "backend": "jina_reader"}
+    except Exception as e:
+        return {"ok": False,
+                "error": "jina:" + str(e)[:150],
+                "backend": "jina_reader"}
+
+
 def _fetch(src: dict) -> dict:
     try:
         req = urllib.request.Request(src["url"], headers=UA)
@@ -207,6 +239,11 @@ def ingest(refresh: bool = False) -> dict:
             if src["name"] in done:
                 continue
             res = _fetch(src)
+            if not res.get("ok"):
+                fb = _fetch_jina(src)
+                if fb.get("ok"):
+                    fb["direct_error"] = res.get("error")
+                    res = fb
             rec = {"kind": "bankweb_page",
                    "device_time": _now(),
                    "name": src["name"],
@@ -230,7 +267,12 @@ def ingest(refresh: bool = False) -> dict:
 
 
 def status() -> dict:
-    recs = list(_jsonl(PAGES) or [])
+    # latest record per source name wins (retries
+    # supersede earlier failures)
+    latest = {}
+    for r in _jsonl(PAGES) or []:
+        latest[r.get("name")] = r
+    recs = list(latest.values())
     ok = [r for r in recs if r.get("ok")]
     regions = {}
     systems = {}
