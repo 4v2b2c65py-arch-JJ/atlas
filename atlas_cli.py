@@ -455,6 +455,12 @@ def main() -> None:
                     choices=["status", "ingest"],
                     default="status")
 
+    bw = sub.add_parser("bankweb")
+    bw.add_argument("action", nargs="?",
+                    choices=["status", "ingest"],
+                    default="status")
+    bw.add_argument("--refresh", action="store_true")
+
     mh = sub.add_parser("memehall")
     mh.add_argument("action", nargs="?",
                     choices=["status", "build", "query"],
@@ -1340,6 +1346,12 @@ def main() -> None:
         a = ns.action or "status"
         if a == "ingest": out(parsecdocs.ingest())
         else: out(parsecdocs.status())
+    elif ns.cmd == "bankweb":
+        import bankweb as _bw
+        if (ns.action or "status") == "ingest":
+            out(_bw.ingest(refresh=getattr(ns, "refresh", False)))
+        else:
+            out(_bw.status())
     elif ns.cmd == "memehall":
         import memehall
         a = ns.action or "status"

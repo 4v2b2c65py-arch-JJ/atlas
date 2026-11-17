@@ -140,6 +140,14 @@ def _harvest() -> dict[str, set]:
     for r in _jsonl(DATA / "handles" / "stubs.jsonl")             or []:
         add(r.get("handle"), "handle_stub")
         add(r.get("slug"), "handle_stub")
+    # bankweb: world banking + emerging fintech pages
+    for r in _jsonl(DATA / "bankweb" / "pages.jsonl") \
+            or []:
+        if r.get("ok"):
+            add(r.get("name"), "bankweb")
+            add(r.get("system"), "bankweb")
+            add(r.get("region"), "bankweb")
+            add(r.get("title"), "bankweb")
     # celestial sweep: queries + hit titles/domains
     for fn in ("sweep.jsonl", "wiki.jsonl"):
         for r in _jsonl(DATA / "celestial" / fn) or []:

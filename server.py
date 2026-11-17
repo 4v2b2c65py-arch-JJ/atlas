@@ -1735,6 +1735,16 @@ class Handler(BaseHTTPRequestHandler):
                 else:
                     self._send(200, celestial.status())
                 return
+            if path == "/api/bankweb":
+                import bankweb
+                action = qs.get("action", ["status"])[0]
+                if action == "ingest":
+                    self._send(200, bankweb.ingest(
+                        refresh=qs.get("refresh",
+                                       [""])[0] == "1"))
+                else:
+                    self._send(200, bankweb.status())
+                return
             if path == "/api/memehall":
                 import memehall
                 action = qs.get("action", ["status"])[0]
@@ -2476,6 +2486,16 @@ class Handler(BaseHTTPRequestHandler):
                     self._send(200, celestial.feed())
                 else:
                     self._send(200, celestial.status())
+                return
+            if path == "/api/bankweb":
+                import bankweb
+                action = qs.get("action", ["status"])[0]
+                if action == "ingest":
+                    self._send(200, bankweb.ingest(
+                        refresh=qs.get("refresh",
+                                       [""])[0] == "1"))
+                else:
+                    self._send(200, bankweb.status())
                 return
             if path == "/api/memehall":
                 import memehall
