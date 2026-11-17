@@ -455,6 +455,12 @@ def main() -> None:
                     choices=["status", "ingest"],
                     default="status")
 
+    mh = sub.add_parser("memehall")
+    mh.add_argument("action", nargs="?",
+                    choices=["status", "build", "query"],
+                    default="status")
+    mh.add_argument("text", nargs="?")
+
     po = sub.add_parser("parsecoss")
     po.add_argument("action", nargs="?",
                     choices=["status", "ingest"],
@@ -1334,6 +1340,12 @@ def main() -> None:
         a = ns.action or "status"
         if a == "ingest": out(parsecdocs.ingest())
         else: out(parsecdocs.status())
+    elif ns.cmd == "memehall":
+        import memehall
+        a = ns.action or "status"
+        if a == "build": out(memehall.build())
+        elif a == "query": out(memehall.query(ns.text or ""))
+        else: out(memehall.status())
     elif ns.cmd == "parsecoss":
         import parsecoss
         a = ns.action or "status"

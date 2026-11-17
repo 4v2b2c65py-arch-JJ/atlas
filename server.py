@@ -1735,6 +1735,17 @@ class Handler(BaseHTTPRequestHandler):
                 else:
                     self._send(200, celestial.status())
                 return
+            if path == "/api/memehall":
+                import memehall
+                action = qs.get("action", ["status"])[0]
+                if action == "build":
+                    self._send(200, memehall.build())
+                elif action == "query":
+                    self._send(200, memehall.query(
+                        qs.get("text", [""])[0]))
+                else:
+                    self._send(200, memehall.status())
+                return
             if path == "/api/parsecoss":
                 import parsecoss
                 action = qs.get("action", ["status"])[0]
@@ -2465,6 +2476,17 @@ class Handler(BaseHTTPRequestHandler):
                     self._send(200, celestial.feed())
                 else:
                     self._send(200, celestial.status())
+                return
+            if path == "/api/memehall":
+                import memehall
+                action = qs.get("action", ["status"])[0]
+                if action == "build":
+                    self._send(200, memehall.build())
+                elif action == "query":
+                    self._send(200, memehall.query(
+                        qs.get("text", [""])[0]))
+                else:
+                    self._send(200, memehall.status())
                 return
             if path == "/api/parsecoss":
                 import parsecoss
