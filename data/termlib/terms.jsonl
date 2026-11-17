@@ -2873,3 +2873,7 @@
 {"ts": 1794921426.982426, "kind": "term", "term": "walletresourcewithstreamingresponse", "seed": "parsec_oss", "category": "coined_parsec", "derived": true}
 {"ts": 1794921426.982454, "kind": "term", "term": "websocketresourcewithstreamingresponse", "seed": "parsec_oss", "category": "coined_parsec", "derived": true}
 {"ts": 1794921426.982484, "kind": "term", "term": "with_streaming_response", "seed": "parsec_oss", "category": "coined_parsec", "derived": true}
+{"ts": 1794921884.82715, "kind": "term", "term": "overkill", "seed": "user_query_terms", "category": "coined_combat", "derived": true}
+{"ts": 1794921884.8272169, "kind": "term", "term": "hit_list", "seed": "user_query_terms", "category": "coined_combat", "derived": true}
+{"ts": 1794921884.827245, "kind": "term", "term": "hitlist", "seed": "user_query_terms", "category": "coined_combat", "derived": true}
+{"ts": 1794921884.827261, "kind": "term", "term": "over_kill", "seed": "user_query_terms", "category": "coined_combat", "derived": true}
