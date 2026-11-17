@@ -1,12 +1,16 @@
 """parsecoss — Parsec open-source ingest.
 
-Pulls the public Parsec OSS surface into ATLAS:
+Pulls the public Parsec OSS surface into ATLAS —
+three products share the name, all banked honestly:
 
-  MalfoyJW/parsec-sdk  — the Parsec game-streaming SDK
-    (C core + Python bindings + api/public + api/enterprise
-    Python clients)
-  c272/parsec-py       — BSD-3 Python wire-protocol client
-    (parsec_stream, protobuf opcodes, psa_* operations)
+  parsec.app        — MalfoyJW/parsec-sdk (C+Python
+                      game-streaming SDK) + c272/parsec-py
+                      (BSD-3 wire-protocol client)
+  parsec.finance    — parsec-finance/parsec_python_sdk
+                      (crypto/data GraphQL endpoints)
+  parsecapi.com     — parsecular/sdk-python (Apache-2.0
+                      prediction-markets SDK: markets,
+                      orders, orderbook, ctf, wallet)
 
 Raw files land under data/sea/parsec_oss/<repo>/<path>
 verbatim with sha256 manifest; derived vocab goes to
@@ -41,6 +45,8 @@ RAW_UA = {"User-Agent": "atlas-docs/1.0 (local research)"}
 REPOS = {
     "parsec-sdk": "MalfoyJW/parsec-sdk",
     "parsec-py": "c272/parsec-py",
+    "parsecfi": "parsec-finance/parsec_python_sdk",
+    "parsec_api": "parsecular/sdk-python",
 }
 
 # files worth banking per repo (docs + python surface +
@@ -69,6 +75,34 @@ WANT = {
         "operations/psa_generate_key.py",
         "operations/psa_sign_hash.py",
         "operations/psa_verify_hash.py",
+    ],
+    "parsecfi": [
+        "README.md",
+        "parsecfi/__init__.py",
+        "parsecfi/parsecfi.py",
+        "parsecfi/lib/__init__.py",
+        "parsecfi/lib/endpoints.py",
+        "examples/friend_tech.py",
+    ],
+    "parsec_api": [
+        "README.md", "api.md", "CHANGELOG.md",
+        "src/parsec_api/__init__.py",
+        "src/parsec_api/_client.py",
+        "src/parsec_api/_models.py",
+        "src/parsec_api/resources/__init__.py",
+        "src/parsec_api/resources/markets.py",
+        "src/parsec_api/resources/orders.py",
+        "src/parsec_api/resources/orderbook.py",
+        "src/parsec_api/resources/positions.py",
+        "src/parsec_api/resources/fills.py",
+        "src/parsec_api/resources/trades.py",
+        "src/parsec_api/resources/wallet.py",
+        "src/parsec_api/resources/ctf.py",
+        "src/parsec_api/resources/exchanges.py",
+        "src/parsec_api/resources/events.py",
+        "src/parsec_api/resources/websocket.py",
+        "src/parsec_api/resources/builder/builder.py",
+        "src/parsec_api/resources/builder/escrow.py",
     ],
 }
 
@@ -110,12 +144,20 @@ def ingest() -> dict:
             if w not in have:
                 missing.append({"repo": repo, "path": w,
                                 "reason": "not_in_tree"})
-        # also bank every protobuf + operations file —
-        # the wire-protocol vocabulary is the payload
+        # also bank the vocabulary-bearing dirs —
+        # wire protocol, sdk endpoints, api resources:
+        # the payload is in the defs, not the examples
         extra = [p for p in have
                  if (p.startswith("protobuf/") and
                      p.endswith(".proto")) or
                  (p.startswith("operations/") and
+                  p.endswith(".py")) or
+                 (p.startswith("parsecfi/lib/"
+                               "endpoints_list/") and
+                  p.endswith(".py")) or
+                 (p.startswith("src/parsec_api/resources/")
+                  and p.endswith(".py")) or
+                 (p.startswith("src/parsec_api/types/") and
                   p.endswith(".py"))]
         for path in sorted(set(want) | set(extra)):
             url = ("https://raw.githubusercontent.com/"

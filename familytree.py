@@ -36,7 +36,8 @@ TREE = {
     # surface (vanitas mechanism: emerge via summon only)
     "parsec": ["parsec_host", "parsec_client",
                "parsec_warp", "parsec_wire",
-               "parsec_teams_api"],
+               "parsec_teams_api", "parsecfi",
+               "parsec_markets"],
 }
 PARENT = {}
 for p, kids in TREE.items():
@@ -89,6 +90,16 @@ HIDDEN = {
                          "label": "Parsec Teams API",
                          "note": "42-endpoint REST surface "
                                  "from the OpenAPI spec"},
+    "parsecfi": {"emoji": "₿",
+                 "label": "Parsec.fi",
+                 "note": "namesake — parsec.finance crypto/"
+                         "data GraphQL SDK (different "
+                         "product, same name)"},
+    "parsec_markets": {"emoji": "📈",
+                       "label": "Parsec Markets",
+                       "note": "namesake — parsecapi.com "
+                               "prediction-markets SDK "
+                               "(markets/orders/ctf/wallet)"},
 }
 
 
