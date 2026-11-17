@@ -68,7 +68,8 @@ def _resolve(uri: str) -> dict:
     m = re.match(r"sim://([a-z]+)/(.+)", uri or "")
     if not m:
         return {"error": "bad_uri", "uri": uri,
-                "hint": "sim://sea|voice|ocr|event|exp/<slug>"}
+                "hint": ("sim://sea|voice|ocr|decompile|"
+                         "episode|event|exp/<slug>")}
     kind, ref = m.group(1), m.group(2)
     slug = _slug(ref)
     if kind == "sea":
@@ -105,6 +106,24 @@ def _resolve(uri: str) -> dict:
         if exps:
             return {"uri": uri, "kind": "voice_experience",
                     "resource": exps[-1], "all": exps}
+        return {"error": "not_found", "uri": uri}
+    if kind == "decompile":
+        idx = DATA / "decompile" / "decompile_index.jsonl"
+        recs = [r for r in _jsonl(idx) or []
+                if r.get("kind") == ref or
+                ref in str(r.get("sim_uri", ""))]
+        if recs:
+            return {"uri": uri, "kind": "decompile_record",
+                    "resource": recs[-1], "all": recs}
+        return {"error": "not_found", "uri": uri}
+    if kind == "episode":
+        eps = DATA / "decompile" / "episodes.jsonl"
+        hits = [r for r in _jsonl(eps) or []
+                if r.get("slug") == slug or
+                slug in str(r.get("sim_uri", ""))]
+        if hits:
+            return {"uri": uri, "kind": "episode",
+                    "resource": hits[-1], "all": hits}
         return {"error": "not_found", "uri": uri}
     if kind == "event":
         evs = [r for r in _jsonl(
@@ -174,6 +193,7 @@ def status() -> dict:
     return {"kind": "simuri_state",
             "device_time": _device_time(),
             "pulls": len(pulls),
-            "scheme": "sim://sea|voice|ocr|event|exp/<slug>",
+            "scheme": ("sim://sea|voice|ocr|decompile|"
+                       "episode|event|exp/<slug>"),
             "note": ("URIs live inside the simulation; "
                      "external URLs are provenance")}

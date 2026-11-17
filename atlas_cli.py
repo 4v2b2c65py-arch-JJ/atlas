@@ -416,7 +416,8 @@ def main() -> None:
 
     dc = sub.add_parser("decompile")
     dc.add_argument("action", nargs="?",
-                    choices=["run", "index"], default="run")
+                    choices=["run", "index", "stream"],
+                    default="run")
 
     sv = sub.add_parser("svm")
     sv.add_argument("action", nargs="?",
@@ -1230,7 +1231,9 @@ def main() -> None:
         out(get("/api/boardctl", **q))
     elif ns.cmd == "decompile":
         import decompile
-        if ns.action == "index":
+        if ns.action == "stream":
+            out(decompile.stream())
+        elif ns.action == "index":
             idx = decompile.OUT / "decompile_index.jsonl"
             recs = []
             if idx.exists():

@@ -1686,6 +1686,8 @@ class Handler(BaseHTTPRequestHandler):
                 action = qs.get("action", ["run"])[0]
                 if action == "run":
                     self._send(200, decompile.run())
+                elif action == "stream":
+                    self._send(200, decompile.stream())
                 else:
                     idx = decompile.OUT / "decompile_index.jsonl"
                     recs = []
@@ -2362,6 +2364,8 @@ class Handler(BaseHTTPRequestHandler):
                 action = qs.get("action", ["run"])[0]
                 if action == "run":
                     self._send(200, decompile.run())
+                elif action == "stream":
+                    self._send(200, decompile.stream())
                 else:
                     idx = decompile.OUT / "decompile_index.jsonl"
                     recs = []

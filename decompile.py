@@ -214,5 +214,77 @@ def run() -> dict:
                          records]}
 
 
+EPISODES = OUT / "episodes.jsonl"
+
+
+def stream() -> dict:
+    """Stream decompile records as episodes — each census
+    record crosses decompile -> episode domain under a
+    qbit tag, mints a sim://episode/<slug> URI, and emits
+    episode_stream events. The vid-source layer: episodes
+    are pullable sim resources, not raw dumps."""
+    idx = OUT / "decompile_index.jsonl"
+    if not idx.exists():
+        return {"error": "no_index", "hint": "run() first"}
+    recs = [json.loads(l) for l in idx.open()
+            if l.strip()]
+    # latest run only — a run starts at its chunk_map
+    starts = [i for i, r in enumerate(recs)
+              if r.get("kind") == "chunk_map"]
+    if not starts:
+        return {"error": "empty_index"}
+    recs = recs[starts[-1]:]
+    import qbits
+    import simuri
+    eps = []
+    for r in recs:
+        kind = r["kind"]
+        slug = _slug(kind)
+        sim_uri = simuri.mint("episode", slug)
+        x = qbits.cross("decompile_" + kind,
+                        "decompile", "episode_stream",
+                        reality="sim",
+                        via="episode_stream")
+        qbits.packet(x.get("qbit") or "",
+                     "out", "episode",
+                     summary="decompile:%s" % kind,
+                     nbytes=r.get("size", 0) or 0,
+                     node="decompile")
+        ep = {"kind": "episode", "slug": slug,
+              "device_time": _now(),
+              "source_record": kind,
+              "sim_uri": sim_uri,
+              "qbit": x.get("qbit"),
+              "payload_keys": sorted(r.keys()),
+              "derived": True}
+        eps.append(ep)
+        try:
+            import eventbus
+            eventbus.emit("episode_stream",
+                          {"slug": slug,
+                           "source": kind,
+                           "sim_uri": sim_uri})
+        except Exception:
+            pass
+    with EPISODES.open("a") as f:
+        for e in eps:
+            f.write(json.dumps(e, ensure_ascii=False)
+                    + "\n")
+    return {"kind": "episode_stream",
+            "device_time": _now(),
+            "episodes": len(eps),
+            "slugs": [e["slug"] for e in eps],
+            "sim_uris": [e["sim_uri"] for e in eps],
+            "qbits": [e["qbit"] for e in eps],
+            "note": ("each decompile record streams as an "
+                     "episode under its own qbit — pull via "
+                     "sim://episode/<slug>")}
+
+
+def _slug(s: str) -> str:
+    import re
+    return re.sub(r"[^a-z0-9]+", "_", s.lower()).strip("_")
+
+
 if __name__ == "__main__":
     print(json.dumps(run(), indent=1)[:1500])
