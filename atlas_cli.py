@@ -414,6 +414,12 @@ def main() -> None:
                                            type=int)
     bd.add_argument("msg")
 
+    pd = sub.add_parser("pending")
+    pd.add_argument("action", nargs="?",
+                    choices=["status", "log", "submit",
+                             "clones"], default="status")
+    pd.add_argument("arg")
+
     mn = sub.add_parser("munitions")
     mn.add_argument("action", nargs="?",
                     choices=["status", "refill", "fire"],
@@ -1247,6 +1253,13 @@ def main() -> None:
             if v is not None:
                 q[k] = v
         out(get("/api/boardctl", **q))
+    elif ns.cmd == "pending":
+        import pending
+        a = ns.action or "status"
+        if a == "submit": out(pending.submit(ns.arg or "true"))
+        elif a == "log": out(pending.log(ns.arg or ""))
+        elif a == "clones": out(pending.resubmit_clones())
+        else: out(pending.status())
     elif ns.cmd == "munitions":
         import munitions
         a = ns.action or "status"
