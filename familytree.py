@@ -28,6 +28,10 @@ TREE = {
     # hidden branch — characters concealed inside the work
     "hidden": ["wd_gaster", "reaper_sans", "muffet",
                "flowey_true", "chara_remnant"],
+    # prismo branch — the golb world seeded from
+    # adventure_prismo_spec (coined vocab, sea-preserved)
+    "prismo": ["gulb", "prismo", "void_prism",
+               "enchiridion", "avatar_2"],
 }
 PARENT = {}
 for p, kids in TREE.items():
@@ -46,6 +50,23 @@ HIDDEN = {
                     "note": "the flower beneath the flower"},
     "chara_remnant": {"emoji": "🕯️", "label": "Chara (remnant)",
                       "note": "what remains after the flames"},
+    "gulb": {"emoji": "🔮", "label": "Gulb",
+             "note": "the golb entity — prism-bearer of "
+                     "the adventure-time deep-storage world"},
+    "prismo": {"emoji": "💎", "label": "Prismo",
+               "note": "the spectral prism — void made "
+                       "manifest"},
+    "void_prism": {"emoji": "🕳️", "label": "Void Prism",
+                   "note": "void = prism; the equation at "
+                           "the world's root"},
+    "enchiridion": {"emoji": "📜",
+                    "label": "Enchiridion",
+                    "note": "the journal of forbidden "
+                            "knowledge — narrative "
+                            "deep-storage"},
+    "avatar_2": {"emoji": "🪞", "label": "Avatar 2",
+                 "note": "second avatar instance — "
+                         "profile-load coordinate layer"},
 }
 EMOJI = {**{k: v["emoji"] for k, v in charpack.CHAR_PACK.items()},
          **{k: v["emoji"] for k, v in HIDDEN.items()}}
