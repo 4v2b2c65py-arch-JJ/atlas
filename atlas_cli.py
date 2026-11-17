@@ -454,6 +454,11 @@ def main() -> None:
                     choices=["status", "ingest"],
                     default="status")
 
+    po = sub.add_parser("parsecoss")
+    po.add_argument("action", nargs="?",
+                    choices=["status", "ingest"],
+                    default="status")
+
     sv = sub.add_parser("svm")
     sv.add_argument("action", nargs="?",
                     choices=["status", "convert"],
@@ -1326,6 +1331,11 @@ def main() -> None:
         a = ns.action or "status"
         if a == "ingest": out(parsecdocs.ingest())
         else: out(parsecdocs.status())
+    elif ns.cmd == "parsecoss":
+        import parsecoss
+        a = ns.action or "status"
+        if a == "ingest": out(parsecoss.ingest())
+        else: out(parsecoss.status())
     elif ns.cmd == "svm":
         a = ns.action or "status"
         if a == "convert":

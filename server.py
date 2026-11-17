@@ -1731,6 +1731,14 @@ class Handler(BaseHTTPRequestHandler):
                 else:
                     self._send(200, celestial.status())
                 return
+            if path == "/api/parsecoss":
+                import parsecoss
+                action = qs.get("action", ["status"])[0]
+                if action == "ingest":
+                    self._send(200, parsecoss.ingest())
+                else:
+                    self._send(200, parsecoss.status())
+                return
             if path == "/api/parsecdocs":
                 import parsecdocs
                 action = qs.get("action", ["status"])[0]
@@ -2449,6 +2457,14 @@ class Handler(BaseHTTPRequestHandler):
                     self._send(200, celestial.feed())
                 else:
                     self._send(200, celestial.status())
+                return
+            if path == "/api/parsecoss":
+                import parsecoss
+                action = qs.get("action", ["status"])[0]
+                if action == "ingest":
+                    self._send(200, parsecoss.ingest())
+                else:
+                    self._send(200, parsecoss.status())
                 return
             if path == "/api/parsecdocs":
                 import parsecdocs

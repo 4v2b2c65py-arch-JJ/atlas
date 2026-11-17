@@ -32,6 +32,11 @@ TREE = {
     # adventure_prismo_spec (coined vocab, sea-preserved)
     "prismo": ["gulb", "prismo", "void_prism",
                "enchiridion", "avatar_2"],
+    # parsec branch — hidden nodes for the Parsec OSS
+    # surface (vanitas mechanism: emerge via summon only)
+    "parsec": ["parsec_host", "parsec_client",
+               "parsec_warp", "parsec_wire",
+               "parsec_teams_api"],
 }
 PARENT = {}
 for p, kids in TREE.items():
@@ -67,7 +72,38 @@ HIDDEN = {
     "avatar_2": {"emoji": "🪞", "label": "Avatar 2",
                  "note": "second avatar instance — "
                          "profile-load coordinate layer"},
+    "parsec_host": {"emoji": "🖥️", "label": "Parsec Host",
+                    "note": "SDK host side — desktop/"
+                            "game-mode encoder"},
+    "parsec_client": {"emoji": "🎮", "label": "Parsec Client",
+                      "note": "SDK client side — "
+                              "ParsecClientGLRender path"},
+    "parsec_warp": {"emoji": "🖊️", "label": "Parsec Warp",
+                    "note": "pressure-sensitive pen / "
+                            "Wacom tier"},
+    "parsec_wire": {"emoji": "📡", "label": "Parsec Wire",
+                    "note": "protobuf opcodes + psa_* "
+                            "operations — the protocol "
+                            "beneath the stream"},
+    "parsec_teams_api": {"emoji": "🏢",
+                         "label": "Parsec Teams API",
+                         "note": "42-endpoint REST surface "
+                                 "from the OpenAPI spec"},
 }
+
+
+def ensure_parsec_branch() -> int:
+    """Idempotent runtime ensure for the parsec hidden
+    branch — no-op when familytree.py source already
+    carries it (it does)."""
+    n = 0
+    for k in TREE.get("parsec", []):
+        PARENT.setdefault(k, "parsec")
+        if k in HIDDEN:
+            EMOJI.setdefault(k, HIDDEN[k]["emoji"])
+            LABEL.setdefault(k, HIDDEN[k]["label"])
+            n += 1
+    return n
 EMOJI = {**{k: v["emoji"] for k, v in charpack.CHAR_PACK.items()},
          **{k: v["emoji"] for k, v in HIDDEN.items()}}
 LABEL = {**{k: k.replace("_", " ").title()

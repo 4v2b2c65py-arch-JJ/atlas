@@ -15,3 +15,5 @@
 {"kind": "sea_index", "name": "celestial_sweep", "slug": "celestial_sweep", "tokens": 87, "device_time": {"ts": 1794918626.637157, "iso": "2026-11-17T08:30:26.637-04:00", "timezone": "AST", "date": "2026-11-17"}}
 {"kind": "sea_index", "name": "parsec_teams_api", "slug": "parsec_teams_api", "tokens": 9933, "device_time": {"ts": 1794919027.18489, "iso": "2026-11-17T08:37:07.184-04:00", "timezone": "AST", "date": "2026-11-17"}}
 {"kind": "sea_index", "name": "celestial_sweep", "slug": "celestial_sweep", "tokens": 91, "device_time": {"ts": 1794919080.357194, "iso": "2026-11-17T08:38:00.357-04:00", "timezone": "AST", "date": "2026-11-17"}}
+{"kind": "sea_index", "name": "parsec_parsec-sdk_readme", "slug": "parsec_parsec_sdk_readme", "tokens": 755, "device_time": {"ts": 1794919333.83109, "iso": "2026-11-17T08:42:13.831-04:00", "timezone": "AST", "date": "2026-11-17"}}
+{"kind": "sea_index", "name": "parsec_parsec-py_readme", "slug": "parsec_parsec_py_readme", "tokens": 136, "device_time": {"ts": 1794919333.85132, "iso": "2026-11-17T08:42:13.851-04:00", "timezone": "AST", "date": "2026-11-17"}}
