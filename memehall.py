@@ -101,6 +101,14 @@ def _harvest() -> dict[str, dict]:
             add(r.get("query"), "celestial_" +
                 fn.split(".")[0], "query")
 
+    # modelchars roster — the new character names are
+    # peak coined culture
+    for r in _jsonl(DATA / "modelchars" /
+                    "roster.jsonl") or []:
+        add(r.get("canonical"), "modelchar",
+            "coined_chars")
+        for v in r.get("variants", []):
+            add(v, "modelchar", "coined_chars")
     # gaster observation reports — the machine's own
     # deadpan judgments are meme-adjacent
     for p in (DATA / "gaster" / "reports").glob("*.json") \

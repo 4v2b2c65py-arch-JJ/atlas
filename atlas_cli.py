@@ -455,6 +455,12 @@ def main() -> None:
                     choices=["status", "ingest"],
                     default="status")
 
+    mc = sub.add_parser("modelchars")
+    mc.add_argument("action", nargs="?",
+                    choices=["status", "build", "query"],
+                    default="status")
+    mc.add_argument("name", nargs="?")
+
     bw = sub.add_parser("bankweb")
     bw.add_argument("action", nargs="?",
                     choices=["status", "ingest"],
@@ -1346,6 +1352,12 @@ def main() -> None:
         a = ns.action or "status"
         if a == "ingest": out(parsecdocs.ingest())
         else: out(parsecdocs.status())
+    elif ns.cmd == "modelchars":
+        import modelchars as _mc
+        a = ns.action or "status"
+        if a == "build": out(_mc.build())
+        elif a == "query": out(_mc.query(ns.name or ""))
+        else: out(_mc.status())
     elif ns.cmd == "bankweb":
         import bankweb as _bw
         if (ns.action or "status") == "ingest":

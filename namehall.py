@@ -140,6 +140,12 @@ def _harvest() -> dict[str, set]:
     for r in _jsonl(DATA / "handles" / "stubs.jsonl")             or []:
         add(r.get("handle"), "handle_stub")
         add(r.get("slug"), "handle_stub")
+    # modelchars roster
+    for r in _jsonl(DATA / "modelchars" /
+                    "roster.jsonl") or []:
+        add(r.get("canonical"), "modelchar")
+        for v in r.get("variants", []):
+            add(v, "modelchar")
     # bankweb: world banking + emerging fintech pages
     for r in _jsonl(DATA / "bankweb" / "pages.jsonl") \
             or []:
