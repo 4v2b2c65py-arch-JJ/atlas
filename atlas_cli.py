@@ -455,6 +455,15 @@ def main() -> None:
                     choices=["status", "ingest"],
                     default="status")
 
+    sc = sub.add_parser("shortcut")
+    sc.add_argument("action", nargs="?",
+                    choices=["status", "run", "register"],
+                    default="status")
+    sc.add_argument("trigger", nargs="?")
+    sc.add_argument("module", nargs="?")
+    sc.add_argument("func", nargs="?")
+    sc.add_argument("note", nargs="?")
+
     mc = sub.add_parser("modelchars")
     mc.add_argument("action", nargs="?",
                     choices=["status", "build", "query"],
@@ -1352,6 +1361,14 @@ def main() -> None:
         a = ns.action or "status"
         if a == "ingest": out(parsecdocs.ingest())
         else: out(parsecdocs.status())
+    elif ns.cmd == "shortcut":
+        import shortcut as _sc
+        a = ns.action or "status"
+        if a == "run": out(_sc.run(ns.trigger or ""))
+        elif a == "register": out(_sc.register(
+            ns.trigger or "", ns.module or "",
+            ns.func or "status", ns.note or ""))
+        else: out(_sc.status())
     elif ns.cmd == "modelchars":
         import modelchars as _mc
         a = ns.action or "status"

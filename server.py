@@ -1735,6 +1735,21 @@ class Handler(BaseHTTPRequestHandler):
                 else:
                     self._send(200, celestial.status())
                 return
+            if path == "/api/shortcut":
+                import shortcut
+                action = qs.get("action", ["status"])[0]
+                if action == "run":
+                    self._send(200, shortcut.run(
+                        qs.get("trigger", [""])[0]))
+                elif action == "register":
+                    self._send(200, shortcut.register(
+                        qs.get("trigger", [""])[0],
+                        qs.get("module", [""])[0],
+                        qs.get("func", ["status"])[0],
+                        qs.get("note", [""])[0]))
+                else:
+                    self._send(200, shortcut.status())
+                return
             if path == "/api/modelchars":
                 import modelchars
                 action = qs.get("action", ["status"])[0]
@@ -2497,6 +2512,21 @@ class Handler(BaseHTTPRequestHandler):
                     self._send(200, celestial.feed())
                 else:
                     self._send(200, celestial.status())
+                return
+            if path == "/api/shortcut":
+                import shortcut
+                action = qs.get("action", ["status"])[0]
+                if action == "run":
+                    self._send(200, shortcut.run(
+                        qs.get("trigger", [""])[0]))
+                elif action == "register":
+                    self._send(200, shortcut.register(
+                        qs.get("trigger", [""])[0],
+                        qs.get("module", [""])[0],
+                        qs.get("func", ["status"])[0],
+                        qs.get("note", [""])[0]))
+                else:
+                    self._send(200, shortcut.status())
                 return
             if path == "/api/modelchars":
                 import modelchars
