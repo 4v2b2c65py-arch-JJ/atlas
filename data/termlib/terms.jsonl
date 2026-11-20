@@ -3143,3 +3143,6 @@
 {"ts": 1795188293.6121979, "kind": "term", "term": "omeo_sigfried", "seed": "vocab_stream_009", "category": "coined_names", "real_anchor": false, "derived": true}
 {"ts": 1795188293.61221, "kind": "term", "term": "viestra_devin", "seed": "vocab_stream_009", "category": "coined_names", "real_anchor": false, "derived": true}
 {"ts": 1795188293.612221, "kind": "term", "term": "tilbis_tilipis", "seed": "vocab_stream_009", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795188534.10234, "kind": "term", "term": "tibis", "seed": "user_variant_note", "category": "coined_names", "canonical": "tilbis", "derived": true}
+{"ts": 1795188534.1027431, "kind": "term", "term": "tibbis", "seed": "user_variant_note", "category": "coined_names", "canonical": "tilbis", "derived": true}
+{"ts": 1795188534.1030579, "kind": "term", "term": "tybis", "seed": "user_variant_note", "category": "coined_names", "canonical": "tilbis", "derived": true}
