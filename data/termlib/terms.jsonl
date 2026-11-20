@@ -3110,3 +3110,7 @@
 {"ts": 1795187905.467835, "kind": "term", "term": "@agent", "seed": "vocab_stream_007", "category": "coined_handle", "derived": true}
 {"ts": 1795187905.467846, "kind": "term", "term": "alphabet", "seed": "vocab_stream_007", "category": "coined_gen", "derived": true}
 {"ts": 1795187905.4678578, "kind": "term", "term": "agent", "seed": "vocab_stream_007", "category": "coined_gen", "derived": true}
+{"ts": 1795188032.864875, "kind": "term", "term": "coalescence", "seed": "user_single", "category": "coined_vocab", "derived": true}
+{"ts": 1795188032.86528, "kind": "term", "term": "coalesce", "seed": "user_single", "category": "coined_vocab", "derived": true}
+{"ts": 1795188032.865568, "kind": "term", "term": "coalecence", "seed": "user_single", "category": "coined_vocab", "derived": true}
+{"ts": 1795188032.866225, "kind": "term", "term": "coales", "seed": "user_single", "category": "coined_vocab", "derived": true}
