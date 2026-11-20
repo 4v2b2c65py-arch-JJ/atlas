@@ -3220,3 +3220,26 @@
 {"ts": 1795189125.570271, "kind": "term", "term": "vangur_vangat", "seed": "vocab_stream_013_014", "category": "coined_names", "derived": true}
 {"ts": 1795189125.5702798, "kind": "term", "term": "smit_smith", "seed": "vocab_stream_013_014", "category": "coined_names", "derived": true}
 {"ts": 1795189125.570291, "kind": "term", "term": "tims_sitm", "seed": "vocab_stream_013_014", "category": "coined_names", "derived": true}
+{"ts": 1795189416.4342341, "kind": "term", "term": "gazer", "seed": "vocab_stream_015", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795189416.434283, "kind": "term", "term": "venom", "seed": "vocab_stream_015", "category": "coined_names", "real_anchor": true, "derived": true}
+{"ts": 1795189416.4343019, "kind": "term", "term": "viltrum", "seed": "vocab_stream_015", "category": "coined_names", "real_anchor": true, "derived": true}
+{"ts": 1795189416.434316, "kind": "term", "term": "viltrian", "seed": "vocab_stream_015", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795189416.434329, "kind": "term", "term": "vastrol", "seed": "vocab_stream_015", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795189416.4343581, "kind": "term", "term": "vastrom", "seed": "vocab_stream_015", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795189416.43437, "kind": "term", "term": "algos", "seed": "vocab_stream_015", "category": "coined_names", "real_anchor": true, "derived": true}
+{"ts": 1795189416.43439, "kind": "term", "term": "lagos", "seed": "vocab_stream_015", "category": "coined_names", "real_anchor": true, "derived": true}
+{"ts": 1795189416.434402, "kind": "term", "term": "sogla", "seed": "vocab_stream_015", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795189416.434413, "kind": "term", "term": "midas", "seed": "vocab_stream_015", "category": "coined_names", "real_anchor": true, "derived": true}
+{"ts": 1795189416.4344242, "kind": "term", "term": "sadmi", "seed": "vocab_stream_015", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795189416.434436, "kind": "term", "term": "damis", "seed": "vocab_stream_015", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795189416.434447, "kind": "term", "term": "castrol", "seed": "vocab_stream_015", "category": "coined_names", "real_anchor": true, "derived": true}
+{"ts": 1795189416.434458, "kind": "term", "term": "catrol", "seed": "vocab_stream_015", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795189416.4344692, "kind": "term", "term": "roltac", "seed": "vocab_stream_015", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795189416.4344802, "kind": "term", "term": "lorax", "seed": "vocab_stream_015", "category": "coined_names", "real_anchor": true, "derived": true}
+{"ts": 1795189416.434491, "kind": "term", "term": "xarlo", "seed": "vocab_stream_015", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795189416.4345028, "kind": "term", "term": "manuals", "seed": "vocab_stream_015", "category": "coined_names", "real_anchor": true, "derived": true}
+{"ts": 1795189416.4345138, "kind": "term", "term": "viltrum_viltrian", "seed": "vocab_stream_015", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795189416.434526, "kind": "term", "term": "vastrol_vastrom", "seed": "vocab_stream_015", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795189416.434538, "kind": "term", "term": "sadmi_damis", "seed": "vocab_stream_015", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795189416.434549, "kind": "term", "term": "castrol_catrol", "seed": "vocab_stream_015", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795189416.43456, "kind": "term", "term": "algos_lagos", "seed": "vocab_stream_015", "category": "coined_names", "real_anchor": false, "derived": true}
