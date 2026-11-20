@@ -3127,3 +3127,19 @@
 {"ts": 1795188189.769195, "kind": "term", "term": "moe", "seed": "vocab_stream_008", "category": "coined_o", "derived": true}
 {"ts": 1795188189.769204, "kind": "term", "term": "emigence", "seed": "vocab_stream_008", "category": "coined_o", "derived": true}
 {"ts": 1795188189.769213, "kind": "term", "term": "emigence_shalow", "seed": "vocab_stream_008", "category": "coined_o", "derived": true}
+{"ts": 1795188293.611994, "kind": "term", "term": "omeo", "seed": "vocab_stream_009", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795188293.612041, "kind": "term", "term": "sigfried", "seed": "vocab_stream_009", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795188293.612061, "kind": "term", "term": "signis", "seed": "vocab_stream_009", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795188293.612074, "kind": "term", "term": "albed", "seed": "vocab_stream_009", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795188293.612085, "kind": "term", "term": "viestra", "seed": "vocab_stream_009", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795188293.612097, "kind": "term", "term": "devin", "seed": "vocab_stream_009", "category": "coined_names", "real_anchor": true, "derived": true}
+{"ts": 1795188293.612109, "kind": "term", "term": "skynet", "seed": "vocab_stream_009", "category": "coined_names", "real_anchor": true, "derived": true}
+{"ts": 1795188293.612131, "kind": "term", "term": "tourus", "seed": "vocab_stream_009", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795188293.612142, "kind": "term", "term": "tora", "seed": "vocab_stream_009", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795188293.612153, "kind": "term", "term": "tilbis", "seed": "vocab_stream_009", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795188293.612164, "kind": "term", "term": "tilipis", "seed": "vocab_stream_009", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795188293.612176, "kind": "term", "term": "libis", "seed": "vocab_stream_009", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795188293.612187, "kind": "term", "term": "ivis", "seed": "vocab_stream_009", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795188293.6121979, "kind": "term", "term": "omeo_sigfried", "seed": "vocab_stream_009", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795188293.61221, "kind": "term", "term": "viestra_devin", "seed": "vocab_stream_009", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795188293.612221, "kind": "term", "term": "tilbis_tilipis", "seed": "vocab_stream_009", "category": "coined_names", "real_anchor": false, "derived": true}
