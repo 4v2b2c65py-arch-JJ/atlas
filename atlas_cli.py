@@ -455,6 +455,13 @@ def main() -> None:
                     choices=["status", "ingest"],
                     default="status")
 
+    ts = sub.add_parser("tagset")
+    ts.add_argument("action", nargs="?",
+                    choices=["status", "add", "subset", "tags"],
+                    default="status")
+    ts.add_argument("tag", nargs="?")
+    ts.add_argument("desc", nargs="?")
+
     sc = sub.add_parser("shortcut")
     sc.add_argument("action", nargs="?",
                     choices=["status", "run", "register"],
@@ -1361,6 +1368,13 @@ def main() -> None:
         a = ns.action or "status"
         if a == "ingest": out(parsecdocs.ingest())
         else: out(parsecdocs.status())
+    elif ns.cmd == "tagset":
+        import tagset as _ts
+        a = ns.action or "status"
+        if a == "add": out(_ts.add(ns.tag or "", ns.desc))
+        elif a == "subset": out(_ts.subset(ns.tag or ""))
+        elif a == "tags": out(_ts.tags())
+        else: out(_ts.status())
     elif ns.cmd == "shortcut":
         import shortcut as _sc
         a = ns.action or "status"

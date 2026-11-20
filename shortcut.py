@@ -42,6 +42,11 @@ def _jsonl(path: Path):
 
 # built-ins: the return-family. vue/vuelve/return all
 # come back — they pull live status from the halls.
+def _status_tagset():
+    import tagset
+    return tagset.status()
+
+
 def _status_halls():
     out = {}
     for mod in ("namehall", "memehall", "modelchars",
@@ -65,12 +70,16 @@ BUILTINS = {
     "return": {"kind": "shortcut_builtin",
                "action": "status_halls",
                "note": "return — come back with status"},
+    "tagset": {"kind": "shortcut_builtin",
+               "action": "status_tagset",
+               "note": "subset dataset census"},
     "halls": {"kind": "shortcut_builtin",
               "action": "status_halls",
               "note": "all hall statuses at once"},
 }
 
-_ACTIONS = {"status_halls": _status_halls}
+_ACTIONS = {"status_halls": _status_halls,
+            "status_tagset": _status_tagset}
 
 
 def register(trigger: str, module: str, func: str,

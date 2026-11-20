@@ -1735,6 +1735,21 @@ class Handler(BaseHTTPRequestHandler):
                 else:
                     self._send(200, celestial.status())
                 return
+            if path == "/api/tagset":
+                import tagset
+                action = qs.get("action", ["status"])[0]
+                if action == "add":
+                    self._send(200, tagset.add(
+                        qs.get("tag", [""])[0],
+                        qs.get("desc", [None])[0]))
+                elif action == "subset":
+                    self._send(200, tagset.subset(
+                        qs.get("tag", [""])[0]))
+                elif action == "tags":
+                    self._send(200, tagset.tags())
+                else:
+                    self._send(200, tagset.status())
+                return
             if path == "/api/shortcut":
                 import shortcut
                 action = qs.get("action", ["status"])[0]
@@ -2512,6 +2527,21 @@ class Handler(BaseHTTPRequestHandler):
                     self._send(200, celestial.feed())
                 else:
                     self._send(200, celestial.status())
+                return
+            if path == "/api/tagset":
+                import tagset
+                action = qs.get("action", ["status"])[0]
+                if action == "add":
+                    self._send(200, tagset.add(
+                        qs.get("tag", [""])[0],
+                        qs.get("desc", [None])[0]))
+                elif action == "subset":
+                    self._send(200, tagset.subset(
+                        qs.get("tag", [""])[0]))
+                elif action == "tags":
+                    self._send(200, tagset.tags())
+                else:
+                    self._send(200, tagset.status())
                 return
             if path == "/api/shortcut":
                 import shortcut
