@@ -10,3 +10,4 @@ bt/package-lock.json
 bin/
 .venv-voice/
 private/
+external/

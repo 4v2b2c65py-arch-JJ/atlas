@@ -140,6 +140,14 @@ def _harvest() -> dict[str, set]:
     for r in _jsonl(DATA / "handles" / "stubs.jsonl")             or []:
         add(r.get("handle"), "handle_stub")
         add(r.get("slug"), "handle_stub")
+    # external clones/pages registry
+    for r in _jsonl(DATA / "external" /
+                    "registry.jsonl") or []:
+        add(r.get("name"), "external")
+        u = r.get("url") or ""
+        if "/" in u:
+            add(u.rstrip("/").split("/")[-1],
+                "external")
     # modelchars roster
     for r in _jsonl(DATA / "modelchars" /
                     "roster.jsonl") or []:
