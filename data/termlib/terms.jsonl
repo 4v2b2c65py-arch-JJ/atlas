@@ -3243,3 +3243,10 @@
 {"ts": 1795189416.434538, "kind": "term", "term": "sadmi_damis", "seed": "vocab_stream_015", "category": "coined_names", "real_anchor": false, "derived": true}
 {"ts": 1795189416.434549, "kind": "term", "term": "castrol_catrol", "seed": "vocab_stream_015", "category": "coined_names", "real_anchor": false, "derived": true}
 {"ts": 1795189416.43456, "kind": "term", "term": "algos_lagos", "seed": "vocab_stream_015", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795189444.190732, "kind": "term", "term": "cohesion", "seed": "vocab_stream_016", "category": "coined_names", "real_anchor": true, "derived": true}
+{"ts": 1795189444.190774, "kind": "term", "term": "cohere", "seed": "vocab_stream_016", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795189444.190795, "kind": "term", "term": "cohesive", "seed": "vocab_stream_016", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795189444.190809, "kind": "term", "term": "corel", "seed": "vocab_stream_016", "category": "coined_names", "real_anchor": true, "derived": true}
+{"ts": 1795189444.1908212, "kind": "term", "term": "corcus", "seed": "vocab_stream_016", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795189444.190839, "kind": "term", "term": "corcus_cohesion", "seed": "vocab_stream_016", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795189444.190851, "kind": "term", "term": "corel_corcus", "seed": "vocab_stream_016", "category": "coined_names", "real_anchor": false, "derived": true}
