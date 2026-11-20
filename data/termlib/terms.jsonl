@@ -3343,3 +3343,12 @@
 {"ts": 1795190514.822786, "kind": "term", "term": "emira_emiras", "seed": "vocab_stream_020", "category": "coined_names", "real_anchor": false, "derived": true}
 {"ts": 1795190514.822797, "kind": "term", "term": "aston_aston", "seed": "vocab_stream_020", "category": "coined_names", "real_anchor": false, "derived": true}
 {"ts": 1795190514.822808, "kind": "term", "term": "celeste_celestial", "seed": "vocab_stream_020", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795190704.589897, "kind": "term", "term": "cascade", "seed": "vocab_stream_021", "category": "coined_names", "real_anchor": true, "derived": true}
+{"ts": 1795190704.589947, "kind": "term", "term": "centipeid", "seed": "vocab_stream_021", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795190704.5899699, "kind": "term", "term": "centipede", "seed": "vocab_stream_021", "category": "coined_names", "real_anchor": true, "derived": true}
+{"ts": 1795190704.589983, "kind": "term", "term": "mantis", "seed": "vocab_stream_021", "category": "coined_names", "real_anchor": true, "derived": true}
+{"ts": 1795190704.589994, "kind": "term", "term": "ghoul", "seed": "vocab_stream_021", "category": "coined_names", "real_anchor": true, "derived": true}
+{"ts": 1795190704.5900521, "kind": "term", "term": "ghuol", "seed": "vocab_stream_021", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795190704.590064, "kind": "term", "term": "guo", "seed": "vocab_stream_021", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795190704.590077, "kind": "term", "term": "gu", "seed": "vocab_stream_021", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795190704.590088, "kind": "term", "term": "cascade_moth", "seed": "vocab_stream_021", "category": "coined_names", "real_anchor": false, "derived": true}
