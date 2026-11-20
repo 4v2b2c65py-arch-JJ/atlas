@@ -3080,3 +3080,9 @@
 {"ts": 1795187507.667551, "kind": "term", "term": "dark_beast", "seed": "user_clarification", "category": "coined_world", "derived": true}
 {"ts": 1795187507.667776, "kind": "term", "term": "darkbest", "seed": "user_clarification", "category": "coined_world", "derived": true}
 {"ts": 1795187507.673774, "kind": "term", "term": "darkbeast", "seed": "user_clarification", "category": "coined_world", "derived": true}
+{"ts": 1795187760.305486, "kind": "term", "term": "grimgore", "seed": "vocab_stream_006", "category": "coined_grim", "canonical": "grimware", "derived": true}
+{"ts": 1795187760.30553, "kind": "term", "term": "grimcore", "seed": "vocab_stream_006", "category": "coined_grim", "canonical": "grimware", "derived": true}
+{"ts": 1795187760.3055491, "kind": "term", "term": "grimore", "seed": "vocab_stream_006", "category": "coined_grim", "canonical": "grimware", "derived": true}
+{"ts": 1795187760.305562, "kind": "term", "term": "grimwa", "seed": "vocab_stream_006", "category": "coined_grim", "canonical": "grimware", "derived": true}
+{"ts": 1795187760.305574, "kind": "term", "term": "grimgar", "seed": "vocab_stream_006", "category": "coined_grim", "canonical": "grimware", "derived": true}
+{"ts": 1795187760.313969, "kind": "term", "term": "grimware", "seed": "vocab_stream_006", "category": "coined_grim", "derived": true}

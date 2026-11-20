@@ -30,3 +30,4 @@
 {"kind": "sea_index", "name": "bankweb_world_map", "slug": "bankweb_world_map", "tokens": 84, "device_time": {"ts": 1794942184.608013, "iso": "2026-11-17T15:03:04.608-04:00", "timezone": "AST", "date": "2026-11-17"}}
 {"kind": "sea_index", "name": "model_chars_001", "slug": "model_chars_001", "tokens": 58, "device_time": {"ts": 1795125285.432418, "iso": "2026-11-19T17:54:45.432-04:00", "timezone": "AST", "date": "2026-11-19"}}
 {"kind": "sea_index", "name": "vocab_stream_005", "slug": "vocab_stream_005", "tokens": 62, "device_time": {"ts": 1795187298.756988, "iso": "2026-11-20T11:08:18.756-04:00", "timezone": "AST", "date": "2026-11-20"}}
+{"kind": "sea_index", "name": "vocab_stream_006", "slug": "vocab_stream_006", "tokens": 5, "device_time": {"ts": 1795187760.229047, "iso": "2026-11-20T11:16:00.229-04:00", "timezone": "AST", "date": "2026-11-20"}}
