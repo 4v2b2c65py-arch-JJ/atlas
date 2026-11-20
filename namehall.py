@@ -140,6 +140,10 @@ def _harvest() -> dict[str, set]:
     for r in _jsonl(DATA / "handles" / "stubs.jsonl")             or []:
         add(r.get("handle"), "handle_stub")
         add(r.get("slug"), "handle_stub")
+    # alias registry — equivalence pairs
+    for r in _jsonl(DATA / "aliases.jsonl") or []:
+        add(r.get("canonical"), "alias")
+        add(r.get("alias"), "alias")
     # external clones/pages registry
     for r in _jsonl(DATA / "external" /
                     "registry.jsonl") or []:

@@ -3077,3 +3077,6 @@
 {"ts": 1795187298.908117, "kind": "term", "term": "best_dark", "seed": "vocab_stream_005", "category": "coined_world", "derived": true}
 {"ts": 1795187298.908125, "kind": "term", "term": "dungeon_map", "seed": "vocab_stream_005", "category": "coined_world", "derived": true}
 {"ts": 1795187298.908133, "kind": "term", "term": "swamp_map", "seed": "vocab_stream_005", "category": "coined_world", "derived": true}
+{"ts": 1795187507.667551, "kind": "term", "term": "dark_beast", "seed": "user_clarification", "category": "coined_world", "derived": true}
+{"ts": 1795187507.667776, "kind": "term", "term": "darkbest", "seed": "user_clarification", "category": "coined_world", "derived": true}
+{"ts": 1795187507.673774, "kind": "term", "term": "darkbeast", "seed": "user_clarification", "category": "coined_world", "derived": true}
