@@ -3480,3 +3480,10 @@
 {"ts": 1795286612.6886668, "kind": "term", "term": "zot", "seed": "vocab_stream_030", "category": "coined_names", "derived": true}
 {"ts": 1795286612.688681, "kind": "term", "term": "crasis", "seed": "vocab_stream_030", "category": "coined_names", "derived": true}
 {"ts": 1795286612.688694, "kind": "term", "term": "zockrasis", "seed": "vocab_stream_030", "category": "coined_names", "derived": true}
+{"ts": 1795286658.319371, "kind": "term", "term": "resilance", "seed": "vocab_stream_031", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795286658.319422, "kind": "term", "term": "resilience", "seed": "vocab_stream_031", "category": "coined_names", "real_anchor": true, "derived": true}
+{"ts": 1795286658.319442, "kind": "term", "term": "retilia", "seed": "vocab_stream_031", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795286658.319456, "kind": "term", "term": "retina", "seed": "vocab_stream_031", "category": "coined_names", "real_anchor": true, "derived": true}
+{"ts": 1795286658.319469, "kind": "term", "term": "reltna", "seed": "vocab_stream_031", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795286658.319859, "kind": "term", "term": "resilance_retilia", "seed": "vocab_stream_031", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795286658.319904, "kind": "term", "term": "retina_reltna", "seed": "vocab_stream_031", "category": "coined_names", "real_anchor": false, "derived": true}
