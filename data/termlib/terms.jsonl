@@ -3475,3 +3475,8 @@
 {"ts": 1795286576.180777, "kind": "term", "term": "mapa_napa", "seed": "vocab_stream_029", "category": "coined_names", "real_anchor": false, "derived": true}
 {"ts": 1795286576.180789, "kind": "term", "term": "napa_nano", "seed": "vocab_stream_029", "category": "coined_names", "real_anchor": false, "derived": true}
 {"ts": 1795286576.180801, "kind": "term", "term": "ordinare_ordinary", "seed": "vocab_stream_029", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795286612.688576, "kind": "term", "term": "zotcrasis", "seed": "vocab_stream_030", "category": "coined_names", "derived": true}
+{"ts": 1795286612.6886332, "kind": "term", "term": "zot_crasis", "seed": "vocab_stream_030", "category": "coined_names", "derived": true}
+{"ts": 1795286612.6886668, "kind": "term", "term": "zot", "seed": "vocab_stream_030", "category": "coined_names", "derived": true}
+{"ts": 1795286612.688681, "kind": "term", "term": "crasis", "seed": "vocab_stream_030", "category": "coined_names", "derived": true}
+{"ts": 1795286612.688694, "kind": "term", "term": "zockrasis", "seed": "vocab_stream_030", "category": "coined_names", "derived": true}
