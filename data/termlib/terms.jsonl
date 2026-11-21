@@ -3580,3 +3580,5 @@
 {"ts": 1795287993.511483, "kind": "term", "term": "midias", "seed": "vocab_stream_045", "category": "coined_names", "real_anchor": false, "derived": true}
 {"ts": 1795287993.511839, "kind": "term", "term": "bail", "seed": "vocab_stream_045", "category": "coined_names", "real_anchor": false, "derived": true}
 {"ts": 1795287993.512067, "kind": "term", "term": "beil", "seed": "vocab_stream_045", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795288005.6281102, "kind": "term", "term": "veil", "seed": "vocab_stream_046", "category": "coined_names", "real_anchor": true, "derived": true}
+{"ts": 1795288005.628421, "kind": "term", "term": "beil_veil", "seed": "vocab_stream_046", "category": "coined_names", "real_anchor": false, "derived": true}
