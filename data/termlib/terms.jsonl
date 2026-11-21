@@ -3638,3 +3638,7 @@
 {"ts": 1795288795.248543, "kind": "term", "term": "lyod", "seed": "vocab_stream_052", "category": "coined_names", "real_anchor": false, "derived": true}
 {"ts": 1795288795.248849, "kind": "term", "term": "liod", "seed": "vocab_stream_052", "category": "coined_names", "real_anchor": false, "derived": true}
 {"ts": 1795288795.256052, "kind": "term", "term": "lloyd", "seed": "vocab_stream_052", "category": "coined_names", "real_anchor": true, "derived": true}
+{"ts": 1795288876.22267, "kind": "term", "term": "mercerdi", "seed": "vocab_stream_053", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795288876.222919, "kind": "term", "term": "mercredi", "seed": "vocab_stream_053", "category": "coined_names", "real_anchor": true, "derived": true}
+{"ts": 1795288876.2257972, "kind": "term", "term": "mercurdi", "seed": "vocab_stream_053", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795288876.226131, "kind": "term", "term": "wednesday", "seed": "vocab_stream_053", "category": "coined_names", "real_anchor": true, "derived": true}
