@@ -3597,3 +3597,7 @@
 {"ts": 1795288195.0167522, "kind": "term", "term": "sarah_hamzra", "seed": "vocab_stream_048", "category": "coined_names", "real_anchor": false, "derived": true}
 {"ts": 1795288214.2954612, "kind": "term", "term": "airsa", "seed": "vocab_stream_049", "category": "coined_names", "derived": true}
 {"ts": 1795288214.295765, "kind": "term", "term": "airza", "seed": "vocab_stream_049", "category": "coined_names", "derived": true}
+{"ts": 1795288283.963063, "kind": "term", "term": "ridehood", "seed": "vocab_stream_050", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795288283.963346, "kind": "term", "term": "ride_hood", "seed": "vocab_stream_050", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795288283.9674869, "kind": "term", "term": "robin_hood", "seed": "vocab_stream_050", "category": "coined_names", "real_anchor": true, "derived": true}
+{"ts": 1795288283.967884, "kind": "term", "term": "robinhood", "seed": "vocab_stream_050", "category": "coined_names", "real_anchor": true, "derived": true}
