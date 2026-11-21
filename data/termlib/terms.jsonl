@@ -3439,3 +3439,17 @@
 {"ts": 1795286153.198515, "kind": "term", "term": "genuinity", "seed": "vocab_stream_026", "category": "coined_names", "real_anchor": false, "derived": true}
 {"ts": 1795286153.198526, "kind": "term", "term": "genunity", "seed": "vocab_stream_026", "category": "coined_names", "real_anchor": false, "derived": true}
 {"ts": 1795286153.198542, "kind": "term", "term": "genuineness", "seed": "vocab_stream_026", "category": "coined_names", "real_anchor": true, "derived": true}
+{"ts": 1795286368.71611, "kind": "term", "term": "baut", "seed": "vocab_stream_027", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795286368.716228, "kind": "term", "term": "comence", "seed": "vocab_stream_027", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795286368.7162712, "kind": "term", "term": "boutcomence", "seed": "vocab_stream_027", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795286368.716286, "kind": "term", "term": "bau", "seed": "vocab_stream_027", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795286368.716299, "kind": "term", "term": "lu", "seed": "vocab_stream_027", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795286368.716326, "kind": "term", "term": "su", "seed": "vocab_stream_027", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795286368.716337, "kind": "term", "term": "tu", "seed": "vocab_stream_027", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795286368.716347, "kind": "term", "term": "comend", "seed": "vocab_stream_027", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795286368.716356, "kind": "term", "term": "commence", "seed": "vocab_stream_027", "category": "coined_names", "real_anchor": true, "derived": true}
+{"ts": 1795286368.716368, "kind": "term", "term": "begin", "seed": "vocab_stream_027", "category": "coined_names", "real_anchor": true, "derived": true}
+{"ts": 1795286368.716379, "kind": "term", "term": "bau_lu", "seed": "vocab_stream_027", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795286368.716393, "kind": "term", "term": "bau_su", "seed": "vocab_stream_027", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795286368.716406, "kind": "term", "term": "bau_tu", "seed": "vocab_stream_027", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795286368.716416, "kind": "term", "term": "bout_comence", "seed": "vocab_stream_027", "category": "coined_names", "real_anchor": false, "derived": true}
