@@ -3635,3 +3635,6 @@
 {"ts": 1795288744.32811, "kind": "term", "term": "wukon", "seed": "vocab_stream_051", "category": "coined_names", "real_anchor": false, "derived": true}
 {"ts": 1795288744.329111, "kind": "term", "term": "wukong", "seed": "vocab_stream_051", "category": "coined_names", "real_anchor": true, "derived": true}
 {"ts": 1795288744.329772, "kind": "term", "term": "sun_wukong", "seed": "vocab_stream_051", "category": "coined_names", "real_anchor": true, "derived": true}
+{"ts": 1795288795.248543, "kind": "term", "term": "lyod", "seed": "vocab_stream_052", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795288795.248849, "kind": "term", "term": "liod", "seed": "vocab_stream_052", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795288795.256052, "kind": "term", "term": "lloyd", "seed": "vocab_stream_052", "category": "coined_names", "real_anchor": true, "derived": true}
