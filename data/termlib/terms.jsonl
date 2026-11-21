@@ -3539,3 +3539,6 @@
 {"ts": 1795287036.974853, "kind": "term", "term": "serpah", "seed": "vocab_stream_036", "category": "coined_names", "real_anchor": false, "derived": true}
 {"ts": 1795287036.974868, "kind": "term", "term": "seraphin_serpa", "seed": "vocab_stream_036", "category": "coined_names", "real_anchor": false, "derived": true}
 {"ts": 1795287036.974886, "kind": "term", "term": "seraph_seraphin", "seed": "vocab_stream_036", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795287509.45083, "kind": "term", "term": "tin", "seed": "vocab_stream_037", "category": "coined_names", "real_anchor": true, "derived": true}
+{"ts": 1795287509.451097, "kind": "term", "term": "tintin", "seed": "vocab_stream_037", "category": "coined_names", "real_anchor": true, "derived": true}
+{"ts": 1795287509.451284, "kind": "term", "term": "tin_tin", "seed": "vocab_stream_037", "category": "coined_names", "real_anchor": false, "derived": true}
