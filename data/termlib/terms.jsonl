@@ -3557,3 +3557,12 @@
 {"ts": 1795287566.220799, "kind": "term", "term": "genug", "seed": "vocab_stream_040", "category": "coined_names", "real_anchor": true, "derived": true}
 {"ts": 1795287566.229099, "kind": "term", "term": "du_bist_genug", "seed": "vocab_stream_040", "category": "coined_names", "real_anchor": false, "derived": true}
 {"ts": 1795287566.2293959, "kind": "term", "term": "you_are_enough", "seed": "vocab_stream_040", "category": "coined_names", "real_anchor": true, "derived": true}
+{"ts": 1795287734.953418, "kind": "term", "term": "aticktodium", "seed": "vocab_stream_041", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795287734.953472, "kind": "term", "term": "todium", "seed": "vocab_stream_041", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795287734.9536052, "kind": "term", "term": "newton", "seed": "vocab_stream_041", "category": "coined_names", "real_anchor": true, "derived": true}
+{"ts": 1795287734.9536262, "kind": "term", "term": "mewto", "seed": "vocab_stream_041", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795287734.9536378, "kind": "term", "term": "menma", "seed": "vocab_stream_041", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795287734.9536572, "kind": "term", "term": "tom_newton", "seed": "vocab_stream_041", "category": "coined_names", "real_anchor": true, "derived": true}
+{"ts": 1795287734.953669, "kind": "term", "term": "todium_aticktodium", "seed": "vocab_stream_041", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795287734.953681, "kind": "term", "term": "sodium", "seed": "vocab_stream_041", "category": "coined_names", "real_anchor": true, "derived": true}
+{"ts": 1795287734.953692, "kind": "term", "term": "isaac_newton", "seed": "vocab_stream_041", "category": "coined_names", "real_anchor": true, "derived": true}
