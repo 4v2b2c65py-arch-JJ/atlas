@@ -3566,3 +3566,8 @@
 {"ts": 1795287734.953669, "kind": "term", "term": "todium_aticktodium", "seed": "vocab_stream_041", "category": "coined_names", "real_anchor": false, "derived": true}
 {"ts": 1795287734.953681, "kind": "term", "term": "sodium", "seed": "vocab_stream_041", "category": "coined_names", "real_anchor": true, "derived": true}
 {"ts": 1795287734.953692, "kind": "term", "term": "isaac_newton", "seed": "vocab_stream_041", "category": "coined_names", "real_anchor": true, "derived": true}
+{"ts": 1795287895.849099, "kind": "term", "term": "pandmoniom", "seed": "vocab_stream_042", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795287895.849144, "kind": "term", "term": "pandamnium", "seed": "vocab_stream_042", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795287895.8491678, "kind": "term", "term": "pandamonium", "seed": "vocab_stream_042", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795287895.849227, "kind": "term", "term": "king_midas", "seed": "vocab_stream_042", "category": "coined_names", "real_anchor": true, "derived": true}
+{"ts": 1795287895.849258, "kind": "term", "term": "midas_pandemonium", "seed": "vocab_stream_042", "category": "coined_names", "real_anchor": true, "derived": true}
