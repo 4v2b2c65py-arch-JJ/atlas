@@ -3642,3 +3642,5 @@
 {"ts": 1795288876.222919, "kind": "term", "term": "mercredi", "seed": "vocab_stream_053", "category": "coined_names", "real_anchor": true, "derived": true}
 {"ts": 1795288876.2257972, "kind": "term", "term": "mercurdi", "seed": "vocab_stream_053", "category": "coined_names", "real_anchor": false, "derived": true}
 {"ts": 1795288876.226131, "kind": "term", "term": "wednesday", "seed": "vocab_stream_053", "category": "coined_names", "real_anchor": true, "derived": true}
+{"ts": 1795288900.198661, "kind": "term", "term": "mecedi", "seed": "vocab_stream_054", "category": "coined_names", "derived": true}
+{"ts": 1795288900.1988978, "kind": "term", "term": "mecedi_mercredi", "seed": "vocab_stream_054", "category": "coined_names", "derived": true}
