@@ -3426,3 +3426,10 @@
 {"ts": 1795284842.265274, "kind": "term", "term": "nihilist_lament", "seed": "vocab_stream_024", "category": "coined_names", "real_anchor": false, "derived": true}
 {"ts": 1795284842.265302, "kind": "term", "term": "nihilist_elements", "seed": "vocab_stream_024", "category": "coined_names", "real_anchor": false, "derived": true}
 {"ts": 1795284842.265318, "kind": "term", "term": "nihilism", "seed": "vocab_stream_024", "category": "coined_names", "real_anchor": true, "derived": true}
+{"ts": 1795285179.7978098, "kind": "term", "term": "gusto", "seed": "vocab_stream_025", "category": "coined_names", "real_anchor": true, "derived": true}
+{"ts": 1795285179.797863, "kind": "term", "term": "sto", "seed": "vocab_stream_025", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795285179.797886, "kind": "term", "term": "gust", "seed": "vocab_stream_025", "category": "coined_names", "real_anchor": true, "derived": true}
+{"ts": 1795285179.797902, "kind": "term", "term": "tus", "seed": "vocab_stream_025", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795285179.797926, "kind": "term", "term": "dust", "seed": "vocab_stream_025", "category": "coined_names", "real_anchor": true, "derived": true}
+{"ts": 1795285179.797939, "kind": "term", "term": "gust_dust", "seed": "vocab_stream_025", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795285179.797952, "kind": "term", "term": "gusto_sto", "seed": "vocab_stream_025", "category": "coined_names", "real_anchor": false, "derived": true}
