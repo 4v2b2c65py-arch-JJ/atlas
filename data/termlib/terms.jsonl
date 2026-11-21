@@ -3453,3 +3453,17 @@
 {"ts": 1795286368.716393, "kind": "term", "term": "bau_su", "seed": "vocab_stream_027", "category": "coined_names", "real_anchor": false, "derived": true}
 {"ts": 1795286368.716406, "kind": "term", "term": "bau_tu", "seed": "vocab_stream_027", "category": "coined_names", "real_anchor": false, "derived": true}
 {"ts": 1795286368.716416, "kind": "term", "term": "bout_comence", "seed": "vocab_stream_027", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795286498.869311, "kind": "term", "term": "gul", "seed": "vocab_stream_028", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795286498.869355, "kind": "term", "term": "jinsulum", "seed": "vocab_stream_028", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795286498.869375, "kind": "term", "term": "tenten", "seed": "vocab_stream_028", "category": "coined_names", "real_anchor": true, "derived": true}
+{"ts": 1795286498.869388, "kind": "term", "term": "sacratis", "seed": "vocab_stream_028", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795286498.869401, "kind": "term", "term": "sombra", "seed": "vocab_stream_028", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795286498.8694131, "kind": "term", "term": "zombra", "seed": "vocab_stream_028", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795286498.869434, "kind": "term", "term": "umbreon", "seed": "vocab_stream_028", "category": "coined_names", "real_anchor": true, "derived": true}
+{"ts": 1795286498.869445, "kind": "term", "term": "lumbreon", "seed": "vocab_stream_028", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795286498.8694558, "kind": "term", "term": "umbrella", "seed": "vocab_stream_028", "category": "coined_names", "real_anchor": true, "derived": true}
+{"ts": 1795286498.8694668, "kind": "term", "term": "jin_su", "seed": "vocab_stream_028", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795286498.869478, "kind": "term", "term": "jin_lu", "seed": "vocab_stream_028", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795286498.869489, "kind": "term", "term": "jin_gul", "seed": "vocab_stream_028", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795286498.8695, "kind": "term", "term": "shadow", "seed": "vocab_stream_028", "category": "coined_names", "real_anchor": true, "derived": true}
+{"ts": 1795286498.8695118, "kind": "term", "term": "tenten_sombra", "seed": "vocab_stream_028", "category": "coined_names", "real_anchor": false, "derived": true}

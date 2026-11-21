@@ -52,3 +52,4 @@
 {"kind": "sea_index", "name": "vocab_stream_025", "slug": "vocab_stream_025", "tokens": 6, "device_time": {"ts": 1795285179.635483, "iso": "2026-11-21T14:19:39.635-04:00", "timezone": "AST", "date": "2026-11-21"}}
 {"kind": "sea_index", "name": "vocab_stream_026", "slug": "vocab_stream_026", "tokens": 3, "device_time": {"ts": 1795286152.97974, "iso": "2026-11-21T14:35:52.979-04:00", "timezone": "AST", "date": "2026-11-21"}}
 {"kind": "sea_index", "name": "vocab_stream_027", "slug": "vocab_stream_027", "tokens": 11, "device_time": {"ts": 1795286368.559767, "iso": "2026-11-21T14:39:28.559-04:00", "timezone": "AST", "date": "2026-11-21"}}
+{"kind": "sea_index", "name": "vocab_stream_028", "slug": "vocab_stream_028", "tokens": 13, "device_time": {"ts": 1795286498.608573, "iso": "2026-11-21T14:41:38.608-04:00", "timezone": "AST", "date": "2026-11-21"}}
