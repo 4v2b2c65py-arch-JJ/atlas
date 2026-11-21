@@ -3509,3 +3509,16 @@
 {"ts": 1795286762.182334, "kind": "term", "term": "alacos", "seed": "vocab_stream_033", "category": "coined_names", "derived": true}
 {"ts": 1795286762.182345, "kind": "term", "term": "valont_alont", "seed": "vocab_stream_033", "category": "coined_names", "derived": true}
 {"ts": 1795286762.182357, "kind": "term", "term": "alcum_lacum", "seed": "vocab_stream_033", "category": "coined_names", "derived": true}
+{"ts": 1795286914.435283, "kind": "term", "term": "goti", "seed": "vocab_stream_034", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795286914.43534, "kind": "term", "term": "walahi", "seed": "vocab_stream_034", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795286914.435361, "kind": "term", "term": "verti", "seed": "vocab_stream_034", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795286914.4353762, "kind": "term", "term": "arogar", "seed": "vocab_stream_034", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795286914.435389, "kind": "term", "term": "dimitris", "seed": "vocab_stream_034", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795286914.4354, "kind": "term", "term": "fearsomes", "seed": "vocab_stream_034", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795286914.4354181, "kind": "term", "term": "fearsums", "seed": "vocab_stream_034", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795286914.435429, "kind": "term", "term": "frenzied", "seed": "vocab_stream_034", "category": "coined_names", "real_anchor": true, "derived": true}
+{"ts": 1795286914.435439, "kind": "term", "term": "grat", "seed": "vocab_stream_034", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795286914.4354508, "kind": "term", "term": "vojage", "seed": "vocab_stream_034", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795286914.435463, "kind": "term", "term": "voyage", "seed": "vocab_stream_034", "category": "coined_names", "real_anchor": true, "derived": true}
+{"ts": 1795286914.4354749, "kind": "term", "term": "fears", "seed": "vocab_stream_034", "category": "coined_names", "real_anchor": true, "derived": true}
+{"ts": 1795286914.435487, "kind": "term", "term": "frenzied_grat", "seed": "vocab_stream_034", "category": "coined_names", "real_anchor": false, "derived": true}
