@@ -3552,3 +3552,8 @@
 {"ts": 1795287555.2593658, "kind": "term", "term": "nein", "seed": "vocab_stream_039", "category": "coined_names", "real_anchor": true, "derived": true}
 {"ts": 1795287555.2619038, "kind": "term", "term": "nein_nein", "seed": "vocab_stream_039", "category": "coined_names", "real_anchor": false, "derived": true}
 {"ts": 1795287555.266943, "kind": "term", "term": "nine", "seed": "vocab_stream_039", "category": "coined_names", "real_anchor": true, "derived": true}
+{"ts": 1795287566.2153568, "kind": "term", "term": "du", "seed": "vocab_stream_040", "category": "coined_names", "real_anchor": true, "derived": true}
+{"ts": 1795287566.215719, "kind": "term", "term": "bist", "seed": "vocab_stream_040", "category": "coined_names", "real_anchor": true, "derived": true}
+{"ts": 1795287566.220799, "kind": "term", "term": "genug", "seed": "vocab_stream_040", "category": "coined_names", "real_anchor": true, "derived": true}
+{"ts": 1795287566.229099, "kind": "term", "term": "du_bist_genug", "seed": "vocab_stream_040", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795287566.2293959, "kind": "term", "term": "you_are_enough", "seed": "vocab_stream_040", "category": "coined_names", "real_anchor": true, "derived": true}
