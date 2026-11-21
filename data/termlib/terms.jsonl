@@ -3542,3 +3542,10 @@
 {"ts": 1795287509.45083, "kind": "term", "term": "tin", "seed": "vocab_stream_037", "category": "coined_names", "real_anchor": true, "derived": true}
 {"ts": 1795287509.451097, "kind": "term", "term": "tintin", "seed": "vocab_stream_037", "category": "coined_names", "real_anchor": true, "derived": true}
 {"ts": 1795287509.451284, "kind": "term", "term": "tin_tin", "seed": "vocab_stream_037", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795287532.890524, "kind": "term", "term": "leilo", "seed": "vocab_stream_038", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795287532.890573, "kind": "term", "term": "leylo", "seed": "vocab_stream_038", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795287532.890593, "kind": "term", "term": "leyum", "seed": "vocab_stream_038", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795287532.890605, "kind": "term", "term": "lemur", "seed": "vocab_stream_038", "category": "coined_names", "real_anchor": true, "derived": true}
+{"ts": 1795287532.890628, "kind": "term", "term": "leimore", "seed": "vocab_stream_038", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795287532.8906398, "kind": "term", "term": "lei_lo", "seed": "vocab_stream_038", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795287532.89065, "kind": "term", "term": "lemur_family", "seed": "vocab_stream_038", "category": "coined_names", "real_anchor": false, "derived": true}
