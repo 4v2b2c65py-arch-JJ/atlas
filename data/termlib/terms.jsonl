@@ -3658,3 +3658,8 @@
 {"ts": 1795288993.442333, "kind": "term", "term": "alias", "seed": "vocab_stream_057", "category": "coined_names", "real_anchor": true, "derived": true}
 {"ts": 1795288993.4504452, "kind": "term", "term": "elia", "seed": "vocab_stream_057", "category": "coined_names", "real_anchor": false, "derived": true}
 {"ts": 1795288993.4574919, "kind": "term", "term": "elias_alias", "seed": "vocab_stream_057", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795289142.188221, "kind": "term", "term": "nion", "seed": "vocab_stream_058", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795289142.188519, "kind": "term", "term": "nio", "seed": "vocab_stream_058", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795289142.188713, "kind": "term", "term": "neon", "seed": "vocab_stream_058", "category": "coined_names", "real_anchor": true, "derived": true}
+{"ts": 1795289142.188878, "kind": "term", "term": "neo_neon", "seed": "vocab_stream_058", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795289142.1891022, "kind": "term", "term": "the_neo", "seed": "vocab_stream_058", "category": "coined_names", "real_anchor": true, "derived": true}
