@@ -3577,3 +3577,6 @@
 {"ts": 1795287933.543063, "kind": "term", "term": "pandamonio", "seed": "vocab_stream_044", "category": "coined_names", "derived": true}
 {"ts": 1795287933.5434618, "kind": "term", "term": "pandaamonio", "seed": "vocab_stream_044", "category": "coined_names", "derived": true}
 {"ts": 1795287933.545182, "kind": "term", "term": "pandemonio", "seed": "vocab_stream_044", "category": "coined_names", "derived": true}
+{"ts": 1795287993.511483, "kind": "term", "term": "midias", "seed": "vocab_stream_045", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795287993.511839, "kind": "term", "term": "bail", "seed": "vocab_stream_045", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795287993.512067, "kind": "term", "term": "beil", "seed": "vocab_stream_045", "category": "coined_names", "real_anchor": false, "derived": true}
