@@ -3571,3 +3571,6 @@
 {"ts": 1795287895.8491678, "kind": "term", "term": "pandamonium", "seed": "vocab_stream_042", "category": "coined_names", "real_anchor": false, "derived": true}
 {"ts": 1795287895.849227, "kind": "term", "term": "king_midas", "seed": "vocab_stream_042", "category": "coined_names", "real_anchor": true, "derived": true}
 {"ts": 1795287895.849258, "kind": "term", "term": "midas_pandemonium", "seed": "vocab_stream_042", "category": "coined_names", "real_anchor": true, "derived": true}
+{"ts": 1795287916.589927, "kind": "term", "term": "bayle", "seed": "vocab_stream_043", "category": "coined_names", "derived": true}
+{"ts": 1795287916.590246, "kind": "term", "term": "bale", "seed": "vocab_stream_043", "category": "coined_names", "derived": true}
+{"ts": 1795287916.592461, "kind": "term", "term": "bay", "seed": "vocab_stream_043", "category": "coined_names", "derived": true}
