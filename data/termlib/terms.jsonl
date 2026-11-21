@@ -3534,3 +3534,8 @@
 {"ts": 1795287000.045463, "kind": "term", "term": "batch", "seed": "vocab_stream_035", "category": "coined_names", "real_anchor": true, "derived": true}
 {"ts": 1795287000.045471, "kind": "term", "term": "back", "seed": "vocab_stream_035", "category": "coined_names", "real_anchor": false, "derived": true}
 {"ts": 1795287000.045481, "kind": "term", "term": "centric", "seed": "vocab_stream_035", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795287036.9747882, "kind": "term", "term": "seraphin", "seed": "vocab_stream_036", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795287036.974834, "kind": "term", "term": "serpa", "seed": "vocab_stream_036", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795287036.974853, "kind": "term", "term": "serpah", "seed": "vocab_stream_036", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795287036.974868, "kind": "term", "term": "seraphin_serpa", "seed": "vocab_stream_036", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795287036.974886, "kind": "term", "term": "seraph_seraphin", "seed": "vocab_stream_036", "category": "coined_names", "real_anchor": false, "derived": true}
