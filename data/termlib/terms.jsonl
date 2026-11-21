@@ -3601,3 +3601,32 @@
 {"ts": 1795288283.963346, "kind": "term", "term": "ride_hood", "seed": "vocab_stream_050", "category": "coined_names", "real_anchor": false, "derived": true}
 {"ts": 1795288283.9674869, "kind": "term", "term": "robin_hood", "seed": "vocab_stream_050", "category": "coined_names", "real_anchor": true, "derived": true}
 {"ts": 1795288283.967884, "kind": "term", "term": "robinhood", "seed": "vocab_stream_050", "category": "coined_names", "real_anchor": true, "derived": true}
+{"ts": 1795288649.530383, "kind": "term", "term": "libweb", "seed": "libweb_ingest", "category": "coined_library", "derived": true}
+{"ts": 1795288649.530454, "kind": "term", "term": "world_libraries", "seed": "libweb_ingest", "category": "coined_library", "derived": true}
+{"ts": 1795288649.5304818, "kind": "term", "term": "multi_region_libraries", "seed": "libweb_ingest", "category": "coined_library", "derived": true}
+{"ts": 1795288649.530744, "kind": "term", "term": "old_texts", "seed": "libweb_ingest", "category": "coined_library", "derived": true}
+{"ts": 1795288649.530756, "kind": "term", "term": "transcription", "seed": "libweb_ingest", "category": "coined_library", "derived": true}
+{"ts": 1795288649.5307672, "kind": "term", "term": "ebook_archive", "seed": "libweb_ingest", "category": "coined_library", "derived": true}
+{"ts": 1795288649.530777, "kind": "term", "term": "digital_library", "seed": "libweb_ingest", "category": "coined_library", "derived": true}
+{"ts": 1795288649.5307882, "kind": "term", "term": "book_catalog", "seed": "libweb_ingest", "category": "coined_library", "derived": true}
+{"ts": 1795288649.530804, "kind": "term", "term": "transcription_wiki", "seed": "libweb_ingest", "category": "coined_library", "derived": true}
+{"ts": 1795288649.530814, "kind": "term", "term": "national_library", "seed": "libweb_ingest", "category": "coined_library", "derived": true}
+{"ts": 1795288649.531096, "kind": "term", "term": "cultural_aggregator", "seed": "libweb_ingest", "category": "coined_library", "derived": true}
+{"ts": 1795288649.531122, "kind": "term", "term": "cultural_archive", "seed": "libweb_ingest", "category": "coined_library", "derived": true}
+{"ts": 1795288649.531135, "kind": "term", "term": "public_domain", "seed": "libweb_ingest", "category": "coined_library", "derived": true}
+{"ts": 1795288649.531146, "kind": "term", "term": "gutenberg", "seed": "libweb_ingest", "category": "coined_library", "derived": true}
+{"ts": 1795288649.5314791, "kind": "term", "term": "internet_archive", "seed": "libweb_ingest", "category": "coined_library", "derived": true}
+{"ts": 1795288649.531491, "kind": "term", "term": "openlibrary", "seed": "libweb_ingest", "category": "coined_library", "derived": true}
+{"ts": 1795288649.531501, "kind": "term", "term": "wikisource", "seed": "libweb_ingest", "category": "coined_library", "derived": true}
+{"ts": 1795288649.531511, "kind": "term", "term": "standard_ebooks", "seed": "libweb_ingest", "category": "coined_library", "derived": true}
+{"ts": 1795288649.53152, "kind": "term", "term": "hathitrust", "seed": "libweb_ingest", "category": "coined_library", "derived": true}
+{"ts": 1795288649.531622, "kind": "term", "term": "loc", "seed": "libweb_ingest", "category": "coined_library", "derived": true}
+{"ts": 1795288649.531635, "kind": "term", "term": "gallica", "seed": "libweb_ingest", "category": "coined_library", "derived": true}
+{"ts": 1795288649.531647, "kind": "term", "term": "europeana", "seed": "libweb_ingest", "category": "coined_library", "derived": true}
+{"ts": 1795288649.531657, "kind": "term", "term": "ddb", "seed": "libweb_ingest", "category": "coined_library", "derived": true}
+{"ts": 1795288649.5316658, "kind": "term", "term": "rusneb", "seed": "libweb_ingest", "category": "coined_library", "derived": true}
+{"ts": 1795288649.531687, "kind": "term", "term": "ndl", "seed": "libweb_ingest", "category": "coined_library", "derived": true}
+{"ts": 1795288649.531696, "kind": "term", "term": "nla", "seed": "libweb_ingest", "category": "coined_library", "derived": true}
+{"ts": 1795288649.531706, "kind": "term", "term": "ignca", "seed": "libweb_ingest", "category": "coined_library", "derived": true}
+{"ts": 1795288649.5317152, "kind": "term", "term": "bnf", "seed": "libweb_ingest", "category": "coined_library", "derived": true}
+{"ts": 1795288649.531724, "kind": "term", "term": "bl_uk", "seed": "libweb_ingest", "category": "coined_library", "derived": true}

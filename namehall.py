@@ -158,6 +158,14 @@ def _harvest() -> dict[str, set]:
         add(r.get("canonical"), "modelchar")
         for v in r.get("variants", []):
             add(v, "modelchar")
+    # libweb: world libraries + text archives
+    for r in _jsonl(DATA / "libweb" / "pages.jsonl") \
+            or []:
+        if r.get("ok"):
+            add(r.get("name"), "libweb")
+            add(r.get("system"), "libweb")
+            add(r.get("region"), "libweb")
+            add(r.get("title"), "libweb")
     # bankweb: world banking + emerging fintech pages
     for r in _jsonl(DATA / "bankweb" / "pages.jsonl") \
             or []:

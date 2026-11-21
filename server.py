@@ -1735,6 +1735,16 @@ class Handler(BaseHTTPRequestHandler):
                 else:
                     self._send(200, celestial.status())
                 return
+            if path == "/api/libweb":
+                import libweb
+                action = qs.get("action", ["status"])[0]
+                if action == "ingest":
+                    self._send(200, libweb.ingest(
+                        refresh=qs.get("refresh",
+                                       [""])[0] == "1"))
+                else:
+                    self._send(200, libweb.status())
+                return
             if path == "/api/tagset":
                 import tagset
                 action = qs.get("action", ["status"])[0]
@@ -2527,6 +2537,16 @@ class Handler(BaseHTTPRequestHandler):
                     self._send(200, celestial.feed())
                 else:
                     self._send(200, celestial.status())
+                return
+            if path == "/api/libweb":
+                import libweb
+                action = qs.get("action", ["status"])[0]
+                if action == "ingest":
+                    self._send(200, libweb.ingest(
+                        refresh=qs.get("refresh",
+                                       [""])[0] == "1"))
+                else:
+                    self._send(200, libweb.status())
                 return
             if path == "/api/tagset":
                 import tagset

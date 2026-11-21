@@ -455,6 +455,12 @@ def main() -> None:
                     choices=["status", "ingest"],
                     default="status")
 
+    lw = sub.add_parser("libweb")
+    lw.add_argument("action", nargs="?",
+                    choices=["status", "ingest"],
+                    default="status")
+    lw.add_argument("--refresh", action="store_true")
+
     ts = sub.add_parser("tagset")
     ts.add_argument("action", nargs="?",
                     choices=["status", "add", "subset", "tags"],
@@ -1368,6 +1374,12 @@ def main() -> None:
         a = ns.action or "status"
         if a == "ingest": out(parsecdocs.ingest())
         else: out(parsecdocs.status())
+    elif ns.cmd == "libweb":
+        import libweb as _lw
+        if (ns.action or "status") == "ingest":
+            out(_lw.ingest(refresh=getattr(ns, "refresh", False)))
+        else:
+            out(_lw.status())
     elif ns.cmd == "tagset":
         import tagset as _ts
         a = ns.action or "status"
