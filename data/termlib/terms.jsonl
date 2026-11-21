@@ -3467,3 +3467,11 @@
 {"ts": 1795286498.869489, "kind": "term", "term": "jin_gul", "seed": "vocab_stream_028", "category": "coined_names", "real_anchor": false, "derived": true}
 {"ts": 1795286498.8695, "kind": "term", "term": "shadow", "seed": "vocab_stream_028", "category": "coined_names", "real_anchor": true, "derived": true}
 {"ts": 1795286498.8695118, "kind": "term", "term": "tenten_sombra", "seed": "vocab_stream_028", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795286576.180654, "kind": "term", "term": "ordinare", "seed": "vocab_stream_029", "category": "coined_names", "real_anchor": true, "derived": true}
+{"ts": 1795286576.180702, "kind": "term", "term": "ordinary", "seed": "vocab_stream_029", "category": "coined_names", "real_anchor": true, "derived": true}
+{"ts": 1795286576.180722, "kind": "term", "term": "mapa", "seed": "vocab_stream_029", "category": "coined_names", "real_anchor": true, "derived": true}
+{"ts": 1795286576.180736, "kind": "term", "term": "napa", "seed": "vocab_stream_029", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795286576.180748, "kind": "term", "term": "nano", "seed": "vocab_stream_029", "category": "coined_names", "real_anchor": true, "derived": true}
+{"ts": 1795286576.180777, "kind": "term", "term": "mapa_napa", "seed": "vocab_stream_029", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795286576.180789, "kind": "term", "term": "napa_nano", "seed": "vocab_stream_029", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795286576.180801, "kind": "term", "term": "ordinare_ordinary", "seed": "vocab_stream_029", "category": "coined_names", "real_anchor": false, "derived": true}
