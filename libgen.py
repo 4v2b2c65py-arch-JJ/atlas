@@ -203,22 +203,81 @@ def status() -> dict:
             "list": mirrors}
 
 
-def _parse_results(html: str, mirror: str) -> list:
-    """LibGen search.php returns a table; book links look
-    like book/index.php?md5=... — extract title+url pairs
-    honestly (whatever the mirror actually returned)."""
+def _strip(s: str) -> str:
+    import html as _h
+    return re.sub(r"\s+", " ", re.sub(
+        r"<[^>]+>", "", _h.unescape(s))).strip()
+
+
+def _parse_results(html: str, mirror: str,
+                   host: str = "") -> list:
+    """Parse result rows honestly. Two frontends exist:
+    classic mirrors return <a href="book/index.php?md5=..">
+    title</a>; the newer *.li/.la/.ee frontends render a
+    table where titles link to edition.php/series.php and
+    downloads live behind get.php?md5=/ads.php?md5=.
+    Whatever the mirror returned is what we record."""
+    base = host or mirror
     out = []
-    for m in re.finditer(
-            r'<a[^>]+href="([^"]*(?:book/index\.php|md5=)'
-            r'[^"]*)"[^>]*>(.*?)</a>', html, re.S | re.I):
-        url = m.group(1)
-        if url.startswith("/"):
-            url = "https://" + mirror + url
-        title = re.sub(r"\s+", " ", re.sub(
-            r"<[^>]+>", "", m.group(2))).strip()
-        if title and len(title) > 3 and "md5" in url.lower() \
-                or (title and "book/index" in url):
+    for tr in re.findall(r"<tr[^>]*>(.*?)</tr>",
+                         html, re.S | re.I):
+        if not re.search(r"md5=|book/index\.php|edition\.php",
+                         tr, re.I):
+            continue
+        tds = re.findall(r"<td[^>]*>(.*?)</td>",
+                         tr, re.S | re.I)
+        if not tds:
+            continue
+        # title: prefer the edition/book anchor text in
+        # the first cell, else the first real anchor,
+        # else the stripped cell text
+        anchors = [(a.group(1), _strip(a.group(2)))
+                   for a in re.finditer(
+                       r'<a[^>]+href="([^"]+)"[^>]*>'
+                       r'(.*?)</a>', tds[0], re.S | re.I)]
+        anchors = [(h, t) for h, t in anchors
+                   if t and len(t) > 3]
+        pick = next((t for h, t in anchors
+                     if "edition.php" in h or
+                     "book/index.php" in h), "")
+        if not pick:
+            pick = next((t for h, t in anchors
+                         if "publisher.php" not in h and
+                         "file.php" not in h), "")
+        title = pick or _strip(tds[0])[:200]
+        title = re.split(
+            r'["\']\s*(?:href|src|title|alt|class|id)\s*=',
+            title)[0].strip()
+        author = _strip(tds[1])[:200] if len(tds) > 1 else ""
+        md5m = re.search(r"md5=([0-9a-fA-F]{32})", tr)
+        md5 = md5m.group(1).lower() if md5m else ""
+        # url: prefer a book/edition page link, else the
+        # first md5-bearing download link on this mirror
+        url = ""
+        for a in re.finditer(
+                r'<a[^>]+href="([^"]+)"[^>]*>',
+                tds[0], re.S | re.I):
+            h = a.group(1)
+            if "book/index.php" in h or "edition.php" in h:
+                url = h if h.startswith("http") else \
+                    "https://" + base + "/" + h.lstrip("/")
+                break
+        if not url:
+            dm = re.search(
+                r'href="([^"]*(?:get|ads|book/index)\.php'
+                r'[^"]*md5=[0-9a-fA-F]{32}[^"]*)"',
+                tr, re.I)
+            if dm:
+                h = dm.group(1)
+                url = h if h.startswith("http") else \
+                    "https://" + base + "/" + h.lstrip("/")
+        if not url and md5:
+            url = ("https://" + base +
+                   "/book/index.php?md5=" + md5)
+        if title and url:
             out.append({"title": title[:200],
+                        "author": author,
+                        "md5": md5,
                         "url": url[:400],
                         "mirror": mirror})
         if len(out) >= 25:
@@ -226,27 +285,54 @@ def _parse_results(html: str, mirror: str) -> list:
     return out
 
 
+def _probe_latest() -> dict:
+    latest = {}
+    for r in _jsonl(PROBES) or []:
+        latest[r.get("name")] = r
+    return latest
+
+
 def search(query: str, limit: int = 25) -> dict:
-    """Query mirrors in registry order; first mirror that
-    returns parseable hits wins. All attempts recorded —
-    honest about which mirror answered."""
+    """Query mirrors — ones that answered the last probe
+    first, dead ones last. index.php?req= is the current
+    frontend path; search.php?req= covers classic mirrors.
+    First mirror with parseable hits wins; every attempt
+    is recorded honestly."""
     q = (query or "").strip()
     if not q:
         return {"error": "empty_query"}
+    latest = _probe_latest()
+    order = sorted(
+        MIRRORS,
+        key=lambda m: 0 if latest.get(m["name"], {})
+        .get("ok") else 1)
     attempts = []
-    for m in MIRRORS:
+    for m in order:
         if m["kind"] not in ("search", "search+download",
                              "portal"):
             continue
-        url = (m["url"].rstrip("/") +
-               "/search.php?req=" +
-               urllib.parse.quote(q) +
-               "&lg_topic=libgen&open=0&view=simple&"
-               "res=25&phrase=1&column=def")
-        r = _get(url, timeout=20)
-        hits = _parse_results(r.get("html", ""),
-                              m["name"]) \
-            if r.get("ok") else []
+        host = m["url"].split("://", 1)[-1]
+        enc = urllib.parse.quote(q)
+        paths = ["/index.php?req=" + enc,
+                 "/search.php?req=" + enc +
+                 "&lg_topic=libgen&open=0&view=simple&"
+                 "res=25&phrase=1&column=def"]
+        hits = []
+        r = {"ok": False, "error": "no_attempt"}
+        for pi, path in enumerate(paths):
+            r = _get(m["url"].rstrip("/") + path,
+                     timeout=12)
+            if not r.get("ok"):
+                # classic path 404s on new frontends and
+                # vice versa — try the other before moving
+                # to the next mirror
+                if r.get("status") in (404, 403):
+                    continue
+                break
+            hits = _parse_results(
+                r.get("html", ""), m["name"], host)
+            if hits or pi == len(paths) - 1:
+                break
         attempts.append({
             "mirror": m["name"], "ok": r.get("ok"),
             "status": r.get("status"),
@@ -262,7 +348,7 @@ def search(query: str, limit: int = 25) -> dict:
                     "attempts": attempts,
                     "note": ("first answering mirror wins — "
                              "all attempts recorded")}
-        time.sleep(0.4)
+        time.sleep(0.3)
     return {"kind": "libgen_search",
             "device_time": _now(),
             "query": q,
