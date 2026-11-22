@@ -1735,6 +1735,19 @@ class Handler(BaseHTTPRequestHandler):
                 else:
                     self._send(200, celestial.status())
                 return
+            if path == "/api/libgen":
+                import libgen
+                action = qs.get("action", ["status"])[0]
+                if action == "probe":
+                    self._send(200, libgen.probe())
+                elif action == "seed":
+                    self._send(200, libgen.seed())
+                elif action == "search":
+                    self._send(200, libgen.search(
+                        qs.get("q", [""])[0]))
+                else:
+                    self._send(200, libgen.status())
+                return
             if path == "/api/libweb":
                 import libweb
                 action = qs.get("action", ["status"])[0]
@@ -2537,6 +2550,19 @@ class Handler(BaseHTTPRequestHandler):
                     self._send(200, celestial.feed())
                 else:
                     self._send(200, celestial.status())
+                return
+            if path == "/api/libgen":
+                import libgen
+                action = qs.get("action", ["status"])[0]
+                if action == "probe":
+                    self._send(200, libgen.probe())
+                elif action == "seed":
+                    self._send(200, libgen.seed())
+                elif action == "search":
+                    self._send(200, libgen.search(
+                        qs.get("q", [""])[0]))
+                else:
+                    self._send(200, libgen.status())
                 return
             if path == "/api/libweb":
                 import libweb

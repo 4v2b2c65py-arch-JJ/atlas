@@ -455,6 +455,12 @@ def main() -> None:
                     choices=["status", "ingest"],
                     default="status")
 
+    lg = sub.add_parser("libgen")
+    lg.add_argument("action", nargs="?",
+                    choices=["status", "probe", "seed", "search"],
+                    default="status")
+    lg.add_argument("query", nargs="?")
+
     lw = sub.add_parser("libweb")
     lw.add_argument("action", nargs="?",
                     choices=["status", "ingest"],
@@ -1374,6 +1380,13 @@ def main() -> None:
         a = ns.action or "status"
         if a == "ingest": out(parsecdocs.ingest())
         else: out(parsecdocs.status())
+    elif ns.cmd == "libgen":
+        import libgen as _lg
+        a = ns.action or "status"
+        if a == "seed": out(_lg.seed())
+        elif a == "probe": out(_lg.probe())
+        elif a == "search": out(_lg.search(ns.query or ""))
+        else: out(_lg.status())
     elif ns.cmd == "libweb":
         import libweb as _lw
         if (ns.action or "status") == "ingest":

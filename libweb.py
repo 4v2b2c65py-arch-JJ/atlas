@@ -105,6 +105,9 @@ LIB_SOURCES = [
     {"name": "bn_mexico", "region": "north_america",
      "system": "national_library",
      "url": "https://www.bibliotecanacionaldemexico.gob.mx"},
+    {"name": "dokumen_pub", "region": "global",
+     "system": "document_archive",
+     "url": "https://dokumen.pub"},
 ]
 
 

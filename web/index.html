@@ -83,6 +83,7 @@
       <div class="tab" :class="{on:tab==='node'}" @click="tab='node';loadNode()">Node</div>
       <div class="tab" :class="{on:tab==='sys'}" @click="tab='sys';loadSys()">Sys</div>
       <div class="tab" :class="{on:tab==='names'}" @click="tab='names';loadNames()">Names</div>
+      <div class="tab" :class="{on:tab==='libgen'}" @click="tab='libgen';loadLibgen()">LibGen</div>
     </div>
 
     <!-- STREAM TAB -->
@@ -298,6 +299,43 @@
           <input class="search" style="flex:1;min-width:120px" v-model="plateA" placeholder="plate">
           <input class="search" style="flex:1;min-width:120px" v-model="plateB" placeholder="alias (=)">
           <button class="send" @click="namesPlate">insert .new</button>
+        </div>
+      </div>
+    </template>
+
+    <!-- LIBGEN TAB: library genesis mirrors, live probe + search -->
+    <template v-else-if="tab==='libgen'">
+      <div class="panel">
+        <h3>Library Genesis — libgensis</h3>
+        <div class="kv"><span>mirrors</span><span>{{ libgen.up }}/{{ libgen.mirrors }} up</span></div>
+        <div class="kv"><span>registry</span><span>{{ libgen.registry }} URIs banked</span></div>
+        <div class="cmt-form">
+          <button class="send" @click="libgenProbe" :disabled="libgenBusy">{{ libgenBusy?'probing…':'⟳ probe mirrors' }}</button>
+        </div>
+      </div>
+      <div class="panel">
+        <h3>Mirrors</h3>
+        <div class="kv" v-for="m in libgen.list||[]" :key="m.name">
+          <span><span class="dot" :class="m.up?'ok':'off'"></span>{{ m.name }} <span class="badge">{{ m.kind }}</span></span>
+          <span>{{ m.up ? (m.ms+'ms · '+(m.status||'')) : (m.error||'down') }}</span>
+        </div>
+        <div class="empty" v-if="!(libgen.list||[]).length">No probe yet — hit probe mirrors.</div>
+      </div>
+      <div class="panel">
+        <h3>Search</h3>
+        <div class="cmt-form">
+          <input class="search" style="flex:1" v-model="libgenQ" @keyup.enter="libgenSearch" placeholder="book, author, ISBN…">
+          <button class="send" @click="libgenSearch" :disabled="libgenBusy">search</button>
+        </div>
+        <div v-if="libgenResult" style="margin-top:8px">
+          <div class="kv" v-if="libgenResult.mirror"><span>answered by</span><span>{{ libgenResult.mirror }}</span></div>
+          <div class="kv" v-for="(a,i) in libgenResult.attempts||[]" :key="i">
+            <span>{{ a.mirror }}</span><span>{{ a.ok ? a.hits+' hits' : 'down' }}</span>
+          </div>
+          <div class="kv" v-for="h in libgenResult.hits||[]" :key="h.url" style="cursor:pointer" @click="openExternal(h.url)">
+            <span>{{ h.title }}</span><span>{{ h.mirror }}</span>
+          </div>
+          <div class="empty" v-if="libgenResult && !(libgenResult.hits||[]).length && !libgenBusy">No parseable hits — attempts recorded.</div>
         </div>
       </div>
     </template>
@@ -527,6 +565,25 @@ createApp({
       plateA.value = ''; plateB.value = ''; loadNames();
     };
 
+    // libgen tab: library genesis mirrors — live probe + search
+    const libgen = ref({list:[]}), libgenQ = ref(''),
+          libgenResult = ref(null), libgenBusy = ref(false);
+    const loadLibgen = async () => { libgen.value = await api('/api/libgen'); };
+    const libgenProbe = async () => {
+      libgenBusy.value = true;
+      try { libgen.value = await api('/api/libgen?action=probe'); }
+      finally { libgenBusy.value = false; }
+    };
+    const libgenSearch = async () => {
+      if (!libgenQ.value.trim()) return;
+      libgenBusy.value = true; libgenResult.value = null;
+      try {
+        libgenResult.value = await api('/api/libgen?action=search&q=' +
+          encodeURIComponent(libgenQ.value));
+      } finally { libgenBusy.value = false; }
+    };
+    const openExternal = u => window.open(u, '_blank', 'noopener');
+
     // federated engagement: merge per-layer state, dedupe by client/text
     const engRaw = ref({});
     const rebuildEng = () => {
@@ -661,7 +718,9 @@ createApp({
              sys, cfHost, socPlat, socToken, socExtra, approveMsg,
              loadSys, tunnelAct, saveSocial, siteLogin, modelApprove,
              names, nameQ, plateA, plateB, loadNames, namesLookup,
-             namesVote, namesWeights, namesPlate };
+             namesVote, namesWeights, namesPlate,
+             libgen, libgenQ, libgenResult, libgenBusy,
+             loadLibgen, libgenProbe, libgenSearch, openExternal };
   }
 }).mount('#app');
 </script>
