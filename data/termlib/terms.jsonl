@@ -3743,3 +3743,6 @@
 {"ts": 1795357326.395115, "kind": "term", "term": "anubis", "seed": "vocab_stream_060", "category": "coined_names", "real_anchor": true, "derived": true}
 {"ts": 1795357326.395115, "kind": "term", "term": "nebiro", "seed": "vocab_stream_060", "category": "coined_names", "real_anchor": true, "derived": true}
 {"ts": 1795357326.395115, "kind": "term", "term": "anubis_nebiro", "seed": "vocab_stream_060", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795357574.571893, "kind": "term", "term": "exodium", "seed": "vocab_stream_061", "category": "coined_names", "real_anchor": true, "derived": true}
+{"ts": 1795357574.571893, "kind": "term", "term": "exodion", "seed": "vocab_stream_061", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795357574.571893, "kind": "term", "term": "exodium_platform", "seed": "vocab_stream_061", "category": "coined_names", "real_anchor": false, "derived": true}

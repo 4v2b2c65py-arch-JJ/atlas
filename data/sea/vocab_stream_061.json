@@ -1,0 +1,24 @@
+{
+  "kind": "sea_block",
+  "name": "vocab_stream_061",
+  "slug": "vocab_stream_061",
+  "raw": "exodium",
+  "tokens": [
+    "exodium"
+  ],
+  "token_count": 1,
+  "unique_count": 1,
+  "families": {
+    "vocab": [
+      "latin-cluster",
+      "coined",
+      "stream"
+    ]
+  },
+  "note": "raw user vocab stream \u2014 exodium (elevated platform, latin), preserved verbatim",
+  "added": {
+    "ts": 1795357574.571893,
+    "iso": "2026-11-22T10:26:14"
+  },
+  "preserved": true
+}
