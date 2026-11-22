@@ -3663,3 +3663,16 @@
 {"ts": 1795289142.188713, "kind": "term", "term": "neon", "seed": "vocab_stream_058", "category": "coined_names", "real_anchor": true, "derived": true}
 {"ts": 1795289142.188878, "kind": "term", "term": "neo_neon", "seed": "vocab_stream_058", "category": "coined_names", "real_anchor": false, "derived": true}
 {"ts": 1795289142.1891022, "kind": "term", "term": "the_neo", "seed": "vocab_stream_058", "category": "coined_names", "real_anchor": true, "derived": true}
+{"ts": 1795312319.9284108, "kind": "term", "term": "memoire", "seed": "vocab_stream_059", "category": "coined_names", "real_anchor": true, "derived": true}
+{"ts": 1795312319.928546, "kind": "term", "term": "memoir", "seed": "vocab_stream_059", "category": "coined_names", "real_anchor": true, "derived": true}
+{"ts": 1795312319.928589, "kind": "term", "term": "noar", "seed": "vocab_stream_059", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795312319.9286048, "kind": "term", "term": "libgensis", "seed": "vocab_stream_059", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795312319.928653, "kind": "term", "term": "nidoat", "seed": "vocab_stream_059", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795312319.9286668, "kind": "term", "term": "nidoc", "seed": "vocab_stream_059", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795312319.9286778, "kind": "term", "term": "eniadoc", "seed": "vocab_stream_059", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795312319.92869, "kind": "term", "term": "anectdotte", "seed": "vocab_stream_059", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795312319.9287019, "kind": "term", "term": "anecdote", "seed": "vocab_stream_059", "category": "coined_names", "real_anchor": true, "derived": true}
+{"ts": 1795312319.928715, "kind": "term", "term": "memory", "seed": "vocab_stream_059", "category": "coined_names", "real_anchor": true, "derived": true}
+{"ts": 1795312319.9287271, "kind": "term", "term": "lib_genesis", "seed": "vocab_stream_059", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795312319.92874, "kind": "term", "term": "nid_family", "seed": "vocab_stream_059", "category": "coined_names", "real_anchor": false, "derived": true}
+{"ts": 1795312319.9287539, "kind": "term", "term": "memoire_memoir", "seed": "vocab_stream_059", "category": "coined_names", "real_anchor": false, "derived": true}
