@@ -1,0 +1,20 @@
+# Private implementation - not for public repo
+*.ps1
+*.json
+*.html
+*.c
+organic-iptv/
+prism-avatar/
+glucon-stream/
+iris-augmentation/
+catalogue-output/
+tape-rolls/
+node_modules/
+.env
+*.log
+
+# Keep only public API interface
+!api/
+!docs/
+!README.md
+!LICENSE

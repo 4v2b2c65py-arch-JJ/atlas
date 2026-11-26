@@ -1,0 +1,316 @@
+openapi: 3.0.3
+info:
+  title: GLASMO Organic Signal Processing API
+  version: 1.0.0
+  description: |
+    Public API interface for GLASMO organic signal processing ecosystem.
+    Connects to real hardware entropy sources (quantum RNG, QPC timing, thermal, process table)
+    without exposing implementation details.
+servers:
+  - url: http://localhost:3032
+    description: Organic IPTV / Signal Gateway
+  - url: http://localhost:3033
+    description: Prism Avatar Cinematic Stream
+paths:
+  /health:
+    get:
+      summary: Service health check
+      responses:
+        '200':
+          description: Service operational
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+  /signals/organic:
+    get:
+      summary: Live organic signal stream (WebSocket)
+      responses:
+        '101':
+          description: WebSocket upgrade
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrganicSignal'
+  /signals/entropy:
+    get:
+      summary: Current entropy pool snapshot
+      responses:
+        '200':
+          description: Entropy sources status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EntropySnapshot'
+  /catalogue/universal:
+    get:
+      summary: Universal catalogue (BC/DC/AC/NOW epochs)
+      parameters:
+        - name: epoch
+          in: query
+          schema:
+            type: string
+            enum: [BC, DC, AC, NOW]
+          description: Filter by epoch
+        - name: format
+          in: query
+          schema:
+            type: string
+            enum: [json, m3u, xspf, pls, organic]
+          default: json
+      responses:
+        '200':
+          description: Catalogue data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UniversalCatalogue'
+            text/plain:
+              schema:
+                type: string
+  /avatar/prism:
+    get:
+      summary: Prism avatar cinematic stream (WebSocket)
+      responses:
+        '101':
+          description: WebSocket upgrade for frame stream
+  /avatar/polygons:
+    get:
+      summary: Current polygon aviation/elongation state
+      responses:
+        '200':
+          description: 12 platonic/archimedean/kepler-poinsot solids state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PolygonState'
+  /calendar/celestial:
+    get:
+      summary: Live celestial positions
+      responses:
+        '200':
+          description: Sun longitude, moon phase, zodiac transit
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CelestialPositions'
+  /adc/sensors:
+    get:
+      summary: ADC sensor readings (thermal, voltage, fan, battery)
+      responses:
+        '200':
+          description: Hardware sensor telemetry
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ADCSensors'
+  /mcp/context:
+    get:
+      summary: MCP context (local model status)
+      responses:
+        '200':
+          description: Ollama/LM Studio model health
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MCPContext'
+  /clock/ntp:
+    get:
+      summary: NTP clock sync status
+      responses:
+        '200':
+          description: Clock synchronization state
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NTPClock'
+components:
+  schemas:
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [healthy, degraded, down]
+        timestamp:
+          type: string
+          format: date-time
+        services:
+          type: object
+          additionalProperties:
+            type: string
+            enum: [up, down, unknown]
+    OrganicSignal:
+      type: object
+      properties:
+        source:
+          type: string
+          enum: [quantum_rng, qpc_timing, process_table, thermal, network]
+        value:
+          type: number
+        timestamp:
+          type: string
+          format: date-time
+        taxonomy_branch:
+          type: string
+    EntropySnapshot:
+      type: object
+      properties:
+        quantum_bytes_available:
+          type: integer
+        qpc_frequency:
+          type: integer
+        process_count:
+          type: integer
+        thermal_zones:
+          type: array
+          items:
+            type: object
+            properties:
+              zone:
+                type: string
+              temperature_c:
+                type: number
+        network_adapters:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              bytes_sent:
+                type: integer
+              bytes_received:
+                type: integer
+    UniversalCatalogue:
+      type: object
+      properties:
+        epoch:
+          type: string
+        entries:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+              title:
+                type: string
+              source:
+                type: string
+              timeline_activity:
+                type: number
+              alien_tag:
+                type: string
+    PolygonState:
+      type: object
+      properties:
+        polygons:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              type:
+                type: string
+                enum: [platonic, archimedean, kepler_poinsot]
+              aviation_angle:
+                type: number
+              elongation_factor:
+                type: number
+              vertices:
+                type: array
+                items:
+                  type: array
+                  items:
+                    type: number
+    CelestialPositions:
+      type: object
+      properties:
+        sun_longitude_deg:
+          type: number
+        moon_phase:
+          type: string
+        moon_illumination_pct:
+          type: number
+        zodiac_sign:
+          type: string
+        julian_date:
+          type: number
+    ADCSensors:
+      type: object
+      properties:
+        thermal:
+          type: array
+          items:
+            type: object
+            properties:
+              label:
+                type: string
+              value_c:
+                type: number
+        voltage:
+          type: array
+          items:
+            type: object
+            properties:
+              label:
+                type: string
+              value_v:
+                type: number
+        fan:
+          type: array
+          items:
+            type: object
+            properties:
+              label:
+                type: string
+              rpm:
+                type: integer
+        battery:
+          type: array
+          items:
+            type: object
+            properties:
+              label:
+                type: string
+              percent:
+                type: number
+              status:
+                type: string
+    MCPContext:
+      type: object
+      properties:
+        ollama:
+          type: object
+          properties:
+            running:
+              type: boolean
+            models:
+              type: array
+              items:
+                type: string
+        lm_studio:
+          type: object
+          properties:
+            running:
+              type: boolean
+            models:
+              type: array
+              items:
+                type: string
+    NTPClock:
+      type: object
+      properties:
+        synchronized:
+          type: boolean
+        offset_ms:
+          type: number
+        stratum:
+          type: integer
+        reference_id:
+          type: string
+        last_sync:
+          type: string
+          format: date-time

@@ -1,0 +1,24 @@
+[submodule "signal-engine"]
+	path = signal-engine
+	url = https://github.com/4v2b2c65py-arch-JJ/GLASMO-signal-engine.git
+	branch = main
+[submodule "taxonomy-engine"]
+	path = taxonomy-engine
+	url = https://github.com/4v2b2c65py-arch-JJ/GLASMO-taxonomy-engine.git
+	branch = main
+[submodule "cataloguer"]
+	path = cataloguer
+	url = https://github.com/4v2b2c65py-arch-JJ/GLASMO-cataloguer.git
+	branch = main
+[submodule "iptv-gateway"]
+	path = iptv-gateway
+	url = https://github.com/4v2b2c65py-arch-JJ/GLASMO-iptv-gateway.git
+	branch = main
+[submodule "prism-avatar"]
+	path = prism-avatar
+	url = https://github.com/4v2b2c65py-arch-JJ/GLASMO-prism-avatar.git
+	branch = main
+[submodule "alien-tag"]
+	path = alien-tag
+	url = https://github.com/4v2b2c65py-arch-JJ/GLASMO-alien-tag.git
+	branch = main

@@ -25,6 +25,7 @@ import json
 import mimetypes
 import queue
 import socket
+import subprocess
 import sys
 import threading
 import time
@@ -41,6 +42,7 @@ if str(ROOT) not in sys.path:
 WEB = ROOT / "web"
 DATA = ROOT / "data"
 STORE = ROOT / "videos" / "store"
+GLASMO = ROOT / "glasmo"
 DATA.mkdir(exist_ok=True)
 
 _FETCH_LOCK = threading.Lock()
@@ -929,6 +931,135 @@ def storage_report() -> dict:
             "total_gb": round(u.total / 1e9, 1)}
 
 
+# ---------- GLASMO (additive signal layer) ----------
+
+GLASMO_NODE_SCRIPT = GLASMO / "api" / "persistent-connection.js"
+_glasmo_keeper_proc = None
+_glasmo_keeper_status = {"running": False, "pid": None, "error": None}
+
+
+def _process_count() -> int:
+    try:
+        out = subprocess.run(["ps", "-A"], capture_output=True, text=True, timeout=3)
+        return max(0, len(out.stdout.splitlines()) - 1)
+    except Exception:
+        return 0
+
+
+def _julian_date() -> float:
+    import datetime
+    now = datetime.datetime.now(datetime.timezone.utc)
+    a = (14 - now.month) // 12
+    y = now.year + 4800 - a
+    m = now.month + 12 * a - 3
+    jd = (now.day + (153 * m + 2) // 5 + 365 * y + y // 4 - y // 100
+          + y // 300 - 32045)
+    jd += (now.hour - 12) / 24 + now.minute / 1440 + now.second / 86400
+    return float(jd)
+
+
+def glasmo_health() -> dict:
+    return {
+        "status": "healthy",
+        "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "services": {
+            "organic-iptv": "standby",
+            "prism-avatar": "standby",
+            "atlas_hub": "up",
+        },
+    }
+
+
+def glasmo_entropy() -> dict:
+    import datetime
+    now = datetime.datetime.now(datetime.timezone.utc)
+    return {
+        "quantum_bytes_available": 0,
+        "qpc_frequency": int(time.get_clock_info("perf_counter").resolution ** -1),
+        "process_count": _process_count(),
+        "timestamp": now.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        "thermal_zones": [],
+        "network_adapters": [],
+    }
+
+
+def glasmo_catalogue(epoch: str = "NOW") -> dict:
+    return {"epoch": epoch, "entries": []}
+
+
+GLASMO_POLYGONS = [
+    {"name": "tetrahedron", "type": "platonic", "aviation_angle": 0.0,
+     "elongation_factor": 1.0,
+     "vertices": [[1, 1, 1], [1, -1, -1], [-1, 1, -1], [-1, -1, 1]]},
+    {"name": "cube", "type": "platonic", "aviation_angle": 0.0,
+     "elongation_factor": 1.0,
+     "vertices": [[1, 1, 1], [1, 1, -1], [1, -1, 1], [1, -1, -1],
+                  [-1, 1, 1], [-1, 1, -1], [-1, -1, 1], [-1, -1, -1]]},
+    {"name": "octahedron", "type": "platonic", "aviation_angle": 0.0,
+     "elongation_factor": 1.0,
+     "vertices": [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0],
+                  [0, 0, 1], [0, 0, -1]]},
+    {"name": "dodecahedron", "type": "platonic", "aviation_angle": 0.0,
+     "elongation_factor": 1.0, "vertices": []},
+    {"name": "icosahedron", "type": "platonic", "aviation_angle": 0.0,
+     "elongation_factor": 1.0, "vertices": []},
+]
+
+
+def glasmo_polygons() -> dict:
+    return {"polygons": GLASMO_POLYGONS}
+
+
+def glasmo_celestial() -> dict:
+    return {
+        "sun_longitude_deg": 0.0,
+        "moon_phase": "unknown",
+        "moon_illumination_pct": 0.0,
+        "zodiac_sign": "unknown",
+        "julian_date": _julian_date(),
+    }
+
+
+def glasmo_adc() -> dict:
+    return {"thermal": [], "voltage": [], "fan": [], "battery": []}
+
+
+def glasmo_mcp() -> dict:
+    try:
+        models = llm.list_models()
+        return {"ollama": {"running": bool(models), "models": models},
+                "lm_studio": {"running": False, "models": []}}
+    except Exception:
+        return {"ollama": {"running": False, "models": []},
+                "lm_studio": {"running": False, "models": []}}
+
+
+def glasmo_ntp() -> dict:
+    return {"synchronized": False, "offset_ms": 0.0, "stratum": 0,
+            "reference_id": "LOCAL",
+            "last_sync": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
+
+
+def glasmo_keeper() -> None:
+    """Best-effort: launch the GLASMO node persistent-connection keeper."""
+    global _glasmo_keeper_proc, _glasmo_keeper_status
+    script = GLASMO_NODE_SCRIPT
+    if not script.exists():
+        _glasmo_keeper_status["error"] = "keeper script missing"
+        return
+    try:
+        _glasmo_keeper_proc = subprocess.Popen(
+            ["node", str(script)],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+            cwd=str(GLASMO),
+        )
+        _glasmo_keeper_status.update(running=True,
+                                     pid=_glasmo_keeper_proc.pid,
+                                     error=None)
+    except Exception as e:
+        _glasmo_keeper_status.update(running=False, pid=None, error=str(e))
+
+
 # ---------- HTTP ----------
 
 class Handler(BaseHTTPRequestHandler):
@@ -1049,6 +1180,8 @@ class Handler(BaseHTTPRequestHandler):
         try:
             if path == "/api/events":
                 return self.do_GET_events()
+            if path.startswith("/api/glasmo"):
+                return self.do_GET_glasmo()
             if path in ("/", "/index.html"):
                 html = (WEB / "index.html").read_bytes()
                 self.send_response(200)
@@ -3171,6 +3304,51 @@ class Handler(BaseHTTPRequestHandler):
             except Exception:
                 pass
 
+    def do_GET_glasmo(self) -> None:
+        u = urllib.parse.urlparse(self.path)
+        rest = u.path[len("/api/glasmo"):] or "/"
+        if rest in ("", "/"):
+            self._send(200, {"glasmo": "v1", "endpoints": [
+                "/health", "/signals/entropy", "/signals/organic",
+                "/catalogue/universal", "/avatar/polygons", "/avatar/prism",
+                "/calendar/celestial", "/adc/sensors", "/mcp/context",
+                "/clock/ntp",
+            ]})
+            return
+        if rest == "/health":
+            self._send(200, glasmo_health()); return
+        if rest == "/signals/entropy":
+            self._send(200, glasmo_entropy()); return
+        if rest == "/signals/organic":
+            self._send(200, {"kind": "websocket",
+                             "url": "ws://localhost:3032/signals/organic",
+                             "note": "upgrade handled by GLASMO keeper on :3032"}); return
+        if rest == "/catalogue/universal":
+            epoch = urllib.parse.parse_qs(u.query).get("epoch", ["NOW"])[0]
+            self._send(200, glasmo_catalogue(epoch)); return
+        if rest == "/avatar/polygons":
+            self._send(200, glasmo_polygons()); return
+        if rest == "/avatar/prism":
+            self._send(200, {"kind": "websocket",
+                             "url": "ws://localhost:3033/avatar/prism",
+                             "note": "upgrade handled by GLASMO keeper on :3033"}); return
+        if rest == "/calendar/celestial":
+            self._send(200, glasmo_celestial()); return
+        if rest == "/adc/sensors":
+            self._send(200, glasmo_adc()); return
+        if rest == "/mcp/context":
+            self._send(200, glasmo_mcp()); return
+        if rest == "/clock/ntp":
+            self._send(200, glasmo_ntp()); return
+        self._send(404, {"error": "glasmo endpoint not found"})
+
+    def do_POST_glasmo(self) -> None:
+        u = urllib.parse.urlparse(self.path)
+        rest = u.path[len("/api/glasmo"):] or "/"
+        if rest == "/mcp/context":
+            self._send(200, glasmo_mcp()); return
+        self._send(404, {"error": "glasmo endpoint not found"})
+
     def do_POST(self):
         global _requests
         _requests += 1
@@ -3179,6 +3357,8 @@ class Handler(BaseHTTPRequestHandler):
         _clients[ip] = time.time()
         u = urllib.parse.urlparse(self.path)
         self._track_key()
+        if u.path.startswith("/api/glasmo"):
+            return self.do_POST_glasmo()
         try:
             body = self._json_body()
             if self._auth_required() and u.path not in (
@@ -4013,6 +4193,8 @@ def main():
     threading.Thread(target=economy_worker, daemon=True).start()
     # twitch keepalive: viewer bots hold registered live channels
     twitch.autostart()
+    # GLASMO persistent connection keeper (WS to :3032/:3033), additive
+    threading.Thread(target=glasmo_keeper, daemon=True).start()
     # bot session: self-commenting node over the comms link
     try:
         bot_cfg = identity.load_profile().get("bot", {})
